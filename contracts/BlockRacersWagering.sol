@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./BlockRacersToken.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "/contracts/BlockRacersToken.sol";
 
 // $$$$$$$\  $$\       $$$$$$\   $$$$$$\  $$\   $$\       $$$$$$$\   $$$$$$\   $$$$$$\  $$$$$$$$\ $$$$$$$\   $$$$$$\  
 // $$  __$$\ $$ |     $$  __$$\ $$  __$$\ $$ | $$  |      $$  __$$\ $$  __$$\ $$  __$$\ $$  _____|$$  __$$\ $$  __$$\ 
@@ -75,7 +75,7 @@ contract BlockRacersWagering is ReentrancyGuard {
         return true;
     }
 
-    /// @notice Claim PVP Winnings
+    /// @notice Claim PVP Winnings, 10% to dev wallet (This is a developer earn mechanic)
     /// @param _opponent The address of the challenging opponent
     /// @param _amount The amount of tokens being wagered
     /// @param _sig The signature from the authorization wallet

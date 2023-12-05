@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.20;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 // $$$$$$$\  $$\       $$$$$$\   $$$$$$\  $$\   $$\       $$$$$$$\   $$$$$$\   $$$$$$\  $$$$$$$$\ $$$$$$$\   $$$$$$\  
 // $$  __$$\ $$ |     $$  __$$\ $$  __$$\ $$ | $$  |      $$  __$$\ $$  __$$\ $$  __$$\ $$  _____|$$  __$$\ $$  __$$\ 
@@ -34,7 +34,7 @@ contract BlockRacersToken is ERC20, ReentrancyGuard {
         bytes32 messageHash = getMessageHash(abi.encodePacked(nonce[msg.sender], msg.sender, _amount));
         bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
         require(recover(ethSignedMessageHash, _sig) == authWallet, "Sig not made by auth");
-        _mint(_to, _amount);
+        _mint(_to, _amount*1e18);
         nonce[msg.sender]++;
         return true;
     }

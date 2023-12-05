@@ -2,8 +2,8 @@
 pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./BlockRacersToken.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "/contracts/BlockRacersToken.sol";
 
 // $$$$$$$\  $$\       $$$$$$\   $$$$$$\  $$\   $$\       $$$$$$$\   $$$$$$\   $$$$$$\  $$$$$$$$\ $$$$$$$\   $$$$$$\  
 // $$  __$$\ $$ |     $$  __$$\ $$  __$$\ $$ | $$  |      $$  __$$\ $$  __$$\ $$  __$$\ $$  _____|$$  __$$\ $$  __$$\ 
@@ -49,9 +49,9 @@ contract BlockRacersNfts is ERC721, ReentrancyGuard {
     uint256 public upgradePrice = 20*1e18;
     /// @dev Base URI for NFTBoard ipfs image
     string constant public BASE_URI = "https://ipfs.chainsafe.io/ipfs/";
-    string constant public URI1 = "QmdW2tRdCw2YERvhzbMHn2qcaBHPMNo5ofsoo8q9q9N3Qe";
-    string constant public URI2 = "QmWavwGJgqxMP38a6cxn9ehJASqdXNNcRT4YD7sa3dDMST";
-    string constant public URI3 = "QmevuY959udKfEYXJvLZmVqiNFVe6KfqqxMRprYbtRhncP";
+    string constant public URI1 = "QmS6FAGgauUsCNcYmQUCGD9mthSFdgGik95XQPcrntqjBQ";
+    string constant public URI2 = "QmY8APnJ2VmQZ9XRZDEDJADh28nwhscn8qXrHgrDKjqTzu";
+    string constant public URI3 = "QmXgVErzy8JHV3RefNYDUALFGkGfLuttwxAKffizYockLV";
     /// @dev Nonce to stop cheaters
     mapping(address => uint256) public nonce;
 
@@ -92,9 +92,10 @@ contract BlockRacersNfts is ERC721, ReentrancyGuard {
         else {
             nftType[nftId] = 3;
         }
+        _safeMint(msg.sender, nftId);
+        emit MintNft(msg.sender, nftId);
         ++nftId;
         ++totalNftCount;
-        emit MintNft(msg.sender, nftId);
         return true;
     }
 
@@ -156,6 +157,16 @@ contract BlockRacersNfts is ERC721, ReentrancyGuard {
     /// @return uint256[] The NFTIDs owned by an address
     function getOwnerNftIds(address _wallet) external view returns (uint256[] memory) {
         return ownerNftIds[_wallet];
+    }
+
+    /// @dev Nft stats
+    /// @return array of Nft stats
+    function nftStats(uint _nftId) external view returns (uint256, uint256, uint256) {
+        return (
+            engineLevel[_nftId],
+            handlingLevel[_nftId],
+            nosLevel[_nftId]
+        );
     }
 
     /// @notice NFT's tokenURI
