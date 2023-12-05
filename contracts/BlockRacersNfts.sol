@@ -47,10 +47,16 @@ contract BlockRacersNfts is ERC721, ReentrancyGuard {
     uint256 public nftPrice = 50*1e18;
     /// @dev The price of Nft upgrades
     uint256 public upgradePrice = 20*1e18;
+    /// @dev Base URI for NFTBoard ipfs image
+    string constant public BASE_URI = "https://ipfs.chainsafe.io/ipfs/";
+    string constant public URI1 = "QmdW2tRdCw2YERvhzbMHn2qcaBHPMNo5ofsoo8q9q9N3Qe";
+    string constant public URI2 = "QmWavwGJgqxMP38a6cxn9ehJASqdXNNcRT4YD7sa3dDMST";
+    string constant public URI3 = "QmevuY959udKfEYXJvLZmVqiNFVe6KfqqxMRprYbtRhncP";
     /// @dev Nonce to stop cheaters
     mapping(address => uint256) public nonce;
 
     /// @dev Nft stats
+    mapping(uint256 => uint256) public nftType;
     mapping(uint256 => uint256) public engineLevel;
     mapping(uint256 => uint256) public handlingLevel;
     mapping(uint256 => uint256) public nosLevel;
@@ -65,9 +71,9 @@ contract BlockRacersNfts is ERC721, ReentrancyGuard {
     /// @notice Mints an Nft to a users wallet
     /// @param _amount The amount of token being sent
     /// @return true if successful
-    function mintNft(uint _amount, bytes memory _sig) external nonReentrant() returns (bool) {
+    function mintNft(uint _amount, uint256 _nftType, bytes memory _sig) external nonReentrant() returns (bool) {
         require (_amount == nftPrice, "You need to pay more tokens");
-        bytes32 messageHash = getMessageHash(abi.encodePacked(nonce[msg.sender], _amount));
+        bytes32 messageHash = getMessageHash(abi.encodePacked(nonce[msg.sender], msg.sender, _amount, _nftType));
         bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
         require(recover(ethSignedMessageHash, _sig) == authWallet, "Sig not made by auth");
         nonce[msg.sender]++;
@@ -77,6 +83,15 @@ contract BlockRacersNfts is ERC721, ReentrancyGuard {
         engineLevel[nftId] = 1;
         handlingLevel[nftId] = 1;
         nosLevel[nftId] = 1;
+        if (_nftType == 1) {
+            nftType[nftId] = 1;
+        }
+        else if (_nftType == 2) {
+            nftType[nftId] = 2;
+        }
+        else {
+            nftType[nftId] = 3;
+        }
         ++nftId;
         ++totalNftCount;
         emit MintNft(msg.sender, nftId);
@@ -141,6 +156,23 @@ contract BlockRacersNfts is ERC721, ReentrancyGuard {
     /// @return uint256[] The NFTIDs owned by an address
     function getOwnerNftIds(address _wallet) external view returns (uint256[] memory) {
         return ownerNftIds[_wallet];
+    }
+
+    /// @notice NFT's tokenURI
+    /// @return string of nftId token uri
+    function tokenURI(uint256 _nftId) public view override returns (string memory) {
+        if (nftType[_nftId] == 1)
+        {
+            return string(bytes.concat(bytes(BASE_URI), bytes(URI1)));
+        }
+        else if (nftType[_nftId] == 2)
+        {
+            return string(bytes.concat(bytes(BASE_URI), bytes(URI2)));
+        }
+        else
+        {
+            return string(bytes.concat(bytes(BASE_URI), bytes(URI3)));
+        }
     }
 
     /// @dev Used for authentication to check if values came from inside the Block Racers game following solidity standards
