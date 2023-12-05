@@ -75,7 +75,7 @@ contract BlockRacersWagering is ReentrancyGuard {
         return true;
     }
 
-    /// @notice Claim PVP Winnings, 10% to dev wallet (This is a developer earn mechanic)
+    /// @notice Claim PVP Winnings
     /// @param _opponent The address of the challenging opponent
     /// @param _amount The amount of tokens being wagered
     /// @param _sig The signature from the authorization wallet
