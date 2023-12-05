@@ -34,7 +34,7 @@ contract BlockRacersToken is ERC20, ReentrancyGuard {
         bytes32 messageHash = getMessageHash(abi.encodePacked(nonce[msg.sender], msg.sender, _amount));
         bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
         require(recover(ethSignedMessageHash, _sig) == authWallet, "Sig not made by auth");
-        _mint(_to, _amount*1e18);
+        _mint(_to, _amount);
         nonce[msg.sender]++;
         return true;
     }
