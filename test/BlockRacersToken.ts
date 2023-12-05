@@ -23,9 +23,10 @@ describe("BlockRacersToken", function () {
     return { blockRacersToken, unlockTime, lockedAmount, owner, otherAccount };
   }
 
-  describe("Deployment", function () {
+  describe("read", function () {
   });
 
-  describe("Withdrawals", function () {
+  describe("write", function () {
+    it("mint")
   });
 });

@@ -26,6 +26,37 @@ describe("BlockRacersNfts", function () {
   describe("Deployment", function () {
   });
 
-  describe("Withdrawals", function () {
+  describe("Read functions", function () {
+    it("_token")
+    it("devWallet")
+    it("authWallet")
+    it("ownerNftIds")
+    it("carOwner")
+    it("ownerCarCount")
+    it("nftId")
+    it("totalNftCount")
+    it("nftPrice")
+    it("upgradePrice")
+    it("nonce")
+    it("engineLevel")
+    it("handlingLevel")
+    it("nosLevel")
+
+    it("getOwnerNftIds")
   });
+
+  describe("Write functions", function () {
+    it("mintNft")
+    it("upgradeEngine")
+    it("upgradeHandling")
+    it("upgradeNos")
+  });
+
+  describe("events", function() {
+    it("MintNft")
+    it("UpgradeEngine")
+    it("UpgradeHandling")
+    it("UpgradeNos")
+  })
+
 });

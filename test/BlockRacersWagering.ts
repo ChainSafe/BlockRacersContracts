@@ -23,9 +23,23 @@ describe("BlockRacersWagering", function () {
     return { blockRacersWagering, unlockTime, lockedAmount, owner, otherAccount };
   }
 
-  describe("Deployment", function () {
+  describe("read", function () {
+    it("_token")
+    it("devWallet")
+    it("authWallet")
+    it("pvpWager")
+    it("nonce")
   });
 
-  describe("Withdrawals", function () {
+  describe("write", function () {
+    it("setPvpWager")
+    it("acceptPvpWager")
+    it("pvpWagerClaim")
   });
+
+  describe("events", function () {
+    it("SetPVPWager")
+    it("AcceptPVPWager")
+    it("ClaimedPVPWinnings")
+  })
 });
