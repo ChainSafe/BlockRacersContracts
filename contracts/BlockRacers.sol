@@ -3,6 +3,8 @@ pragma solidity 0.8.22;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "./BlockRacersToken.sol";
 import "./BlockRacersAssets.sol";
 
@@ -88,9 +90,20 @@ contract BlockRacers is Ownable, ReentrancyGuard {
     modifier onlyValidPermit(bytes memory permit, GameItem itemType) {
         (uint256 price, uint16 maxLevel) = getItemData(itemType);
 
-        bytes32 messageHash = getMessageHash(abi.encodePacked(playerNonce[_msgSender()], _msgSender(), price, uint256(itemType)));
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-        require(recover(ethSignedMessageHash, permit) == issuerAccount, "Sig not made by auth");
+        // bytes32 messageHash = getMessageHash(abi.encodePacked(playerNonce[_msgSender()], _msgSender(), price, uint256(itemType)));
+        // bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
+        // require(recover(ethSignedMessageHash, permit) == issuerAccount, "Sig not made by auth");
+        require(SignatureChecker.isValidSignatureNow(
+            issuerAccount, 
+            MessageHashUtils.toEthSignedMessageHash(
+                keccak256(
+                    abi.encodePacked(playerNonce[_msgSender()], 
+                    _msgSender(), 
+                    price, 
+                    uint256(itemType)
+                ))),
+            permit),
+            "Sig not made by auth");
         _;
     }
 
@@ -254,31 +267,31 @@ contract BlockRacers is Ownable, ReentrancyGuard {
     }
 
     /// @dev Used for authentication to check if values came from inside the Block Racers game following solidity standards
-    function VerifySig(address _signer, bytes memory _message, bytes memory _sig) external pure returns (bool) {
-        bytes32 messageHash = getMessageHash(_message);
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-        return recover(ethSignedMessageHash, _sig) == _signer;
-    }
+    // function VerifySig(address _signer, bytes memory _message, bytes memory _sig) external pure returns (bool) {
+    //     bytes32 messageHash = getMessageHash(_message);
+    //     bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
+    //     return recover(ethSignedMessageHash, _sig) == _signer;
+    // }
 
-    function getMessageHash(bytes memory _message) internal pure returns (bytes32) {
-        return keccak256(_message);
-    }
+    // function getMessageHash(bytes memory _message) internal pure returns (bytes32) {
+    //     return keccak256(_message);
+    // }
 
-    function getEthSignedMessageHash(bytes32 _messageHash) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32",_messageHash));
-    }
+    // function getEthSignedMessageHash(bytes32 _messageHash) internal pure returns (bytes32) {
+    //     return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32",_messageHash));
+    // }
 
-    function recover(bytes32 _ethSignedMessageHash, bytes memory _sig) internal pure returns (address) {
-        (bytes32 r, bytes32 s, uint8 v) = _split(_sig);
-        return ecrecover(_ethSignedMessageHash, v, r, s);
-    }
+    // function recover(bytes32 _ethSignedMessageHash, bytes memory _sig) internal pure returns (address) {
+    //     (bytes32 r, bytes32 s, uint8 v) = _split(_sig);
+    //     return ecrecover(_ethSignedMessageHash, v, r, s);
+    // }
 
-    function _split (bytes memory _sig) internal pure returns (bytes32 r, bytes32 s, uint8 v) {
-        require(_sig.length == 65, "Invalid signature length");
-        assembly {
-            r := mload(add(_sig, 32))
-            s := mload(add(_sig, 64))
-            v := byte(0, mload(add(_sig, 96)))
-        }
-    }
+    // function _split (bytes memory _sig) internal pure returns (bytes32 r, bytes32 s, uint8 v) {
+    //     require(_sig.length == 65, "Invalid signature length");
+    //     assembly {
+    //         r := mload(add(_sig, 32))
+    //         s := mload(add(_sig, 64))
+    //         v := byte(0, mload(add(_sig, 96)))
+    //     }
+    // }
 }
