@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.22;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol";
@@ -19,7 +19,7 @@ import "./BlockRacersToken.sol";
 /// @notice This contract holds functions used for the Block Racers NFTs used in the game at https://github.com/Chainsafe/BlockRacers
 /// @dev All function calls are tested and have been implemented on the BlockRacers Game
 
-contract BlockRacersNfts is ERC1155URIStorage, ERC1155, ReentrancyGuard {
+contract BlockRacersNfts is ERC1155, ERC1155URIStorage, ReentrancyGuard {
     /// @dev Initializes the ERC20 token
     BlockRacersToken immutable _token;
    
@@ -66,7 +66,7 @@ contract BlockRacersNfts is ERC1155URIStorage, ERC1155, ReentrancyGuard {
     event UpgradeNos(address indexed wallet, uint256 _amount);
 
      /// @dev Constructor sets token to be used and nft info, input the RACE token address here on deployment
-    constructor(BlockRacersToken token) ERC1155("BlockRacersNFT", "RACENFT") {
+    constructor(BlockRacersToken token, string memory baseUri) ERC1155(baseUri) {
         _token = token;
     }
 
@@ -161,23 +161,6 @@ contract BlockRacersNfts is ERC1155URIStorage, ERC1155, ReentrancyGuard {
         return ownerNftIds[_wallet];
     }
 
-    /// @notice NFT's tokenURI
-    /// @return string of nftId token uri
-    function tokenURI(uint256 _nftId) public view override returns (string memory) {
-        if (nftType[_nftId] == 1)
-        {
-            return string(bytes.concat(bytes(BASE_URI), bytes(URI1)));
-        }
-        else if (nftType[_nftId] == 2)
-        {
-            return string(bytes.concat(bytes(BASE_URI), bytes(URI2)));
-        }
-        else
-        {
-            return string(bytes.concat(bytes(BASE_URI), bytes(URI3)));
-        }
-    }
-
     /// @dev Used for authentication to check if values came from inside the Block Racers game following solidity standards
     function VerifySig(address _signer, bytes memory _message, bytes memory _sig) external pure returns (bool) {
         bytes32 messageHash = getMessageHash(_message);
@@ -205,5 +188,13 @@ contract BlockRacersNfts is ERC1155URIStorage, ERC1155, ReentrancyGuard {
             s := mload(add(_sig, 64))
             v := byte(0, mload(add(_sig, 96)))
         }
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view override(ERC1155) returns (bool) {
+        return super.supportsInterface(interfaceId);
+    }
+
+    function uri(uint256 tokenId) public view override(ERC1155URIStorage, ERC1155) returns (string memory) {
+        return super.uri(tokenId);
     }
 }

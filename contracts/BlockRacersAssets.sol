@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.22;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol";
@@ -18,7 +18,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 /// @author RyRy79261
 /// @notice This contract facilitates asset management in BlockRacers at https://github.com/Chainsafe/BlockRacers
 
-contract BlockRacersAssets is ERC1155URIStorage, ERC1155, AccessControl, ReentrancyGuard {
+contract BlockRacersAssets is ERC1155, ERC1155URIStorage, AccessControl, ReentrancyGuard {
     error NotAuthorizedGameContract();
 
     bytes32 public constant BLOCK_RACERS = keccak256("BLOCK_RACERS");
@@ -30,7 +30,7 @@ contract BlockRacersAssets is ERC1155URIStorage, ERC1155, AccessControl, Reentra
         _;
     }
     /// @dev Constructor sets token to be used and nft info, input the RACE token address here on deployment
-    constructor(string baseUri_, address _admin) ERC1155(baseUri_) {
+    constructor(string memory baseUri_, address _admin) ERC1155(baseUri_) {
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         // Default is 0x00 so the default init value of Admin role would be 0x00 so this might be redundant
         _setRoleAdmin(BLOCK_RACERS, DEFAULT_ADMIN_ROLE); 
@@ -38,10 +38,12 @@ contract BlockRacersAssets is ERC1155URIStorage, ERC1155, AccessControl, Reentra
 
     /// @dev Contract functions
     /// @notice Mints an Nft to a users wallet
-    /// @param _amount The amount of token being sent
+    /// @param to The receiving account
+    /// @param id The ID of the token
+    /// @param value The amount of token being sent
     /// @return true if successful
-    function mint(address to, uint256 id, uint256 value, bytes memory data) external onlyBlockracers() returns(bool) {
-       _mint(to, id, value, data);
+    function mint(address to, uint256 id, uint256 value) external onlyBlockracers() returns(bool) {
+       _mint(to, id, value, new bytes(0));
        return true;
     }
 
@@ -50,4 +52,11 @@ contract BlockRacersAssets is ERC1155URIStorage, ERC1155, AccessControl, Reentra
         return true;
     }
 
+    function supportsInterface(bytes4 interfaceId) public view override(ERC1155, AccessControl) returns (bool) {
+        return super.supportsInterface(interfaceId);
+    }
+
+    function uri(uint256 tokenId) public view override(ERC1155URIStorage, ERC1155) returns (string memory) {
+        return super.uri(tokenId);
+    }
 }

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.22;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
@@ -13,29 +13,39 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 // $$$$$$$  |$$$$$$$$\ $$$$$$  |\$$$$$$  |$$ | \$$\       $$ |  $$ |$$ |  $$ |\$$$$$$  |$$$$$$$$\ $$ |  $$ |\$$$$$$  |
 // \_______/ \________|\______/  \______/ \__|  \__|      \__|  \__|\__|  \__| \______/ \________|\__|  \__| \______/ 
 /// @title Block Racers Token Contract
-/// @author Sneakz
+/// @author RyRy79261, Sneakz
 /// @notice This contract holds functions used for the Block Racers token used in the game at https://github.com/Chainsafe/BlockRacers
 /// @dev All function calls are tested and have been implemented on the BlockRacers Game
 
 contract BlockRacersToken is ERC20, ReentrancyGuard {
+    /// @dev Wallet that auth signatures come from
+    address public issuerAccount;
+    /// @dev Nonce to stop replay attacks
+    // TODO: Sender might not be player, need confirm logic
+    mapping(address => uint256) private playerNonce;
+
+    modifier onlyValidPermit(bytes memory permit, uint256 amount) {
+        bytes32 messageHash = getMessageHash(abi.encodePacked(playerNonce[_msgSender()], _msgSender(), amount));
+        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
+        require(recover(ethSignedMessageHash, permit) == issuerAccount, "Sig not made by auth");
+        _;
+    }
     constructor() ERC20("BlockRacersToken", "RACE") {}
 
-    ///@dev Mappings
-    /// @dev Wallet that auth signatures come from
-    address authWallet = 0x0d9566FcE2513cBD388DCD7749a873900033401C;
-    /// @dev Nonce to stop cheaters
-    mapping(address => uint256) public nonce;
+    
 
     /// @dev Used to mint tokens to an address
-    /// @param _to The address to mint tokens to
-    /// @param _amount The amount of tokens to mint to the address
+    /// @param to The address to mint tokens to
+    /// @param amount The amount of tokens to mint to the address
+    /// @param permit The signed permit to allow for minting tokens
     /// @return true if  mint is successful
-    function mint(address _to, uint256 _amount, bytes memory _sig) public nonReentrant() returns (bool) {
-        bytes32 messageHash = getMessageHash(abi.encodePacked(nonce[msg.sender], msg.sender, _amount));
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-        require(recover(ethSignedMessageHash, _sig) == authWallet, "Sig not made by auth");
-        _mint(_to, _amount);
-        nonce[msg.sender]++;
+    function mint(address to, uint256 amount, bytes memory permit) 
+        external 
+        onlyValidPermit(permit, amount) 
+        nonReentrant() 
+        returns (bool) {
+        playerNonce[_msgSender()]++;
+        _mint(to, amount);
         return true;
     }
 

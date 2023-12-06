@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.22;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -28,16 +28,11 @@ contract BlockRacers is Ownable, ReentrancyGuard {
         uint16 nosLevel;
     }
 
-    struct GameSettingsData {
-        uint256 carCost;
-        uint256 enginePrice;
-        uint256 handlingPrice;
-        uint256 nosPrice;
-        uint16 handlingMaxLevel;
-        uint16 engineMaxLevel;
-        uint16 nosMaxLevel;
+    struct Component {
+        uint256 price;
+        uint16 maxLevel;
     }
-    
+
     /// @dev BlockRacers ERC20 address
     BlockRacersToken public immutable token;
 
@@ -52,20 +47,14 @@ contract BlockRacers is Ownable, ReentrancyGuard {
     // @dev Current car ID, also used to determine number of cars minted
     uint256 private _latestCarId = 0;
     
-    uint256 private _currentUpgradesIDd = 0;
-
-    /// @dev Base URI for NFTBoard ipfs image
-    string constant public BASE_URI = "https://ipfs.chainsafe.io/ipfs/";
-    string constant public URI1 = "QmdW2tRdCw2YERvhzbMHn2qcaBHPMNo5ofsoo8q9q9N3Qe";
-    string constant public URI2 = "QmWavwGJgqxMP38a6cxn9ehJASqdXNNcRT4YD7sa3dDMST";
-    string constant public URI3 = "QmevuY959udKfEYXJvLZmVqiNFVe6KfqqxMRprYbtRhncP";
+    uint256 private _currentSettingsId = 0;
 
     /// @dev Nonce to stop replay attacks
     mapping(address => uint256) private playerNonce;
 
     /// @dev Mapping of car stats per NFT
     mapping(uint256 => CarStats) private carStats;
-    mapping(uint256 => UpgradeData) private upgradeData;
+    mapping(uint256 => mapping (GameItem => Component) componentData) private gameSettingsData;
 
     /// @dev Contract events
     event MintCar(address indexed wallet, uint256 carId);
@@ -79,7 +68,7 @@ contract BlockRacers is Ownable, ReentrancyGuard {
     error UpgradeNotPossible(uint256 carId, GameItem gameItem, uint16 currentLevel, uint16 maxLevel);
 
     modifier onlyCarOwner(uint256 carId) {
-        if (assets.balanceOf(carId, _msgSender()) != 1)
+        if (assets.balanceOf(_msgSender(), carId) != 1)
             revert NotCarOwner(carId);
 
         _;
@@ -90,7 +79,7 @@ contract BlockRacers is Ownable, ReentrancyGuard {
 
         bytes32 messageHash = getMessageHash(abi.encodePacked(playerNonce[_msgSender()], _msgSender(), price, uint256(itemType)));
         bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-        require(recover(ethSignedMessageHash, permit) == authWallet, "Sig not made by auth");
+        require(recover(ethSignedMessageHash, permit) == issuerAccount, "Sig not made by auth");
         _;
     }
 
@@ -119,28 +108,35 @@ contract BlockRacers is Ownable, ReentrancyGuard {
         BlockRacersAssets assets_,
         address blockRacersFeeAccount_,
         address issuerAccount_,
-        uint256 carPrice_,
-        GameSettingsData gameSettingsData_
+        Component[] memory componentSettings
         ) Ownable(admin_) {
         token = token_;
         assets = assets_;
         blockRacersFeeAccount = blockRacersFeeAccount_;
         issuerAccount = issuerAccount_;
-        gameSettingsData[currentUpgradesID] = gameSettingsData_;
+        gameSettingsData[_currentSettingsId][GameItem.CAR] = componentSettings[uint256(GameItem.CAR)];
+        gameSettingsData[_currentSettingsId][GameItem.ENGINE] = componentSettings[uint256(GameItem.ENGINE)];
+        gameSettingsData[_currentSettingsId][GameItem.HANDLING] = componentSettings[uint256(GameItem.HANDLING)];
+        gameSettingsData[_currentSettingsId][GameItem.NOS] = componentSettings[uint256(GameItem.NOS)];
+        
+
     }
 
-    public setNewUpgrades(UpgradesData newUpgrades) external onlyOwner() {
-        ++currentPriceID;
-        upgradePrice[currentPriceID] = newUpgrades;
+    function setNewGameSettings(Component[] memory newComponentSettings) external onlyOwner() {
+        ++_currentSettingsId;
+        gameSettingsData[_currentSettingsId][GameItem.CAR] = newComponentSettings[uint256(GameItem.CAR)];
+        gameSettingsData[_currentSettingsId][GameItem.ENGINE] = newComponentSettings[uint256(GameItem.ENGINE)];
+        gameSettingsData[_currentSettingsId][GameItem.HANDLING] = newComponentSettings[uint256(GameItem.HANDLING)];
+        gameSettingsData[_currentSettingsId][GameItem.NOS] = newComponentSettings[uint256(GameItem.NOS)];
     }
 
     /// @dev Contract functions
     /// @notice Mints an Nft to a users wallet
-    /// @param _amount The amount of token being sent
+    /// @param permit The signed permit to allow for minting a car
     /// @return true if successful
-    function mintCar(bytes memory _sig) 
+    function mintCar(bytes memory permit) 
         external 
-        onlyValidPermit(_sig, GameItem.CAR) 
+        onlyValidPermit(permit, GameItem.CAR) 
         nonReentrant() 
         returns (bool) {
         (uint256 price, ) = getItemData(GameItem.CAR);
@@ -149,19 +145,19 @@ contract BlockRacers is Ownable, ReentrancyGuard {
         // Attempt payment
         // TODO: ensure success
         playerNonce[player]++;
-        _token.transferFrom(player, blockRacersFeeAccount, price);
+        token.transferFrom(player, blockRacersFeeAccount, price);
 
         ++_latestCarId;
-        assets.mint(player, _latestCarId, []);
+        assets.mint(player, _latestCarId, 1);
 
         carStats[_latestCarId] = CarStats(price, 1, 1, 1);
         emit MintCar(player, _latestCarId);
         return true;
     }
 
-    /// @notice Upgrades the Nfts engine level
-    /// @param _amount The amount of token being sent
-    /// @param carId The id of the nft being upgraded
+    /// @notice Upgrades the car's engine level
+    /// @param carId The id of the car being upgraded
+    /// @param permit The permit authorizing the upgrade
     /// @return true if successful
     function upgradeEngine(uint256 carId, bytes memory permit)
         external
@@ -170,19 +166,21 @@ contract BlockRacers is Ownable, ReentrancyGuard {
         onlyValidPermit(permit, GameItem.ENGINE) 
         nonReentrant() 
         returns (bool) {
-        (uint256 price, uint16 maxLevel) = getItemData(GameItem.ENGINE);
+        (uint256 price,) = getItemData(GameItem.ENGINE);
         address player = _msgSender();
         
         playerNonce[player]++;
-        _token.transferFrom(player, blockRacersFeeAccount, price);
-        carStats[carId].engineLevel++;
+        token.transferFrom(player, blockRacersFeeAccount, price);
+        CarStats storage car = carStats[carId];
+        car.engineLevel++;
 
-        emit UpgradeEngine(player, price, carStats[carId].engineLevel);
+        emit UpgradeEngine(player, price, car.engineLevel);
         return true;
     }
 
-    /// @notice Upgrades the Nfts handling level
-    /// @param carId The id of the nft being upgraded
+    /// @notice Upgrades the car's handling level
+    /// @param carId The id of the car being upgraded
+    /// @param permit The permit authorizing the upgrade
     /// @return true if successful
     function upgradeHandling(uint256 carId, bytes memory permit) 
         external 
@@ -191,19 +189,21 @@ contract BlockRacers is Ownable, ReentrancyGuard {
         onlyValidPermit(permit, GameItem.HANDLING) 
         nonReentrant() 
         returns (bool) {
-        (uint256 price, uint16 maxLevel) = getItemData(GameItem.HANDLING);
+        (uint256 price,) = getItemData(GameItem.HANDLING);
         address player = _msgSender();
 
         playerNonce[player]++;
-        _token.transferFrom(player, blockRacersFeeAccount, price);
-        carStats[carId].handlingLevel++;
+        token.transferFrom(player, blockRacersFeeAccount, price);
+        CarStats storage car = carStats[carId];
+        ++car.handlingLevel;
 
-        emit UpgradeHandling(player, price, carStats[carId].handlingLevel);
+        emit UpgradeHandling(player, price, car.handlingLevel);
         return true;
     }
 
-    /// @notice Upgrades the Nfts Nos level
-    /// @param carId The id of the nft being upgraded
+    /// @notice Upgrades the car's Nos level
+    /// @param carId The id of the car being upgraded
+    /// @param permit The permit authorizing the upgrade
     /// @return true if successful
     function upgradeNos(uint256 carId, bytes memory permit) 
         external 
@@ -212,39 +212,43 @@ contract BlockRacers is Ownable, ReentrancyGuard {
         onlyValidPermit(permit, GameItem.NOS) 
         nonReentrant() 
         returns (bool) {
-        (uint256 price, uint16 maxLevel) = getItemData(GameItem.NOS);
+        (uint256 price,) = getItemData(GameItem.NOS);
         address player = _msgSender();
         
-        _token.transferFrom(player, blockRacersFeeAccount, price);
+        token.transferFrom(player, blockRacersFeeAccount, price);
         playerNonce[player]++;
-        carStats[carId].nosLevel++;
+        CarStats storage car = carStats[carId];
+        car.nosLevel++;
 
-        emit UpgradeNos(player, price, carStats[carId].handlingLevel);
+        emit UpgradeNos(player, price, car.handlingLevel);
         return true;
     }
 
     /// @notice Gets an array of cars owned by an address
-    /// @return uint256[] The NFT ID array of cars owned by a given account
-    function getUserCars(address _wallet) external view returns (uint256[] memory) {
-        return ownerNftIds[_wallet];
+    /// @return upgradeData Component[] The NFT ID array of cars owned by a given account
+    // function getUserCars(address _wallet) external view returns (uint256[] memory) {
+    //     return ownerNftIds[_wallet];
+    // }
+    // TODO: get all NFT Ids from 1155
+    function getUpgradeData() public view returns(Component[] memory upgradeData) {
+        upgradeData[uint256(GameItem.CAR)] = gameSettingsData[_currentSettingsId][GameItem.CAR];
+        upgradeData[uint256(GameItem.ENGINE)] = gameSettingsData[_currentSettingsId][GameItem.ENGINE];
+        upgradeData[uint256(GameItem.HANDLING)] = gameSettingsData[_currentSettingsId][GameItem.HANDLING];
+        upgradeData[uint256(GameItem.NOS)] = gameSettingsData[_currentSettingsId][GameItem.NOS];
     }
 
-    public getUpgradeData() view returns(UpgradePrices) {
-        return upgradePrice[currentPriceID];
-    }
-
-    public getItemData(GameItem itemType) view returns (uint256 price, uint16 maxLevel) {
+    function getItemData(GameItem itemType) public view returns (uint256 price, uint16 maxLevel) {
         if (itemType == GameItem.ENGINE) {
-            price = upgradePrice[currentPriceID].enginePrice;
-            maxLevel = upgradePrice[currentPriceID].engineMaxLevel;
+            price = gameSettingsData[_currentSettingsId][GameItem.ENGINE].price;
+            maxLevel = gameSettingsData[_currentSettingsId][GameItem.ENGINE].maxLevel;
         } else if (itemType == GameItem.HANDLING) {
-            price = upgradePrice[currentPriceID].handlingPrice;
-            maxLevel = upgradePrice[currentPriceID].handlingMaxLevel;
+            price = gameSettingsData[_currentSettingsId][GameItem.HANDLING].price;
+            maxLevel = gameSettingsData[_currentSettingsId][GameItem.HANDLING].maxLevel;
         } else if (itemType == GameItem.NOS) {
-            price = upgradePrice[currentPriceID].nosPrice;
-            maxLevel = upgradePrice[currentPriceID].nosMaxLevel;
+            price = gameSettingsData[_currentSettingsId][GameItem.NOS].price;
+            maxLevel = gameSettingsData[_currentSettingsId][GameItem.NOS].maxLevel;
         } else {
-            price = upgradePrice[currentPriceID].carCost;
+            price = gameSettingsData[_currentSettingsId][GameItem.CAR].price;
         }  
     }
 
