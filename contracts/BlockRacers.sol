@@ -2,7 +2,9 @@
 pragma solidity 0.8.24;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BlockRacersToken.sol";
+import "./BlockRacersAssets.sol";
 
 // $$$$$$$\  $$\       $$$$$$\   $$$$$$\  $$\   $$\       $$$$$$$\   $$$$$$\   $$$$$$\  $$$$$$$$\ $$$$$$$\   $$$$$$\  
 // $$  __$$\ $$ |     $$  __$$\ $$  __$$\ $$ | $$  |      $$  __$$\ $$  __$$\ $$  __$$\ $$  _____|$$  __$$\ $$  __$$\ 
@@ -17,27 +19,41 @@ import "./BlockRacersToken.sol";
 /// @notice This contract holds functions used for the Block Racers NFTs used in the game at https://github.com/Chainsafe/BlockRacers
 /// @dev All function calls are tested and have been implemented on the BlockRacers Game
 
-contract BlockRacers is ReentrancyGuard {
+contract BlockRacers is Ownable, ReentrancyGuard {
+    enum GameItem{ CAR, ENGINE, HANDLING, NOS }
     struct CarStats {
-        uint256 engineLevel;
-        uint256 handlingLevel;
-        uint256 nosLevel;
+        uint256 carCost;
+        uint16 handlingLevel;
+        uint16 engineLevel;
+        uint16 nosLevel;
+    }
+
+    struct GameSettingsData {
+        uint256 carCost;
+        uint256 enginePrice;
+        uint256 handlingPrice;
+        uint256 nosPrice;
+        uint16 handlingMaxLevel;
+        uint16 engineMaxLevel;
+        uint16 nosMaxLevel;
     }
     
-    /// @dev Initializes the ERC20 token
-    BlockRacersToken immutable _token;
+    /// @dev BlockRacers ERC20 address
+    BlockRacersToken public immutable token;
+
+    /// @dev BlockRacers ERC1155 address
+    BlockRacersAssets public immutable assets;
    
     /// @dev Wallet that tokens go to on purchases
-    address public devWallet = 0x2dF3b328060A613DF0D9C9E12a34a670429D4648;
+    address public blockRacersFeeAccount;
     /// @dev Wallet that auth signatures come from
-    address public authWallet = 0x0d9566FcE2513cBD388DCD7749a873900033401C;
+    address public issuerAccount;
    
-    // @dev Car ID
-    uint256 carId = 0;
-    /// @dev The price of Nfts
-    uint256 public nftPrice = 50*1e18;
-    /// @dev The price of Nft upgrades
-    uint256 public upgradePrice = 20*1e18;
+    // @dev Current car ID, also used to determine number of cars minted
+    uint256 private _latestCarId = 0;
+    
+    uint256 private _currentUpgradesIDd = 0;
+
     /// @dev Base URI for NFTBoard ipfs image
     string constant public BASE_URI = "https://ipfs.chainsafe.io/ipfs/";
     string constant public URI1 = "QmdW2tRdCw2YERvhzbMHn2qcaBHPMNo5ofsoo8q9q9N3Qe";
@@ -45,104 +61,165 @@ contract BlockRacers is ReentrancyGuard {
     string constant public URI3 = "QmevuY959udKfEYXJvLZmVqiNFVe6KfqqxMRprYbtRhncP";
 
     /// @dev Nonce to stop replay attacks
-    mapping(address => uint256) public nonce;
+    mapping(address => uint256) private playerNonce;
 
     /// @dev Mapping of car stats per NFT
-    mapping(uint256 => CarStats) public carOwner;
+    mapping(uint256 => CarStats) private carStats;
+    mapping(uint256 => UpgradeData) private upgradeData;
 
     /// @dev Contract events
-    event SpawnCar(address indexed wallet, uint256 carId);
-    event UpgradeEngine(address indexed wallet, uint256 _amount);
-    event UpgradeHandling(address indexed wallet, uint256 _amount);
-    event UpgradeNos(address indexed wallet, uint256 _amount);
+    event MintCar(address indexed wallet, uint256 carId);
+    event UpgradeEngine(address indexed wallet, uint256 _amount, uint16 level);
+    event UpgradeHandling(address indexed wallet, uint256 _amount, uint16 level);
+    event UpgradeNos(address indexed wallet, uint256 _amount, uint16 level);
+
+    error NotCarOwner(uint256 carId);
+    error InvalidPermit(address permitSigner, bytes permit);
+    error InvalidItemType();
+    error UpgradeNotPossible(uint256 carId, GameItem gameItem, uint16 currentLevel, uint16 maxLevel);
+
+    modifier onlyCarOwner(uint256 carId) {
+        if (assets.balanceOf(carId, _msgSender()) != 1)
+            revert NotCarOwner(carId);
+
+        _;
+    }
+
+    modifier onlyValidPermit(bytes memory permit, GameItem itemType) {
+        (uint256 price, uint16 maxLevel) = getItemData(itemType);
+
+        bytes32 messageHash = getMessageHash(abi.encodePacked(playerNonce[_msgSender()], _msgSender(), price, uint256(itemType)));
+        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
+        require(recover(ethSignedMessageHash, permit) == authWallet, "Sig not made by auth");
+        _;
+    }
+
+    modifier levelNotMaxed(uint256 carId, GameItem itemType){
+        (,uint16 maxLevel) = getItemData(itemType);
+        uint16 currentLevel;
+        if (itemType == GameItem.ENGINE) {
+            currentLevel = carStats[carId].engineLevel;
+        } else if (itemType == GameItem.HANDLING) {
+            currentLevel = carStats[carId].handlingLevel;
+        } else if (itemType == GameItem.NOS) {
+            currentLevel = carStats[carId].nosLevel;
+        } else {
+            revert InvalidItemType();
+        } 
+
+        if (currentLevel >= maxLevel) 
+            revert UpgradeNotPossible(carId, itemType, currentLevel, maxLevel);
+        _;
+    }
 
      /// @dev Constructor sets token to be used and nft info, input the RACE token address here on deployment
-    constructor(BlockRacersToken token) ERC1155("BlockRacersNFT", "RACENFT") {
-        _token = token;
+    constructor(
+        address admin_,
+        BlockRacersToken token_, 
+        BlockRacersAssets assets_,
+        address blockRacersFeeAccount_,
+        address issuerAccount_,
+        uint256 carPrice_,
+        GameSettingsData gameSettingsData_
+        ) Ownable(admin_) {
+        token = token_;
+        assets = assets_;
+        blockRacersFeeAccount = blockRacersFeeAccount_;
+        issuerAccount = issuerAccount_;
+        gameSettingsData[currentUpgradesID] = gameSettingsData_;
+    }
+
+    public setNewUpgrades(UpgradesData newUpgrades) external onlyOwner() {
+        ++currentPriceID;
+        upgradePrice[currentPriceID] = newUpgrades;
     }
 
     /// @dev Contract functions
     /// @notice Mints an Nft to a users wallet
     /// @param _amount The amount of token being sent
     /// @return true if successful
-    function mintNft(uint _amount, uint256 _nftType, bytes memory _sig) external nonReentrant() returns (bool) {
-        require (_amount == nftPrice, "You need to pay more tokens");
-        bytes32 messageHash = getMessageHash(abi.encodePacked(nonce[msg.sender], msg.sender, _amount, _nftType));
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-        require(recover(ethSignedMessageHash, _sig) == authWallet, "Sig not made by auth");
-        nonce[msg.sender]++;
-        _token.transferFrom(msg.sender, devWallet, _amount);
-        ownerNftIds[msg.sender].push(nftId);
-        carOwner[nftId] = msg.sender;
-        engineLevel[nftId] = 1;
-        handlingLevel[nftId] = 1;
-        nosLevel[nftId] = 1;
-        if (_nftType == 1) {
-            nftType[nftId] = 1;
-        }
-        else if (_nftType == 2) {
-            nftType[nftId] = 2;
-        }
-        else {
-            nftType[nftId] = 3;
-        }
-        ++nftId;
-        ++totalNftCount;
-        emit MintNft(msg.sender, nftId);
+    function mintCar(bytes memory _sig) 
+        external 
+        onlyValidPermit(_sig, GameItem.CAR) 
+        nonReentrant() 
+        returns (bool) {
+        (uint256 price, ) = getItemData(GameItem.CAR);
+        address player = _msgSender();
+
+        // Attempt payment
+        // TODO: ensure success
+        playerNonce[player]++;
+        _token.transferFrom(player, blockRacersFeeAccount, price);
+
+        ++_latestCarId;
+        assets.mint(player, _latestCarId, []);
+
+        carStats[_latestCarId] = CarStats(price, 1, 1, 1);
+        emit MintCar(player, _latestCarId);
         return true;
     }
 
     /// @notice Upgrades the Nfts engine level
     /// @param _amount The amount of token being sent
-    /// @param _carId The id of the nft being upgraded
+    /// @param carId The id of the nft being upgraded
     /// @return true if successful
-    function upgradeEngine(uint _amount, uint _carId, bytes memory _sig) external nonReentrant() returns (bool) {
-        require (carOwner[_carId] == msg.sender, "You dont own this nft");
-        bytes32 messageHash = getMessageHash(abi.encodePacked(nonce[msg.sender], msg.sender, _amount));
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-        require(recover(ethSignedMessageHash, _sig) == authWallet, "Sig not made by auth");
-        require (_amount == upgradePrice, "You need to pay more tokens");
-        require (engineLevel[_carId] <= 2, "Upgrade level max");
-        nonce[msg.sender]++;
-        _token.transferFrom(msg.sender, devWallet, _amount);
-        engineLevel[_carId] += 1;
-        emit UpgradeEngine(msg.sender, _amount);
+    function upgradeEngine(uint256 carId, bytes memory permit)
+        external
+        onlyCarOwner(carId) 
+        levelNotMaxed(carId, GameItem.ENGINE)
+        onlyValidPermit(permit, GameItem.ENGINE) 
+        nonReentrant() 
+        returns (bool) {
+        (uint256 price, uint16 maxLevel) = getItemData(GameItem.ENGINE);
+        address player = _msgSender();
+        
+        playerNonce[player]++;
+        _token.transferFrom(player, blockRacersFeeAccount, price);
+        carStats[carId].engineLevel++;
+
+        emit UpgradeEngine(player, price, carStats[carId].engineLevel);
         return true;
     }
 
     /// @notice Upgrades the Nfts handling level
-    /// @param _amount The amount of token being sents
-    /// @param _carId The id of the nft being upgraded
+    /// @param carId The id of the nft being upgraded
     /// @return true if successful
-    function upgradeHandling(uint _amount, uint _carId, bytes memory _sig) external nonReentrant() returns (bool) {
-        require (carOwner[_carId] == msg.sender, "You dont own this nft");
-        require (handlingLevel[_carId] <= 2, "Upgrade level max");
-        require (_amount == upgradePrice, "You need to pay more tokens");
-        bytes32 messageHash = getMessageHash(abi.encodePacked(nonce[msg.sender], msg.sender, _amount));
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-        require(recover(ethSignedMessageHash, _sig) == authWallet, "Sig not made by auth");
-        nonce[msg.sender]++;
-        _token.transferFrom(msg.sender, devWallet, _amount);
-        handlingLevel[_carId] += 1;
-        emit UpgradeHandling(msg.sender, _amount);
+    function upgradeHandling(uint256 carId, bytes memory permit) 
+        external 
+        onlyCarOwner(carId) 
+        levelNotMaxed(carId, GameItem.HANDLING)
+        onlyValidPermit(permit, GameItem.HANDLING) 
+        nonReentrant() 
+        returns (bool) {
+        (uint256 price, uint16 maxLevel) = getItemData(GameItem.HANDLING);
+        address player = _msgSender();
+
+        playerNonce[player]++;
+        _token.transferFrom(player, blockRacersFeeAccount, price);
+        carStats[carId].handlingLevel++;
+
+        emit UpgradeHandling(player, price, carStats[carId].handlingLevel);
         return true;
     }
 
     /// @notice Upgrades the Nfts Nos level
-    /// @param _amount The amount of token being sent
-    /// @param _carId The id of the nft being upgraded
+    /// @param carId The id of the nft being upgraded
     /// @return true if successful
-    function upgradeNos(uint _amount, uint _carId, bytes memory _sig) external nonReentrant() returns (bool) {
-        require (carOwner[_carId] == msg.sender, "You dont own this nft");
-        require (nosLevel[_carId] <= 2, "Upgrade level max");
-        require (_amount == upgradePrice, "You need to pay more tokens");
-        bytes32 messageHash = getMessageHash(abi.encodePacked(nonce[msg.sender], msg.sender, _amount));
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-        require(recover(ethSignedMessageHash, _sig) == authWallet, "Sig not made by auth");
-        nonce[msg.sender]++;
-        _token.transferFrom(msg.sender, devWallet, _amount);
-        nosLevel[_carId] += 1;
-        emit UpgradeNos(msg.sender, _amount);
+    function upgradeNos(uint256 carId, bytes memory permit) 
+        external 
+        onlyCarOwner(carId) 
+        levelNotMaxed(carId, GameItem.NOS)
+        onlyValidPermit(permit, GameItem.NOS) 
+        nonReentrant() 
+        returns (bool) {
+        (uint256 price, uint16 maxLevel) = getItemData(GameItem.NOS);
+        address player = _msgSender();
+        
+        _token.transferFrom(player, blockRacersFeeAccount, price);
+        playerNonce[player]++;
+        carStats[carId].nosLevel++;
+
+        emit UpgradeNos(player, price, carStats[carId].handlingLevel);
         return true;
     }
 
@@ -150,6 +227,25 @@ contract BlockRacers is ReentrancyGuard {
     /// @return uint256[] The NFT ID array of cars owned by a given account
     function getUserCars(address _wallet) external view returns (uint256[] memory) {
         return ownerNftIds[_wallet];
+    }
+
+    public getUpgradeData() view returns(UpgradePrices) {
+        return upgradePrice[currentPriceID];
+    }
+
+    public getItemData(GameItem itemType) view returns (uint256 price, uint16 maxLevel) {
+        if (itemType == GameItem.ENGINE) {
+            price = upgradePrice[currentPriceID].enginePrice;
+            maxLevel = upgradePrice[currentPriceID].engineMaxLevel;
+        } else if (itemType == GameItem.HANDLING) {
+            price = upgradePrice[currentPriceID].handlingPrice;
+            maxLevel = upgradePrice[currentPriceID].handlingMaxLevel;
+        } else if (itemType == GameItem.NOS) {
+            price = upgradePrice[currentPriceID].nosPrice;
+            maxLevel = upgradePrice[currentPriceID].nosMaxLevel;
+        } else {
+            price = upgradePrice[currentPriceID].carCost;
+        }  
     }
 
     /// @dev Used for authentication to check if values came from inside the Block Racers game following solidity standards
