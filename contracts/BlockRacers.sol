@@ -28,11 +28,16 @@ contract BlockRacers is Ownable, ReentrancyGuard {
         uint16 nosLevel;
     }
 
-    struct Component {
-        uint256 price;
-        uint16 maxLevel;
+    struct GameSettingsData {
+        uint256 carCost;
+        uint256 enginePrice;
+        uint256 handlingPrice;
+        uint256 nosPrice;
+        uint16 handlingMaxLevel;
+        uint16 engineMaxLevel;
+        uint16 nosMaxLevel;
     }
-
+    
     /// @dev BlockRacers ERC20 address
     BlockRacersToken public immutable token;
 
@@ -49,12 +54,18 @@ contract BlockRacers is Ownable, ReentrancyGuard {
     
     uint256 private _currentSettingsId = 0;
 
+    /// @dev Base URI for NFTBoard ipfs image
+    string constant public BASE_URI = "https://ipfs.chainsafe.io/ipfs/";
+    string constant public URI1 = "QmdW2tRdCw2YERvhzbMHn2qcaBHPMNo5ofsoo8q9q9N3Qe";
+    string constant public URI2 = "QmWavwGJgqxMP38a6cxn9ehJASqdXNNcRT4YD7sa3dDMST";
+    string constant public URI3 = "QmevuY959udKfEYXJvLZmVqiNFVe6KfqqxMRprYbtRhncP";
+
     /// @dev Nonce to stop replay attacks
     mapping(address => uint256) private playerNonce;
 
     /// @dev Mapping of car stats per NFT
     mapping(uint256 => CarStats) private carStats;
-    mapping(uint256 => mapping (GameItem => Component) componentData) private gameSettingsData;
+    mapping(uint256 => GameSettingsData) private gameSettingsData;
 
     /// @dev Contract events
     event MintCar(address indexed wallet, uint256 carId);
@@ -108,26 +119,18 @@ contract BlockRacers is Ownable, ReentrancyGuard {
         BlockRacersAssets assets_,
         address blockRacersFeeAccount_,
         address issuerAccount_,
-        Component[] memory componentSettings
+        GameSettingsData memory gameSettingsData_
         ) Ownable(admin_) {
         token = token_;
         assets = assets_;
         blockRacersFeeAccount = blockRacersFeeAccount_;
         issuerAccount = issuerAccount_;
-        gameSettingsData[_currentSettingsId][GameItem.CAR] = componentSettings[uint256(GameItem.CAR)];
-        gameSettingsData[_currentSettingsId][GameItem.ENGINE] = componentSettings[uint256(GameItem.ENGINE)];
-        gameSettingsData[_currentSettingsId][GameItem.HANDLING] = componentSettings[uint256(GameItem.HANDLING)];
-        gameSettingsData[_currentSettingsId][GameItem.NOS] = componentSettings[uint256(GameItem.NOS)];
-        
-
+        gameSettingsData[_currentSettingsId] = gameSettingsData_;
     }
 
-    function setNewGameSettings(Component[] memory newComponentSettings) external onlyOwner() {
+    function setNewGameSettings(GameSettingsData memory newSettings) external onlyOwner() {
         ++_currentSettingsId;
-        gameSettingsData[_currentSettingsId][GameItem.CAR] = newComponentSettings[uint256(GameItem.CAR)];
-        gameSettingsData[_currentSettingsId][GameItem.ENGINE] = newComponentSettings[uint256(GameItem.ENGINE)];
-        gameSettingsData[_currentSettingsId][GameItem.HANDLING] = newComponentSettings[uint256(GameItem.HANDLING)];
-        gameSettingsData[_currentSettingsId][GameItem.NOS] = newComponentSettings[uint256(GameItem.NOS)];
+        gameSettingsData[_currentSettingsId] = newSettings;
     }
 
     /// @dev Contract functions
@@ -172,7 +175,7 @@ contract BlockRacers is Ownable, ReentrancyGuard {
         playerNonce[player]++;
         token.transferFrom(player, blockRacersFeeAccount, price);
         CarStats storage car = carStats[carId];
-        car.engineLevel++;
+        ++car.engineLevel;
 
         emit UpgradeEngine(player, price, car.engineLevel);
         return true;
@@ -225,30 +228,28 @@ contract BlockRacers is Ownable, ReentrancyGuard {
     }
 
     /// @notice Gets an array of cars owned by an address
-    /// @return upgradeData Component[] The NFT ID array of cars owned by a given account
+    /// @return uint256[] The NFT ID array of cars owned by a given account
     // function getUserCars(address _wallet) external view returns (uint256[] memory) {
     //     return ownerNftIds[_wallet];
     // }
     // TODO: get all NFT Ids from 1155
-    function getUpgradeData() public view returns(Component[] memory upgradeData) {
-        upgradeData[uint256(GameItem.CAR)] = gameSettingsData[_currentSettingsId][GameItem.CAR];
-        upgradeData[uint256(GameItem.ENGINE)] = gameSettingsData[_currentSettingsId][GameItem.ENGINE];
-        upgradeData[uint256(GameItem.HANDLING)] = gameSettingsData[_currentSettingsId][GameItem.HANDLING];
-        upgradeData[uint256(GameItem.NOS)] = gameSettingsData[_currentSettingsId][GameItem.NOS];
+
+    function getUpgradeData() public view returns(GameSettingsData memory) {
+        return gameSettingsData[_currentSettingsId];
     }
 
     function getItemData(GameItem itemType) public view returns (uint256 price, uint16 maxLevel) {
         if (itemType == GameItem.ENGINE) {
-            price = gameSettingsData[_currentSettingsId][GameItem.ENGINE].price;
-            maxLevel = gameSettingsData[_currentSettingsId][GameItem.ENGINE].maxLevel;
+            price = gameSettingsData[_currentSettingsId].enginePrice;
+            maxLevel = gameSettingsData[_currentSettingsId].engineMaxLevel;
         } else if (itemType == GameItem.HANDLING) {
-            price = gameSettingsData[_currentSettingsId][GameItem.HANDLING].price;
-            maxLevel = gameSettingsData[_currentSettingsId][GameItem.HANDLING].maxLevel;
+            price = gameSettingsData[_currentSettingsId].handlingPrice;
+            maxLevel = gameSettingsData[_currentSettingsId].handlingMaxLevel;
         } else if (itemType == GameItem.NOS) {
-            price = gameSettingsData[_currentSettingsId][GameItem.NOS].price;
-            maxLevel = gameSettingsData[_currentSettingsId][GameItem.NOS].maxLevel;
+            price = gameSettingsData[_currentSettingsId].nosPrice;
+            maxLevel = gameSettingsData[_currentSettingsId].nosMaxLevel;
         } else {
-            price = gameSettingsData[_currentSettingsId][GameItem.CAR].price;
+            price = gameSettingsData[_currentSettingsId].carCost;
         }  
     }
 
