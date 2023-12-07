@@ -25,21 +25,27 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
     
     enum GameItem{ CAR, ENGINE, HANDLING, NOS }
 
-    struct CarStats {
+    struct CarOption {
         uint256 carCost;
+        string carUri;
+    }
+
+    struct CarStats {
+        uint256 carId;
+        CarOption carOptionData;
         uint16 handlingLevel;
         uint16 engineLevel;
         uint16 nosLevel;
     }
 
     struct GameSettingsData {
-        uint256 carCost;
         uint256 enginePrice;
         uint256 handlingPrice;
         uint256 nosPrice;
         uint16 handlingMaxLevel;
         uint16 engineMaxLevel;
         uint16 nosMaxLevel;
+        CarOption[] carOptions;
     }
     
     /// @dev BlockRacers ERC20 address
@@ -66,6 +72,7 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
     event UpgradeHandling(address indexed wallet, uint256 _amount, uint16 level);
     event UpgradeNos(address indexed wallet, uint256 _amount, uint16 level);
 
+    error CarTypeDoesNotExist(uint256 carTypeId);
     error NotCarOwner(uint256 carId);
     error InvalidPermit(address permitSigner, bytes permit);
     error InvalidItemType();
@@ -132,20 +139,23 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
     /// @dev Contract functions
     /// @notice Mints an Nft to a users wallet
     /// @return true if successful
-    function mintCar() 
+    function mintCar(uint256 carTypeId) 
         external 
         nonReentrant() 
         returns (bool) {
-        (uint256 price, ) = getItemData(GameItem.CAR);
+        (uint256 price, string memory carUri) = getCarOption(carTypeId);
+        if (price == 0) 
+            revert CarTypeDoesNotExist(carTypeId);
+
         address player = _msgSender();
 
         // Attempt payment
         token.safeTransferFrom(player, blockRacersFeeAccount, price);
 
         ++_latestCarId;
-        assets.mint(player, _latestCarId, 1);
+        assets.mint(player, _latestCarId, 1, carUri);
 
-        carStats[_latestCarId] = CarStats(price, 1, 1, 1);
+        carStats[_latestCarId] = CarStats(carTypeId, CarOption(price, carUri), 1, 1, 1);
         emit MintCar(player, _latestCarId);
         return true;
     }
@@ -230,9 +240,12 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
         } else if (itemType == GameItem.NOS) {
             price = gameSettingsData[_currentSettingsId].nosPrice;
             maxLevel = gameSettingsData[_currentSettingsId].nosMaxLevel;
-        } else {
-            price = gameSettingsData[_currentSettingsId].carCost;
-        }  
+        } 
+    }
+
+    function getCarOption(uint256 carTypeId) public view returns(uint256, string memory) {
+        CarOption memory option = gameSettingsData[_currentSettingsId].carOptions[carTypeId];
+        return (option.carCost, option.carUri);
     }
 
     function getNumberOfCarsMinted() external view returns(uint256) {

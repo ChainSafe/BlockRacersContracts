@@ -36,6 +36,8 @@ There are 4 items, represented by an enum, this means that the values of each on
 
 The minting of cars uses a field called `_latestCarId` this both manages what ID is used to mint ERC1155 but also can infer the number of cars minted.
 
+Cars are minted based on the car type ID thats set in the game settings field, the URI is set during the mint and the price is determined based on the car option settings.
+
 #### Types
 
 There is a struct representing game settings, this is published to a mapping to allow look up of previous settings for potentially valuing cars accurately if they have been upgraded prior to price changes.
@@ -47,6 +49,11 @@ Each minted car has an associated `CarStats` mapping, this is where the car's in
 Only the Owner of the contract can publish new game settings.
 
 ```solidity
+    struct CarOption {
+        uint256 carCost;
+        string carUri;
+    }
+
     struct CarStats {
         uint256 carCost;
         uint16 handlingLevel;
