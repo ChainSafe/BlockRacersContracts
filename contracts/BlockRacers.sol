@@ -216,7 +216,7 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
     //     return ownerNftIds[_wallet];
     // }
     // TODO: get all NFT Ids from 1155
-    function getUpgradeData() public view returns(GameSettingsData memory) {
+    function getUpgradeData() external view returns(GameSettingsData memory) {
         return gameSettingsData[_currentSettingsId];
     }
 
@@ -233,6 +233,10 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
         } else {
             price = gameSettingsData[_currentSettingsId].carCost;
         }  
+    }
+
+    function getNumberOfCarsMinted() external view returns(uint256) {
+        return _latestCarId;
     }
 
     /**

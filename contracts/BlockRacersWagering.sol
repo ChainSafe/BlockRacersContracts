@@ -82,7 +82,6 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
         returns (bool) {
         address creator = _msgSender();
 
-        // TODO: Check success
         token.safeTransferFrom(creator, address(this), prize);
 
         ++latestWagerId;
@@ -108,7 +107,6 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
         if (wager.creator == opponentAddress) 
             revert OpponentCantBeChallenger(wagerId, opponentAddress);
 
-        // TODO: Check success
         token.safeTransferFrom(opponentAddress, address(this), wager.prize);
 
         wager.opponent = opponentAddress;
@@ -155,8 +153,7 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
         wager.state = WagerState.COMPLETED;
         // Both the creator & the opponent transfered the wager tokens to this contract,
         // so this functionally returns the winner's stake and transfers the losers stake to the winner in one transaction
-        // TODO: check for success
-        token.transferFrom(address(this), winner, wager.prize * 2);
+        token.safeTransferFrom(address(this), winner, wager.prize * 2);
         emit WagerCompleted(wagerId, winner);
         return true;
     }
@@ -184,19 +181,42 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
             // changing the wager state before transfers prevents replay attacks if possible
             if (wager.state == WagerState.CREATED) {
                 wager.state = WagerState.CANCELLED;
-                // TODO: check for success
-                token.transferFrom(address(this), wager.creator, wager.prize);
+                token.safeTransferFrom(address(this), wager.creator, wager.prize);
             } else {
                 wager.state = WagerState.CANCELLED;
-                // TODO: check for success
-                token.transferFrom(address(this), wager.creator, wager.prize);
-                token.transferFrom(address(this), wager.opponent, wager.prize);
+                token.safeTransferFrom(address(this), wager.creator, wager.prize);
+                token.safeTransferFrom(address(this), wager.opponent, wager.prize);
             }
         }  else {
             revert OnlyParticipantsCanCancel(wagerId, requestor);
         }
 
         emit WagerCancelled(wagerId, requestor);
+        return true;
+    }
+
+    /// @notice Cancel Wager
+    /// @param wagerId The id of the wager
+    /// @return true if successful
+    function adminCancelWager(uint256 wagerId) 
+        external 
+        onlyOwner()
+        nonReentrant() 
+        returns (bool) {
+        Wager storage wager = wagers[wagerId];
+
+        if (wager.state == WagerState.CREATED) {
+            wager.state = WagerState.CANCELLED;
+            token.safeTransferFrom(address(this), wager.creator, wager.prize);
+
+        } else if (wager.state == WagerState.ACCEPTED) {
+            token.safeTransferFrom(address(this), wager.creator, wager.prize);
+            token.safeTransferFrom(address(this), wager.opponent, wager.prize);
+        } else {
+            revert WagerCantBeCancelled(wagerId, wager.state);
+        }
+
+        emit WagerCancelled(wagerId, _msgSender());
         return true;
     }
 
