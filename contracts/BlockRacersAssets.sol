@@ -30,7 +30,11 @@ contract BlockRacersAssets is ERC1155, ERC1155URIStorage, ERC2771Context, Access
         
         _;
     }
+
     /// @dev Constructor sets token to be used and nft info, input the RACE token address here on deployment
+    /// @param trustedForwarder ERC2771 relayer address
+    /// @param baseUri_ URI base string
+    /// @param _admin Admin address for managing approved minters
     constructor(
         address trustedForwarder,
         string memory baseUri_, 
@@ -41,7 +45,7 @@ contract BlockRacersAssets is ERC1155, ERC1155URIStorage, ERC2771Context, Access
         _setRoleAdmin(BLOCK_RACERS, DEFAULT_ADMIN_ROLE); 
     }
 
-    /// @dev Contract functions
+    /// @dev Minting functions
     /// @notice Mints an Nft to a users wallet
     /// @param to The receiving account
     /// @param id The ID of the token
@@ -52,6 +56,11 @@ contract BlockRacersAssets is ERC1155, ERC1155URIStorage, ERC2771Context, Access
        return true;
     }
 
+    /// Batch minting function
+    /// @param to receiver account
+    /// @param ids ID list
+    /// @param values Quantity list
+    /// @param data abitrary data 
     function mintBatch(address to, uint256[] memory ids, uint256[] memory values, bytes memory data) external onlyBlockracers() returns(bool) {
         _mintBatch(to, ids, values, data);
         return true;

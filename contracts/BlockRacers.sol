@@ -22,7 +22,9 @@ import "./BlockRacersAssets.sol";
 /// @notice This contract holds functions used for the Block Racers core game mechanices used in the game at https://github.com/Chainsafe/BlockRacers
 contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
+    
     enum GameItem{ CAR, ENGINE, HANDLING, NOS }
+
     struct CarStats {
         uint256 carCost;
         uint16 handlingLevel;
@@ -48,16 +50,11 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
    
     /// @dev Wallet that tokens go to on purchases
     address public blockRacersFeeAccount;
-    /// @dev Wallet that auth signatures come from
-    address public issuerAccount;
    
     // @dev Current car ID, also used to determine number of cars minted
     uint256 private _latestCarId = 0;
     
     uint256 private _currentSettingsId = 0;
-
-    /// @dev Nonce to stop replay attacks
-    mapping(address => uint256) private playerNonce;
 
     /// @dev Mapping of car stats per NFT
     mapping(uint256 => CarStats) private carStats;
@@ -99,31 +96,32 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
         _;
     }
 
-    // TODO: View function to see all of a users cars, however, presently, I could keep an array, but if this is transfered, that array would be incorrect for both accounts involved in the transfer
+    /// TODO: View function to see all of a users cars, however, presently, I could keep an array, but if this is transfered, that array would be incorrect for both accounts involved in the transfer
 
-     /// @dev Constructor sets token to be used and nft info, input the RACE token address here on deployment
+    /// @dev Constructor sets token to be used and nft info, input the RACE token address here on deployment
+    /// 
+    /// @param trustedForwarder ERC2771 context forwarder for sponsored transactions
+    /// @param admin_ Admin account for updating game settings
+    /// @param token_ ERC20 token address
+    /// @param assets_ 1155 token address
+    /// @param blockRacersFeeAccount_ fees collection account
+    /// @param gameSettingsData_ First settings for the max levels & upgrade costs
     constructor(
         address trustedForwarder,
         address admin_,
         IERC20 token_, 
         BlockRacersAssets assets_,
         address blockRacersFeeAccount_,
-        address issuerAccount_,
         GameSettingsData memory gameSettingsData_
         ) ERC2771Context(trustedForwarder) Ownable(admin_) {
         token = token_;
         assets = assets_;
         blockRacersFeeAccount = blockRacersFeeAccount_;
-        issuerAccount = issuerAccount_;
         gameSettingsData[_currentSettingsId] = gameSettingsData_;
     }
 
     function setBlockRacersFeeAccount(address newBlockRacersFeeAccount) external onlyOwner() {
         blockRacersFeeAccount = newBlockRacersFeeAccount;
-    }
-
-    function setIssuerAccount(address newIssuerAccount) external onlyOwner() {
-        issuerAccount = newIssuerAccount;
     }
 
     function setNewGameSettings(GameSettingsData memory newSettings) external onlyOwner() {
@@ -142,8 +140,6 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
         address player = _msgSender();
 
         // Attempt payment
-        // TODO: ensure success
-        playerNonce[player]++;
         token.safeTransferFrom(player, blockRacersFeeAccount, price);
 
         ++_latestCarId;
@@ -166,7 +162,6 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
         (uint256 price,) = getItemData(GameItem.ENGINE);
         address player = _msgSender();
         
-        playerNonce[player]++;
         token.safeTransferFrom(player, blockRacersFeeAccount, price);
         CarStats storage car = carStats[carId];
         ++car.engineLevel;
@@ -187,7 +182,6 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
         (uint256 price,) = getItemData(GameItem.HANDLING);
         address player = _msgSender();
 
-        playerNonce[player]++;
         token.safeTransferFrom(player, blockRacersFeeAccount, price);
         CarStats storage car = carStats[carId];
         ++car.handlingLevel;
@@ -209,7 +203,6 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
         address player = _msgSender();
         
         token.safeTransferFrom(player, blockRacersFeeAccount, price);
-        playerNonce[player]++;
         CarStats storage car = carStats[carId];
         car.nosLevel++;
 

@@ -22,14 +22,11 @@ import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 contract BlockRacersToken is ERC20, ERC2771Context, ReentrancyGuard {
     /// @dev Wallet that auth signatures come from
     address public issuerAccount;
+    
     /// @dev Nonce to stop replay attacks
-    // TODO: Sender might not be player, need confirm logic
     mapping(address => uint256) private playerNonce;
 
     modifier onlyValidPermit(bytes memory permit, uint256 amount) {
-        // bytes32 messageHash = getMessageHash(abi.encodePacked(playerNonce[_msgSender()], _msgSender(), amount));
-        // bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-        // require(recover(ethSignedMessageHash, permit) == issuerAccount, "Sig not made by auth");
         require(SignatureChecker.isValidSignatureNow(
             issuerAccount, 
             MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(playerNonce[_msgSender()], _msgSender(), amount))),

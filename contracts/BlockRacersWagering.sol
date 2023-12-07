@@ -23,6 +23,7 @@ import "./utils/Blacklist.sol";
 /// @notice This escrow contract holds functions used for the Block Racers wagering used in the game at https://github.com/Chainsafe/BlockRacers
 contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
     using SafeERC20 for IERC20;
+
     enum WagerState { NOT_STARTED, CREATED, ACCEPTED, COMPLETED, CANCELLED }
 
     struct Wager {
@@ -33,9 +34,7 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
         WagerState state; // Could infer state from properties, though for cancelled might be tricky
     }
 
-    /// @dev Initializes the ERC20 token
     IERC20 public immutable token;
-    
     uint256 public latestWagerId;
     
     /// @dev Pvp wager data
