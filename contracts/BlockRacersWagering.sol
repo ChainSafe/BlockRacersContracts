@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // $$$$$$$\  $$\       $$$$$$\   $$$$$$\  $$\   $$\       $$$$$$$\   $$$$$$\   $$$$$$\  $$$$$$$$\ $$$$$$$\   $$$$$$\  
 // $$  __$$\ $$ |     $$  __$$\ $$  __$$\ $$ | $$  |      $$  __$$\ $$  __$$\ $$  __$$\ $$  _____|$$  __$$\ $$  __$$\ 
@@ -18,152 +19,174 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Block Racers Wagering Contract
 /// @author RyRy79261
-/// @notice This contract holds functions used for the Block Racers wagering used in the game at https://github.com/Chainsafe/BlockRacers
-/// @dev All function calls are tested and have been implemented on the BlockRacers Game
-
+/// @notice This escrow contract holds functions used for the Block Racers wagering used in the game at https://github.com/Chainsafe/BlockRacers
 contract BlockRacersWagering is Context, ReentrancyGuard {
+    using SafeERC20 for IERC20;
     enum WagerState { NOT_STARTED, CREATED, ACCEPTED, COMPLETED, CANCELLED }
+
     struct Wager {
         uint256 prize;
+        address creator;
         address opponent;
-        WagerState state;
+        address winner;
+        WagerState state; // Could infer state from properties, though for cancelled might be tricky
     }
 
     /// @dev Initializes the ERC20 token
     IERC20 public immutable token;
     
-    /// @dev Wallet that auth signatures come from
-    address private issuerAccount;
+    uint256 public latestWagerId;
     
-    // @dev Pvp wager amount
-    mapping(address => mapping (uint256 => uint) name) private pvpWager;
-    mapping(address => uint256) private playerWagerNonce;
+    /// @dev Pvp wager data
+    mapping(uint256 => Wager) private wagers;
+    /// @dev Used for tracking wagers that a player has engaged in
+    mapping(address => uint256[]) private playerWagers;
     
     /// @dev Contract events
-    event WagerCreated(address indexed player, uint256 indexed wagerNonce, uint256 prize);
-    event WagerAccepted(address indexed player, uint256 indexed wagerNonce, address indexed opponent, uint256 prize);
-    event WagerCancelled(address indexed player, uint256 indexed wagerNonce, address indexed opponent, uint256 prize);
-    event WagerCompleted(address indexed player, uint256 indexed wagerNonce, address indexed opponent, uint256 prize);
+    event WagerCreated(uint256 indexed wagerId, address indexed creator, uint256 prize);
+    event WagerAccepted(uint256 indexed wagerId, address indexed opponent);
+    event WagerCancelled(uint256 indexed wagerId, address cancelledBy);
+    event WagerCompleted(uint256 indexed wagerId, address indexed winner);
 
-    modifier validCreateWagerPermit(bytes memory permit, uint256 amount) {
-        // bytes32 messageHash = getMessageHash(abi.encodePacked(nonce[msg.sender], amount, msg.sender));
-        // bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-        // require(recover(ethSignedMessageHash, permit) == issuerAccount, "Sig not made by auth");
-        require(SignatureChecker.isValidSignatureNow(
-            issuerAccount, 
-            MessageHashUtils.toEthSignedMessageHash(keccak256(amount, _msgSender())),
-            permit),
-            "Sig not made by auth");
+    error WagerStateIncorrect(uint256 wagerId, WagerState currentState, WagerState expected);
+    error WagerCantBeCancelled(uint256 wagerId, WagerState currentState);
+    error OnlyParticipantsCanCancel(uint256 wagerId, address requestor);
+
+    error OpponentCantBeChallenger(uint256 wagerId, address opponent);
+    error PlayerSignatureInvalid(uint256 wagerId, address winner, bytes creatorProof, bytes opponentProof);
+
+    modifier wagerStateMustBe(WagerState state, uint256 wagerId) {
+        Wager memory wager = wagers[wagerId];
+        if (wager.state != state) 
+            revert WagerStateIncorrect(wagerId, wager.state, state);
         _;
-    }
-
-    modifier validAcceptWagerPermit(bytes memory permit, address wagerCreator, uint256 wagerNonce) {
-        // bytes32 messageHash = getMessageHash(abi.encodePacked(nonce[msg.sender], amount, msg.sender));
-        // bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-        // require(recover(ethSignedMessageHash, permit) == issuerAccount, "Sig not made by auth");
-        // This Permit follows the format of:
-        // wagerCreator, wager nonce, opponent
-        require(SignatureChecker.isValidSignatureNow(
-            issuerAccount, 
-            MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerCreator, wagerNonce, _msgSender()))),
-            permit),
-            "Sig not made by auth");
-        _;
-    }
-
-    modifier onlyWagerState(WagerState state) {
-        i
     }
 
     /// @dev Constructor sets token to be used and nft info, input the RACE token address here on deployment
     constructor(
-        IERC20 token_, 
-        address issuerAccount_
+        IERC20 token_
     ) {
         token = token_;
-        issuerAccount = issuerAccount_;
     }
 
     
     /// @notice PVP and wager tokens
     /// @param prize The amount of tokens being wagered
-    /// @param permit The signature from the authorization wallet
     /// @return true if successful
-    function createPvpWager(uint256 prize, bytes memory permit) 
+    function createPvpWager(uint256 prize) 
         external 
-        validCreateWagerPermit(permit, prize) 
         nonReentrant() 
         returns (bool) {
-        address player = _msgSender();
+        address creator = _msgSender();
 
-        require (token.balanceOf(player) >= prize, "Not enough balance to do that");
         // TODO: Check success
-        token.transferFrom(player, address(this), prize);
-        playerWagerNonce[player]++;
-        pvpWager[player][playerWagerNonce[player]] = Wager(prize, address(0), WagerState.CREATED);
-        emit WagerCreated(msg.sender, playerWagerNonce[player], prize);
+        token.safeTransferFrom(creator, address(this), prize);
+
+        ++latestWagerId;
+        wagers[latestWagerId] = Wager(prize, creator, address(0), address(0), WagerState.CREATED);
+        playerWagers[creator].push(latestWagerId);
+        emit WagerCreated(latestWagerId, creator, prize);
         return true;
     }
 
     /// @notice PVP and wager tokens
-    /// @param permit The signature from the authorization wallet
+    /// @param wagerId The ID of the wager being accepted
     /// @return true if successful
-    function acceptWager(address wagerCreator, uint256 wagerNonce, bytes memory permit) 
+    function acceptWager(uint256 wagerId) 
         external 
-        validAcceptWagerPermit(permit, wagerCreator, wagerNonce) 
+        wagerStateMustBe(WagerState.CREATED, wagerId)
         nonReentrant() 
         returns (bool) {
         address opponentAddress = _msgSender();
-        Wager storage wager = pvpWager[wagerCreator][playerWagerNonce[wagerCreator]];
+
+        Wager storage wager = wagers[wagerId];
+
+        if (wager.creator == opponentAddress) 
+            revert OpponentCantBeChallenger(wagerId, opponentAddress);
 
         // TODO: Check success
-        token.transferFrom(opponentAddress, address(this), wager.prize);
+        token.safeTransferFrom(opponentAddress, address(this), wager.prize);
 
         wager.opponent = opponentAddress;
-        wager.state = Wager.WagerAccepted;
+        wager.state = WagerState.ACCEPTED;
+        playerWagers[opponentAddress].push(wagerId);
        
-        emit WagerAccepted(msg.sender, _opponent, _amount);
+        emit WagerAccepted(wagerId, opponentAddress);
         return true;
     }
 
     /// @notice Claim PVP Winnings
-    /// @param _opponent The address of the challenging opponent
-    /// @param _amount The amount of tokens being wagered
-    /// @param _sig The signature from the authorization wallet
+    /// @param wagerId The id of the wager
+    /// @param winner The winner address
+    /// @param creatorProof The signature from creator which should have signed the winner address
+    /// @param opponentProof The signature from challenger which should have signed the winner address
     /// @return true if successful
-    function pvpWagerClaim(address _opponent, uint256 _amount, bytes memory _sig) external nonReentrant() returns (bool) {
-        require(pvpWager[msg.sender] == _amount, "Wager amount wrong");
-        bytes32 messageHash = getMessageHash(abi.encodePacked(_amount, msg.sender, _opponent));
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-        require(recover(ethSignedMessageHash, _sig) == authWallet, "Sig not made by auth");
+    function completeWager(uint256 wagerId, address winner, bytes memory creatorProof, bytes memory opponentProof) 
+        external 
+        wagerStateMustBe(WagerState.ACCEPTED, wagerId)
+        nonReentrant() 
+        returns (bool) {
+        Wager storage wager = wagers[wagerId];
+        bytes32 message = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerId, winner)));
+        bool creatorProofValid = SignatureChecker.isValidSignatureNow(
+            wager.creator,
+            message,
+            creatorProof);
 
-        _token.transferFrom(_opponent, msg.sender, _amount);
-        emit ClaimedPVPWinnings(msg.sender, _opponent, _amount);
+        bool opponentProofValid = SignatureChecker.isValidSignatureNow(
+            wager.opponent,
+            message,
+            opponentProof);
+
+        if (!creatorProofValid || !opponentProofValid) 
+            revert PlayerSignatureInvalid(wagerId, winner, creatorProof, opponentProof);
+        
+
+        wager.winner = winner;
+        wager.state = WagerState.COMPLETED;
+        // Both the creator & the opponent transfered the wager tokens to this contract,
+        // so this functionally returns the winner's stake and transfers the losers stake to the winner in one transaction
+        // TODO: check for success
+        token.transferFrom(address(this), winner, wager.prize * 2);
+        emit WagerCompleted(wagerId, winner);
         return true;
     }
 
-    /// @dev Used for authentication to check if values came from inside the Block Racers game following solidity standards
-    // function VerifySig(address _signer, bytes memory _message, bytes memory _sig) external pure returns (bool) {
-    //     bytes32 messageHash = getMessageHash(_message);
-    //     bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-    //     return recover(ethSignedMessageHash, _sig) == _signer;
-    // }
-    // function getMessageHash(bytes memory _message) internal pure returns (bytes32) {
-    //     return keccak256(_message);
-    // }
-    // function getEthSignedMessageHash(bytes32 _messageHash) internal pure returns (bytes32) {
-    //     return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32",_messageHash));
-    // }
-    // function recover(bytes32 _ethSignedMessageHash, bytes memory _sig) internal pure returns (address) {
-    //     (bytes32 r, bytes32 s, uint8 v) = _split(_sig);
-    //     return ecrecover(_ethSignedMessageHash, v, r, s);
-    // }
-    // function _split (bytes memory _sig) internal pure returns (bytes32 r, bytes32 s, uint8 v) {
-    //     require(_sig.length == 65, "Invalid signature length");
-    //     assembly {
-    //         r := mload(add(_sig, 32))
-    //         s := mload(add(_sig, 64))
-    //         v := byte(0, mload(add(_sig, 96)))
-    //     }
-    // }
+    /// @notice Cancel Wager
+    /// @param wagerId The id of the wager
+    /// @return true if successful
+    function cancelWager(uint256 wagerId) 
+        external 
+        nonReentrant() 
+        returns (bool) {
+        Wager storage wager = wagers[wagerId];
+
+        if (wager.state != WagerState.CREATED || wager.state != WagerState.ACCEPTED)
+            revert WagerCantBeCancelled(wagerId, wager.state);
+
+        address requestor = _msgSender();
+
+        if (
+            ((wager.state == WagerState.CREATED || wager.state == WagerState.ACCEPTED) && wager.creator == requestor) ||
+            (wager.state == WagerState.ACCEPTED && wager.opponent == requestor)
+        ) {
+
+            // changing the wager state before transfers prevents replay attacks if possible
+            if (wager.state == WagerState.CREATED) {
+                wager.state = WagerState.CANCELLED;
+                // TODO: check for success
+                token.transferFrom(address(this), wager.creator, wager.prize);
+            } else {
+                wager.state = WagerState.CANCELLED;
+                // TODO: check for success
+                token.transferFrom(address(this), wager.creator, wager.prize);
+                token.transferFrom(address(this), wager.opponent, wager.prize);
+            }
+        }  else {
+            revert OnlyParticipantsCanCancel(wagerId, requestor);
+        }
+
+        emit WagerCancelled(wagerId, requestor);
+        return true;
+    }
 }

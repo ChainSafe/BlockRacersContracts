@@ -3,9 +3,8 @@ pragma solidity 0.8.22;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import "./BlockRacersToken.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./BlockRacersAssets.sol";
 
 // $$$$$$$\  $$\       $$$$$$\   $$$$$$\  $$\   $$\       $$$$$$$\   $$$$$$\   $$$$$$\  $$$$$$$$\ $$$$$$$\   $$$$$$\  
@@ -16,12 +15,12 @@ import "./BlockRacersAssets.sol";
 // $$ |  $$ |$$ |     $$ |  $$ |$$ |  $$\ $$ |\$$\        $$ |  $$ |$$ |  $$ |$$ |  $$\ $$ |      $$ |  $$ |$$\   $$ |
 // $$$$$$$  |$$$$$$$$\ $$$$$$  |\$$$$$$  |$$ | \$$\       $$ |  $$ |$$ |  $$ |\$$$$$$  |$$$$$$$$\ $$ |  $$ |\$$$$$$  |
 // \_______/ \________|\______/  \______/ \__|  \__|      \__|  \__|\__|  \__| \______/ \________|\__|  \__| \______/ 
-/// @title Block Racers NFT Contract
-/// @author RyRy79261, Sneakz
-/// @notice This contract holds functions used for the Block Racers NFTs used in the game at https://github.com/Chainsafe/BlockRacers
-/// @dev All function calls are tested and have been implemented on the BlockRacers Game
 
+/// @title Block Racers core game Contract
+/// @author RyRy79261, Sneakz
+/// @notice This contract holds functions used for the Block Racers core game mechanices used in the game at https://github.com/Chainsafe/BlockRacers
 contract BlockRacers is Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
     enum GameItem{ CAR, ENGINE, HANDLING, NOS }
     struct CarStats {
         uint256 carCost;
@@ -41,7 +40,7 @@ contract BlockRacers is Ownable, ReentrancyGuard {
     }
     
     /// @dev BlockRacers ERC20 address
-    BlockRacersToken public immutable token;
+    IERC20 public immutable token;
 
     /// @dev BlockRacers ERC1155 address
     BlockRacersAssets public immutable assets;
@@ -55,12 +54,6 @@ contract BlockRacers is Ownable, ReentrancyGuard {
     uint256 private _latestCarId = 0;
     
     uint256 private _currentSettingsId = 0;
-
-    /// @dev Base URI for NFTBoard ipfs image
-    string constant public BASE_URI = "https://ipfs.chainsafe.io/ipfs/";
-    string constant public URI1 = "QmdW2tRdCw2YERvhzbMHn2qcaBHPMNo5ofsoo8q9q9N3Qe";
-    string constant public URI2 = "QmWavwGJgqxMP38a6cxn9ehJASqdXNNcRT4YD7sa3dDMST";
-    string constant public URI3 = "QmevuY959udKfEYXJvLZmVqiNFVe6KfqqxMRprYbtRhncP";
 
     /// @dev Nonce to stop replay attacks
     mapping(address => uint256) private playerNonce;
@@ -87,26 +80,6 @@ contract BlockRacers is Ownable, ReentrancyGuard {
         _;
     }
 
-    modifier onlyValidPermit(bytes memory permit, GameItem itemType) {
-        (uint256 price, uint16 maxLevel) = getItemData(itemType);
-
-        // bytes32 messageHash = getMessageHash(abi.encodePacked(playerNonce[_msgSender()], _msgSender(), price, uint256(itemType)));
-        // bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-        // require(recover(ethSignedMessageHash, permit) == issuerAccount, "Sig not made by auth");
-        require(SignatureChecker.isValidSignatureNow(
-            issuerAccount, 
-            MessageHashUtils.toEthSignedMessageHash(
-                keccak256(
-                    abi.encodePacked(playerNonce[_msgSender()], 
-                    _msgSender(), 
-                    price, 
-                    uint256(itemType)
-                ))),
-            permit),
-            "Sig not made by auth");
-        _;
-    }
-
     modifier levelNotMaxed(uint256 carId, GameItem itemType){
         (,uint16 maxLevel) = getItemData(itemType);
         uint16 currentLevel;
@@ -125,10 +98,12 @@ contract BlockRacers is Ownable, ReentrancyGuard {
         _;
     }
 
+    // TODO: View function to see all of a users cars, however, presently, I could keep an array, but if this is transfered, that array would be incorrect for both accounts involved in the transfer
+
      /// @dev Constructor sets token to be used and nft info, input the RACE token address here on deployment
     constructor(
         address admin_,
-        BlockRacersToken token_, 
+        IERC20 token_, 
         BlockRacersAssets assets_,
         address blockRacersFeeAccount_,
         address issuerAccount_,
@@ -141,6 +116,14 @@ contract BlockRacers is Ownable, ReentrancyGuard {
         gameSettingsData[_currentSettingsId] = gameSettingsData_;
     }
 
+    function setBlockRacersFeeAccount(address newBlockRacersFeeAccount) external onlyOwner() {
+        blockRacersFeeAccount = newBlockRacersFeeAccount;
+    }
+
+    function setIssuerAccount(address newIssuerAccount) external onlyOwner() {
+        issuerAccount = newIssuerAccount;
+    }
+
     function setNewGameSettings(GameSettingsData memory newSettings) external onlyOwner() {
         ++_currentSettingsId;
         gameSettingsData[_currentSettingsId] = newSettings;
@@ -148,11 +131,9 @@ contract BlockRacers is Ownable, ReentrancyGuard {
 
     /// @dev Contract functions
     /// @notice Mints an Nft to a users wallet
-    /// @param permit The signed permit to allow for minting a car
     /// @return true if successful
-    function mintCar(bytes memory permit) 
+    function mintCar() 
         external 
-        onlyValidPermit(permit, GameItem.CAR) 
         nonReentrant() 
         returns (bool) {
         (uint256 price, ) = getItemData(GameItem.CAR);
@@ -161,7 +142,7 @@ contract BlockRacers is Ownable, ReentrancyGuard {
         // Attempt payment
         // TODO: ensure success
         playerNonce[player]++;
-        token.transferFrom(player, blockRacersFeeAccount, price);
+        token.safeTransferFrom(player, blockRacersFeeAccount, price);
 
         ++_latestCarId;
         assets.mint(player, _latestCarId, 1);
@@ -173,20 +154,18 @@ contract BlockRacers is Ownable, ReentrancyGuard {
 
     /// @notice Upgrades the car's engine level
     /// @param carId The id of the car being upgraded
-    /// @param permit The permit authorizing the upgrade
     /// @return true if successful
-    function upgradeEngine(uint256 carId, bytes memory permit)
+    function upgradeEngine(uint256 carId)
         external
         onlyCarOwner(carId) 
         levelNotMaxed(carId, GameItem.ENGINE)
-        onlyValidPermit(permit, GameItem.ENGINE) 
         nonReentrant() 
         returns (bool) {
         (uint256 price,) = getItemData(GameItem.ENGINE);
         address player = _msgSender();
         
         playerNonce[player]++;
-        token.transferFrom(player, blockRacersFeeAccount, price);
+        token.safeTransferFrom(player, blockRacersFeeAccount, price);
         CarStats storage car = carStats[carId];
         ++car.engineLevel;
 
@@ -196,20 +175,18 @@ contract BlockRacers is Ownable, ReentrancyGuard {
 
     /// @notice Upgrades the car's handling level
     /// @param carId The id of the car being upgraded
-    /// @param permit The permit authorizing the upgrade
     /// @return true if successful
-    function upgradeHandling(uint256 carId, bytes memory permit) 
+    function upgradeHandling(uint256 carId) 
         external 
         onlyCarOwner(carId) 
         levelNotMaxed(carId, GameItem.HANDLING)
-        onlyValidPermit(permit, GameItem.HANDLING) 
         nonReentrant() 
         returns (bool) {
         (uint256 price,) = getItemData(GameItem.HANDLING);
         address player = _msgSender();
 
         playerNonce[player]++;
-        token.transferFrom(player, blockRacersFeeAccount, price);
+        token.safeTransferFrom(player, blockRacersFeeAccount, price);
         CarStats storage car = carStats[carId];
         ++car.handlingLevel;
 
@@ -219,19 +196,17 @@ contract BlockRacers is Ownable, ReentrancyGuard {
 
     /// @notice Upgrades the car's Nos level
     /// @param carId The id of the car being upgraded
-    /// @param permit The permit authorizing the upgrade
     /// @return true if successful
-    function upgradeNos(uint256 carId, bytes memory permit) 
+    function upgradeNos(uint256 carId) 
         external 
         onlyCarOwner(carId) 
         levelNotMaxed(carId, GameItem.NOS)
-        onlyValidPermit(permit, GameItem.NOS) 
         nonReentrant() 
         returns (bool) {
         (uint256 price,) = getItemData(GameItem.NOS);
         address player = _msgSender();
         
-        token.transferFrom(player, blockRacersFeeAccount, price);
+        token.safeTransferFrom(player, blockRacersFeeAccount, price);
         playerNonce[player]++;
         CarStats storage car = carStats[carId];
         car.nosLevel++;
@@ -246,7 +221,6 @@ contract BlockRacers is Ownable, ReentrancyGuard {
     //     return ownerNftIds[_wallet];
     // }
     // TODO: get all NFT Ids from 1155
-
     function getUpgradeData() public view returns(GameSettingsData memory) {
         return gameSettingsData[_currentSettingsId];
     }
@@ -265,33 +239,4 @@ contract BlockRacers is Ownable, ReentrancyGuard {
             price = gameSettingsData[_currentSettingsId].carCost;
         }  
     }
-
-    /// @dev Used for authentication to check if values came from inside the Block Racers game following solidity standards
-    // function VerifySig(address _signer, bytes memory _message, bytes memory _sig) external pure returns (bool) {
-    //     bytes32 messageHash = getMessageHash(_message);
-    //     bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-    //     return recover(ethSignedMessageHash, _sig) == _signer;
-    // }
-
-    // function getMessageHash(bytes memory _message) internal pure returns (bytes32) {
-    //     return keccak256(_message);
-    // }
-
-    // function getEthSignedMessageHash(bytes32 _messageHash) internal pure returns (bytes32) {
-    //     return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32",_messageHash));
-    // }
-
-    // function recover(bytes32 _ethSignedMessageHash, bytes memory _sig) internal pure returns (address) {
-    //     (bytes32 r, bytes32 s, uint8 v) = _split(_sig);
-    //     return ecrecover(_ethSignedMessageHash, v, r, s);
-    // }
-
-    // function _split (bytes memory _sig) internal pure returns (bytes32 r, bytes32 s, uint8 v) {
-    //     require(_sig.length == 65, "Invalid signature length");
-    //     assembly {
-    //         r := mload(add(_sig, 32))
-    //         s := mload(add(_sig, 64))
-    //         v := byte(0, mload(add(_sig, 96)))
-    //     }
-    // }
 }

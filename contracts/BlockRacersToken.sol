@@ -14,11 +14,10 @@ import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 // $$ |  $$ |$$ |     $$ |  $$ |$$ |  $$\ $$ |\$$\        $$ |  $$ |$$ |  $$ |$$ |  $$\ $$ |      $$ |  $$ |$$\   $$ |
 // $$$$$$$  |$$$$$$$$\ $$$$$$  |\$$$$$$  |$$ | \$$\       $$ |  $$ |$$ |  $$ |\$$$$$$  |$$$$$$$$\ $$ |  $$ |\$$$$$$  |
 // \_______/ \________|\______/  \______/ \__|  \__|      \__|  \__|\__|  \__| \______/ \________|\__|  \__| \______/ 
+
 /// @title Block Racers Token Contract
 /// @author RyRy79261, Sneakz
-/// @notice This contract holds functions used for the Block Racers token used in the game at https://github.com/Chainsafe/BlockRacers
-/// @dev All function calls are tested and have been implemented on the BlockRacers Game
-
+/// @notice This contract manages the ERC20 token used within the Block Racers game at https://github.com/Chainsafe/BlockRacers
 contract BlockRacersToken is ERC20, ReentrancyGuard {
     /// @dev Wallet that auth signatures come from
     address public issuerAccount;
@@ -37,9 +36,14 @@ contract BlockRacersToken is ERC20, ReentrancyGuard {
             "Sig not made by auth");
         _;
     }
-    
-    constructor(address issuerAccount_) ERC20("BlockRacersToken", "RACE") {
+
+    constructor(address issuerAccount_, uint256 initialMint_) ERC20("BlockRacersToken", "RACE"){
         issuerAccount = issuerAccount_;
+
+        // TODO: If migrated to a mainnet, this logic should be expanded depending on distribution 
+        if (initialMint_ > 0) {
+            _mint(issuerAccount_, initialMint_);
+        }
     }
 
     /// @dev Used to mint tokens to an address
@@ -57,32 +61,16 @@ contract BlockRacersToken is ERC20, ReentrancyGuard {
         return true;
     }
 
-    /// @dev Used for authentication to check if values came from inside the Block Racers game following solidity standards
-    // function VerifySig(address _signer, bytes memory _message, bytes memory _sig) external pure returns (bool) {
-    //     bytes32 messageHash = getMessageHash(_message);
-    //     bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-    //     return recover(ethSignedMessageHash, _sig) == _signer;
-    // }
+    /// @dev WARNING Mint function only to be deployed if on testnets 
+    /// @param to The address to mint tokens to
+    /// @param amount The amount of tokens to mint to the address
+    /// @return true if  mint is successful
+    function mint(address to, uint256 amount) 
+        external 
+        nonReentrant() 
+        returns (bool) {
 
-    // function getMessageHash(bytes memory _message) internal pure returns (bytes32) {
-    //     return keccak256(_message);
-    // }
-
-    // function getEthSignedMessageHash(bytes32 _messageHash) internal pure returns (bytes32) {
-    //     return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32",_messageHash));
-    // }
-
-    // function recover(bytes32 _ethSignedMessageHash, bytes memory _sig) internal pure returns (address) {
-    //     (bytes32 r, bytes32 s, uint8 v) = _split(_sig);
-    //     return ecrecover(_ethSignedMessageHash, v, r, s);
-    // }
-
-    // function _split (bytes memory _sig) internal pure returns (bytes32 r, bytes32 s, uint8 v) {
-    //     require(_sig.length == 65, "Invalid signature length");
-    //     assembly {
-    //         r := mload(add(_sig, 32))
-    //         s := mload(add(_sig, 64))
-    //         v := byte(0, mload(add(_sig, 96)))
-    //     }
-    // }
+        _mint(to, amount);
+        return true;
+    }
 }

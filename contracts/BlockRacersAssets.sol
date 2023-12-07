@@ -14,14 +14,14 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 // $$ |  $$ |$$ |     $$ |  $$ |$$ |  $$\ $$ |\$$\        $$ |  $$ |$$ |  $$ |$$ |  $$\ $$ |      $$ |  $$ |$$\   $$ |
 // $$$$$$$  |$$$$$$$$\ $$$$$$  |\$$$$$$  |$$ | \$$\       $$ |  $$ |$$ |  $$ |\$$$$$$  |$$$$$$$$\ $$ |  $$ |\$$$$$$  |
 // \_______/ \________|\______/  \______/ \__|  \__|      \__|  \__|\__|  \__| \______/ \________|\__|  \__| \______/ 
+
 /// @title Block Racers ERC1155 contract
 /// @author RyRy79261
-/// @notice This contract facilitates asset management in BlockRacers at https://github.com/Chainsafe/BlockRacers
-
+/// @notice This contract facilitates NFT asset management in Block Racers at https://github.com/Chainsafe/BlockRacers
 contract BlockRacersAssets is ERC1155, ERC1155URIStorage, AccessControl, ReentrancyGuard {
-    error NotAuthorizedGameContract();
-
     bytes32 public constant BLOCK_RACERS = keccak256("BLOCK_RACERS");
+    
+    error NotAuthorizedGameContract();
 
     modifier onlyBlockracers {
         if(!hasRole(BLOCK_RACERS, _msgSender()))
