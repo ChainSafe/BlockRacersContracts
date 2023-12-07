@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
+import "./utils/Blacklist.sol";
 
 // $$$$$$$\  $$\       $$$$$$\   $$$$$$\  $$\   $$\       $$$$$$$\   $$$$$$\   $$$$$$\  $$$$$$$$\ $$$$$$$\   $$$$$$\  
 // $$  __$$\ $$ |     $$  __$$\ $$  __$$\ $$ | $$  |      $$  __$$\ $$  __$$\ $$  __$$\ $$  _____|$$  __$$\ $$  __$$\ 
@@ -20,7 +21,7 @@ import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 /// @title Block Racers Wagering Contract
 /// @author RyRy79261
 /// @notice This escrow contract holds functions used for the Block Racers wagering used in the game at https://github.com/Chainsafe/BlockRacers
-contract BlockRacersWagering is ERC2771Context, ReentrancyGuard {
+contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
     using SafeERC20 for IERC20;
     enum WagerState { NOT_STARTED, CREATED, ACCEPTED, COMPLETED, CANCELLED }
 
@@ -65,8 +66,9 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard {
     /// @dev Constructor sets token to be used and nft info, input the RACE token address here on deployment
     constructor(
         address trustedForwarder,
+        address admin_,
         IERC20 token_
-    ) ERC2771Context(trustedForwarder){
+    ) ERC2771Context(trustedForwarder) Blacklist(admin_){
         token = token_;
     }
 
@@ -76,6 +78,7 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard {
     /// @return true if successful
     function createPvpWager(uint256 prize) 
         external 
+        isNotBlacklisted(_msgSender())
         nonReentrant() 
         returns (bool) {
         address creator = _msgSender();
@@ -95,6 +98,7 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard {
     /// @return true if successful
     function acceptWager(uint256 wagerId) 
         external 
+        isNotBlacklisted(_msgSender())
         wagerStateMustBe(WagerState.CREATED, wagerId)
         nonReentrant() 
         returns (bool) {
@@ -122,7 +126,12 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard {
     /// @param creatorProof The signature from creator which should have signed the winner address
     /// @param opponentProof The signature from challenger which should have signed the winner address
     /// @return true if successful
-    function completeWager(uint256 wagerId, address winner, bytes memory creatorProof, bytes memory opponentProof) 
+    function completeWager(
+        uint256 wagerId, 
+        address winner, 
+        bytes memory creatorProof, 
+        bytes memory opponentProof
+    ) 
         external 
         wagerStateMustBe(WagerState.ACCEPTED, wagerId)
         nonReentrant() 
@@ -158,6 +167,7 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard {
     /// @return true if successful
     function cancelWager(uint256 wagerId) 
         external 
+        isNotBlacklisted(_msgSender())
         nonReentrant() 
         returns (bool) {
         Wager storage wager = wagers[wagerId];
@@ -189,5 +199,19 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard {
 
         emit WagerCancelled(wagerId, requestor);
         return true;
+    }
+
+    /**
+     * @dev Override required as inheritance was indeterminant for which function to use
+     */
+    function _msgSender() internal view override(ERC2771Context, Context) returns (address sender) {
+        return ERC2771Context._msgSender();
+    }
+
+    /**
+     * @dev Override required as inheritance was indeterminant for which function to use
+     */
+    function _msgData() internal view override(ERC2771Context, Context) returns (bytes calldata) {
+        return ERC2771Context._msgData();
     }
 }
