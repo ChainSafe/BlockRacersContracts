@@ -2,11 +2,11 @@
 pragma solidity 0.8.22;
 
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 
 // $$$$$$$\  $$\       $$$$$$\   $$$$$$\  $$\   $$\       $$$$$$$\   $$$$$$\   $$$$$$\  $$$$$$$$\ $$$$$$$\   $$$$$$\  
 // $$  __$$\ $$ |     $$  __$$\ $$  __$$\ $$ | $$  |      $$  __$$\ $$  __$$\ $$  __$$\ $$  _____|$$  __$$\ $$  __$$\ 
@@ -20,7 +20,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /// @title Block Racers Wagering Contract
 /// @author RyRy79261
 /// @notice This escrow contract holds functions used for the Block Racers wagering used in the game at https://github.com/Chainsafe/BlockRacers
-contract BlockRacersWagering is Context, ReentrancyGuard {
+contract BlockRacersWagering is ERC2771Context, ReentrancyGuard {
     using SafeERC20 for IERC20;
     enum WagerState { NOT_STARTED, CREATED, ACCEPTED, COMPLETED, CANCELLED }
 
@@ -64,8 +64,9 @@ contract BlockRacersWagering is Context, ReentrancyGuard {
 
     /// @dev Constructor sets token to be used and nft info, input the RACE token address here on deployment
     constructor(
+        address trustedForwarder,
         IERC20 token_
-    ) {
+    ) ERC2771Context(trustedForwarder){
         token = token_;
     }
 

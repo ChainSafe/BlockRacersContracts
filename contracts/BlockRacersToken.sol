@@ -4,6 +4,7 @@ pragma solidity 0.8.22;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 // $$$$$$$\  $$\       $$$$$$\   $$$$$$\  $$\   $$\       $$$$$$$\   $$$$$$\   $$$$$$\  $$$$$$$$\ $$$$$$$\   $$$$$$\  
@@ -18,7 +19,7 @@ import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 /// @title Block Racers Token Contract
 /// @author RyRy79261, Sneakz
 /// @notice This contract manages the ERC20 token used within the Block Racers game at https://github.com/Chainsafe/BlockRacers
-contract BlockRacersToken is ERC20, ReentrancyGuard {
+contract BlockRacersToken is ERC20, ERC2771Context, ReentrancyGuard {
     /// @dev Wallet that auth signatures come from
     address public issuerAccount;
     /// @dev Nonce to stop replay attacks
@@ -37,7 +38,11 @@ contract BlockRacersToken is ERC20, ReentrancyGuard {
         _;
     }
 
-    constructor(address issuerAccount_, uint256 initialMint_) ERC20("BlockRacersToken", "RACE"){
+    constructor(
+        address trustedForwarder,
+        address issuerAccount_, 
+        uint256 initialMint_
+    ) ERC20("BlockRacersToken", "RACE") ERC2771Context(trustedForwarder) {
         issuerAccount = issuerAccount_;
 
         // TODO: If migrated to a mainnet, this logic should be expanded depending on distribution 
@@ -72,5 +77,19 @@ contract BlockRacersToken is ERC20, ReentrancyGuard {
 
         _mint(to, amount);
         return true;
+    }
+
+    /**
+     * @dev Override required as inheritance was indeterminant for which function to use
+     */
+    function _msgSender() internal view override(ERC2771Context, Context) returns (address sender) {
+        return ERC2771Context._msgSender();
+    }
+
+    /**
+     * @dev Override required as inheritance was indeterminant for which function to use
+     */
+    function _msgData() internal view override(ERC2771Context, Context) returns (bytes calldata) {
+        return ERC2771Context._msgData();
     }
 }

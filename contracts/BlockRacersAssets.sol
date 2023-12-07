@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155URIStorage.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 
 // $$$$$$$\  $$\       $$$$$$\   $$$$$$\  $$\   $$\       $$$$$$$\   $$$$$$\   $$$$$$\  $$$$$$$$\ $$$$$$$\   $$$$$$\  
 // $$  __$$\ $$ |     $$  __$$\ $$  __$$\ $$ | $$  |      $$  __$$\ $$  __$$\ $$  __$$\ $$  _____|$$  __$$\ $$  __$$\ 
@@ -18,7 +19,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 /// @title Block Racers ERC1155 contract
 /// @author RyRy79261
 /// @notice This contract facilitates NFT asset management in Block Racers at https://github.com/Chainsafe/BlockRacers
-contract BlockRacersAssets is ERC1155, ERC1155URIStorage, AccessControl, ReentrancyGuard {
+contract BlockRacersAssets is ERC1155, ERC1155URIStorage, ERC2771Context, AccessControl, ReentrancyGuard {
     bytes32 public constant BLOCK_RACERS = keccak256("BLOCK_RACERS");
     
     error NotAuthorizedGameContract();
@@ -30,7 +31,11 @@ contract BlockRacersAssets is ERC1155, ERC1155URIStorage, AccessControl, Reentra
         _;
     }
     /// @dev Constructor sets token to be used and nft info, input the RACE token address here on deployment
-    constructor(string memory baseUri_, address _admin) ERC1155(baseUri_) {
+    constructor(
+        address trustedForwarder,
+        string memory baseUri_, 
+        address _admin
+    ) ERC1155(baseUri_) ERC2771Context(trustedForwarder) {
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         // Default is 0x00 so the default init value of Admin role would be 0x00 so this might be redundant
         _setRoleAdmin(BLOCK_RACERS, DEFAULT_ADMIN_ROLE); 
@@ -58,5 +63,19 @@ contract BlockRacersAssets is ERC1155, ERC1155URIStorage, AccessControl, Reentra
 
     function uri(uint256 tokenId) public view override(ERC1155URIStorage, ERC1155) returns (string memory) {
         return super.uri(tokenId);
+    }
+
+    /**
+     * @dev Override required as inheritance was indeterminant for which function to use
+     */
+    function _msgSender() internal view override(ERC2771Context, Context) returns (address sender) {
+        return ERC2771Context._msgSender();
+    }
+
+    /**
+     * @dev Override required as inheritance was indeterminant for which function to use
+     */
+    function _msgData() internal view override(ERC2771Context, Context) returns (bytes calldata) {
+        return ERC2771Context._msgData();
     }
 }

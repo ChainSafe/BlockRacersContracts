@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 import "./BlockRacersAssets.sol";
 
 // $$$$$$$\  $$\       $$$$$$\   $$$$$$\  $$\   $$\       $$$$$$$\   $$$$$$\   $$$$$$\  $$$$$$$$\ $$$$$$$\   $$$$$$\  
@@ -19,7 +20,7 @@ import "./BlockRacersAssets.sol";
 /// @title Block Racers core game Contract
 /// @author RyRy79261, Sneakz
 /// @notice This contract holds functions used for the Block Racers core game mechanices used in the game at https://github.com/Chainsafe/BlockRacers
-contract BlockRacers is Ownable, ReentrancyGuard {
+contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     enum GameItem{ CAR, ENGINE, HANDLING, NOS }
     struct CarStats {
@@ -102,13 +103,14 @@ contract BlockRacers is Ownable, ReentrancyGuard {
 
      /// @dev Constructor sets token to be used and nft info, input the RACE token address here on deployment
     constructor(
+        address trustedForwarder,
         address admin_,
         IERC20 token_, 
         BlockRacersAssets assets_,
         address blockRacersFeeAccount_,
         address issuerAccount_,
         GameSettingsData memory gameSettingsData_
-        ) Ownable(admin_) {
+        ) ERC2771Context(trustedForwarder) Ownable(admin_) {
         token = token_;
         assets = assets_;
         blockRacersFeeAccount = blockRacersFeeAccount_;
@@ -238,5 +240,19 @@ contract BlockRacers is Ownable, ReentrancyGuard {
         } else {
             price = gameSettingsData[_currentSettingsId].carCost;
         }  
+    }
+
+    /**
+     * @dev Override required as inheritance was indeterminant for which function to use
+     */
+    function _msgSender() internal view override(ERC2771Context, Context) returns (address sender) {
+        return ERC2771Context._msgSender();
+    }
+
+    /**
+     * @dev Override required as inheritance was indeterminant for which function to use
+     */
+    function _msgData() internal view override(ERC2771Context, Context) returns (bytes calldata) {
+        return ERC2771Context._msgData();
     }
 }
