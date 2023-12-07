@@ -210,6 +210,7 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
             token.safeTransferFrom(address(this), wager.creator, wager.prize);
 
         } else if (wager.state == WagerState.ACCEPTED) {
+            wager.state = WagerState.CANCELLED;
             token.safeTransferFrom(address(this), wager.creator, wager.prize);
             token.safeTransferFrom(address(this), wager.opponent, wager.prize);
         } else {
