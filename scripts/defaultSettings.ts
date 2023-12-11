@@ -1,3 +1,4 @@
+import { parseUnits } from "ethers";
 import { BlockRacers } from "../typechain-types/contracts/BlockRacers";
 
 export const generalSettings = {
@@ -8,19 +9,19 @@ export const generalSettings = {
 
 export const defaultGameSettings: BlockRacers.GameSettingsDataStruct = {
     carOptions: [{
-        carCost: 50*1e18,
+        carCost: parseUnits("50", 18),
         carUri: "QmdW2tRdCw2YERvhzbMHn2qcaBHPMNo5ofsoo8q9q9N3Qe"
     },{
-        carCost: 50*1e18,
+        carCost: parseUnits("50", 18),
         carUri: "QmWavwGJgqxMP38a6cxn9ehJASqdXNNcRT4YD7sa3dDMST"
     },{
-        carCost: 50*1e18,
+        carCost: parseUnits("50", 18),
         carUri: "QmevuY959udKfEYXJvLZmVqiNFVe6KfqqxMRprYbtRhncP"
     }],
     engineMaxLevel: 8,
-    enginePrice: 20*1e18,
+    enginePrice: parseUnits("20", 18),
     handlingMaxLevel: 8,
-    handlingPrice: 20*1e18,
+    handlingPrice: parseUnits("20", 18),
     nosMaxLevel: 8,
-    nosPrice: 20*1e18,
+    nosPrice: parseUnits("20", 18),
 }

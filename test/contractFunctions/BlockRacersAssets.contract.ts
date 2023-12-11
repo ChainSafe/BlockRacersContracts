@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { getAccounts } from "./generalFunctions";
 import { generalSettings } from "../../scripts/defaultSettings";
 
-export const deployAssets = async (
+export const deployAssetsFixture = async (
 ) => {
     const {
         admin,
@@ -11,9 +11,12 @@ export const deployAssets = async (
 
     const BlockRacersAssets = await ethers.getContractFactory("BlockRacersAssets", admin);
     
-    return await BlockRacersAssets.deploy(
+    const BlockRacersAssetsContract = await BlockRacersAssets.deploy(
         trustedForwarder, 
         generalSettings.NFT.baseUri,
         admin, 
         );
+    await BlockRacersAssetsContract.waitForDeployment();
+
+    return BlockRacersAssetsContract;
 }

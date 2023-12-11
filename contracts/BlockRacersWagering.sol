@@ -134,7 +134,7 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
         nonReentrant() 
         returns (bool) {
         Wager storage wager = wagers[wagerId];
-        bytes32 message = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerId, winner)));
+        bytes32 message = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerId, "-", winner)));
         bool creatorProofValid = SignatureChecker.isValidSignatureNow(
             wager.creator,
             message,

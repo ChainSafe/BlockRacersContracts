@@ -22,6 +22,7 @@ import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 contract BlockRacersAssets is ERC2771Context, ERC1155, ERC1155URIStorage, AccessControl, ReentrancyGuard {
     bytes32 public constant BLOCK_RACERS = keccak256("BLOCK_RACERS");
     
+    error UriArrayLengthInvalid();
     error NotAuthorizedGameContract();
 
     modifier onlyBlockracers {
@@ -72,9 +73,30 @@ contract BlockRacersAssets is ERC2771Context, ERC1155, ERC1155URIStorage, Access
     /// @param to receiver account
     /// @param ids ID list
     /// @param values Quantity list
-    /// @param data abitrary data 
-    function mintBatch(address to, uint256[] memory ids, uint256[] memory values, bytes memory data) external onlyBlockracers() returns(bool) {
-        _mintBatch(to, ids, values, data);
+    function mintBatch(address to, uint256[] memory ids, uint256[] memory values) external onlyBlockracers() returns(bool) {
+        _mintBatch(to, ids, values, new bytes(0));
+        return true;
+    }
+
+    /// Batch minting function
+    /// @param to receiver account
+    /// @param ids ID list
+    /// @param values Quantity list
+    /// @param uriList URI list
+    function mintBatch(address to, uint256[] memory ids, uint256[] memory values, string[] memory uriList) external onlyBlockracers() returns(bool) {
+        uint256 nftCount = uriList.length;
+        if(ids.length == nftCount)
+            revert UriArrayLengthInvalid();
+            
+        _mintBatch(to, ids, values, new bytes(0));
+
+        
+        for(uint256 i = 0; i < nftCount;) {
+            ERC1155URIStorage._setURI(ids[i], uriList[i]);
+            unchecked{
+                i++;
+            }
+        }
         return true;
     }
 

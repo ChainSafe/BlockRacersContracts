@@ -1,32 +1,57 @@
 import {
+  loadFixture,
   time,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { ethers } from "hardhat";
+import { defaultDeployFixture, getAccounts } from "./contractFunctions/generalFunctions";
+import { assert } from "chai";
+import { parseUnits } from "ethers";
+import { deployTokenFixture } from "./contractFunctions/BlockRacersToken.contract";
 
 describe("BlockRacersToken", function () {
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.
-  async function deployFixture() {
-    const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
-    const ONE_GWEI = 1_000_000_000;
+  
+  describe("deployment", () => {
+    it("deploys as expected", async () => {
+      const tokenContract = await loadFixture(deployTokenFixture)
+      const symbol = await tokenContract.symbol();
 
-    const lockedAmount = ONE_GWEI;
-    const unlockTime = (await time.latest()) + ONE_YEAR_IN_SECS;
-
-    // Contracts are deployed using the first signer/account by default
-    const [owner, otherAccount] = await ethers.getSigners();
-
-    const BlockRacersToken = await ethers.getContractFactory("BlockRacersToken");
-    const blockRacersToken = await BlockRacersToken.deploy([], { });
-
-    return { blockRacersToken, unlockTime, lockedAmount, owner, otherAccount };
-  }
-
-  describe("read", function () {
-  });
+      assert(symbol == "RACE", "Symbol not set")
+    })
+  })
 
   describe("write", function () {
-    it("mint")
+    describe("testnet-only", () => {
+      it("mint(to,amount)", async () => {
+        const { player1 } = await getAccounts();
+        const { tokenContract } = await loadFixture(defaultDeployFixture)
+        const mintingAmount = parseUnits("100", 18);
+
+        // Check player1 balance 0
+        let player1Balance = await tokenContract.balanceOf(player1)
+        assert(player1Balance == BigInt(0), "Player1 balance not 0");
+
+        await tokenContract["mint(address,uint256)"](player1, mintingAmount);
+
+        player1Balance = await tokenContract.balanceOf(player1);
+        assert(mintingAmount == player1Balance, "Mint did not update Player 1 balance accurately");
+      })
+    })
+
+    it("mint(to,amount,permit)")
+    it("approve")
+    it("transfer")
+    it("transferFrom")
+  });
+
+  describe("read", () => {
+    it("balanceOf")
+    it("allowance")
+    it("isTrustedForwarder")
+    it("issuerAccount")
+    it("name")
+    it("symbol")
+    it("totalSupply")
   });
 });

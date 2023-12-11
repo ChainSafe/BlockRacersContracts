@@ -74,7 +74,6 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
 
     error CarTypeDoesNotExist(uint256 carTypeId);
     error NotCarOwner(uint256 carId);
-    error InvalidPermit(address permitSigner, bytes permit);
     error InvalidItemType();
     error UpgradeNotPossible(uint256 carId, GameItem gameItem, uint16 currentLevel, uint16 maxLevel);
 

@@ -1,8 +1,11 @@
 import { ethers } from "hardhat";
-import { deployToken } from "./BlockRacersToken.contract";
-import { deployAssets } from "./BlockRacersAssets.contract";
-import { deployWagering } from "./BlockRacersWagering.contract";
-import { deployCore } from "./BlockRacers.contract";
+import { deployTokenFixture } from "./BlockRacersToken.contract";
+import { deployAssetsFixture } from "./BlockRacersAssets.contract";
+import { deployWageringFixture } from "./BlockRacersWagering.contract";
+import { deployCoreFixture } from "./BlockRacers.contract";
+import { parseUnits } from "ethers";
+
+export const mintingAmount = parseUnits("200", 18);
 
 export const getAccounts = async () => {
     const [trustedForwarder, issuerAccount, admin, feeAccount, player1, player2, player3 ] = await ethers.getSigners();
@@ -12,16 +15,24 @@ export const getAccounts = async () => {
     }
 }
 
-export const defaultDeploy = async () => {
-    const tokenContract = await deployToken();
-    const assetsContract = await deployAssets();
-    const wageringContract = await deployWagering(await tokenContract.getAddress())
-    const coreContract = await deployCore(await tokenContract.getAddress(), await assetsContract.getAddress())
+export const defaultDeployFixture = async (withMint: boolean = false) => {
+    const tokenContract = await deployTokenFixture();
+    const assetsContract = await deployAssetsFixture();
+    const wageringContract = await deployWageringFixture(await tokenContract.getAddress())
+    const coreContract = await deployCoreFixture(await tokenContract.getAddress(), await assetsContract.getAddress())
 
     // Register BlockRacers core
     const { admin } = await getAccounts();
     await assetsContract.connect(admin).grantRole(await assetsContract.BLOCK_RACERS(), await coreContract.getAddress());
 
+
+    if (withMint) {
+        const { player1, player2, player3 } = await getAccounts();
+
+        await tokenContract["mint(address,uint256)"](player1, mintingAmount);
+        await tokenContract["mint(address,uint256)"](player2, mintingAmount);
+        await tokenContract["mint(address,uint256)"](player3, mintingAmount);
+    }
 
     return {
         tokenContract,

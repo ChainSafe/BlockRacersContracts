@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import { getAccounts } from "./generalFunctions";
 import { BigNumberish } from "ethers";
 
-export const deployToken = async (
+export const deployTokenFixture = async (
     initialAdminMint: BigNumberish = 0
 ) => {
     const {
@@ -12,9 +12,12 @@ export const deployToken = async (
     } = await getAccounts()
 
     const BlockRacersToken = await ethers.getContractFactory("BlockRacersToken", admin);
-    return await BlockRacersToken.deploy(
+    const BlockRacersTokenContract =  await BlockRacersToken.deploy(
         trustedForwarder, 
         issuerAccount,
         initialAdminMint
         );
+    await BlockRacersTokenContract.waitForDeployment()
+    
+    return BlockRacersTokenContract;
 }
