@@ -19,7 +19,7 @@ import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 /// @title Block Racers ERC1155 contract
 /// @author RyRy79261
 /// @notice This contract facilitates NFT asset management in Block Racers at https://github.com/Chainsafe/BlockRacers
-contract BlockRacersAssets is ERC1155, ERC1155URIStorage, ERC2771Context, AccessControl, ReentrancyGuard {
+contract BlockRacersAssets is ERC2771Context, ERC1155, ERC1155URIStorage, AccessControl, ReentrancyGuard {
     bytes32 public constant BLOCK_RACERS = keccak256("BLOCK_RACERS");
     
     error NotAuthorizedGameContract();
@@ -39,7 +39,7 @@ contract BlockRacersAssets is ERC1155, ERC1155URIStorage, ERC2771Context, Access
         address trustedForwarder,
         string memory baseUri_, 
         address _admin
-    ) ERC1155(baseUri_) ERC2771Context(trustedForwarder) {
+    ) ERC2771Context(trustedForwarder) ERC1155(baseUri_) {
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         // Default is 0x00 so the default init value of Admin role would be 0x00 so this might be redundant
         _setRoleAdmin(BLOCK_RACERS, DEFAULT_ADMIN_ROLE); 
@@ -53,6 +53,18 @@ contract BlockRacersAssets is ERC1155, ERC1155URIStorage, ERC2771Context, Access
     /// @return true if successful
     function mint(address to, uint256 id, uint256 value) external onlyBlockracers() returns(bool) {
        _mint(to, id, value, new bytes(0));
+       return true;
+    }
+
+    /// @dev Minting functions
+    /// @notice Mints an Nft to a users wallet
+    /// @param to The receiving account
+    /// @param id The ID of the token
+    /// @param value The amount of token being sent
+    /// @return true if successful
+    function mint(address to, uint256 id, uint256 value, string memory newUri) external onlyBlockracers() returns(bool) {
+       _mint(to, id, value, new bytes(0));
+       ERC1155URIStorage._setURI(id, newUri);
        return true;
     }
 
@@ -71,7 +83,7 @@ contract BlockRacersAssets is ERC1155, ERC1155URIStorage, ERC2771Context, Access
     }
 
     function uri(uint256 tokenId) public view override(ERC1155URIStorage, ERC1155) returns (string memory) {
-        return super.uri(tokenId);
+        return ERC1155URIStorage.uri(tokenId);
     }
 
     /**
