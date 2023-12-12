@@ -17,7 +17,7 @@ export const getAccounts = async () => {
     }
 }
 
-export const defaultDeployFixture = async (withMint: boolean = false) => {
+export const defaultDeployFixture = (withMint: boolean = false) => {
     return async function generalFixture() {
         const tokenContract = await (deployTokenFixture())();
         const assetsContract = await deployAssetsFixture();

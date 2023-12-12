@@ -31,7 +31,7 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
     }
 
     struct CarStats {
-        uint256 carId;
+        uint256 carTypeId;
         CarOption carOptionData;
         uint16 handlingLevel;
         uint16 engineLevel;
@@ -52,7 +52,7 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
     IERC20 public immutable token;
 
     /// @dev BlockRacers ERC1155 address
-    BlockRacersAssets public immutable assets;
+    address public immutable assets;
    
     /// @dev Wallet that tokens go to on purchases
     address public blockRacersFeeAccount;
@@ -78,7 +78,7 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
     error UpgradeNotPossible(uint256 carId, GameItem gameItem, uint16 currentLevel, uint16 maxLevel);
 
     modifier onlyCarOwner(uint256 carId) {
-        if (assets.balanceOf(_msgSender(), carId) != 1)
+        if (IERC1155(assets).balanceOf(_msgSender(), carId) != 1)
             revert NotCarOwner(carId);
 
         _;
@@ -116,7 +116,7 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
         address trustedForwarder,
         address admin_,
         IERC20 token_, 
-        BlockRacersAssets assets_,
+        address assets_,
         address blockRacersFeeAccount_,
         GameSettingsData memory gameSettingsData_
         ) ERC2771Context(trustedForwarder) Ownable(admin_) {
@@ -152,7 +152,7 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
         token.safeTransferFrom(player, blockRacersFeeAccount, price);
 
         ++_latestCarId;
-        assets.mint(player, _latestCarId, 1, carUri);
+        BlockRacersAssets(assets).mint(player, _latestCarId, 1, carUri);
 
         carStats[_latestCarId] = CarStats(carTypeId, CarOption(price, carUri), 1, 1, 1);
         emit MintCar(player, _latestCarId);
@@ -249,6 +249,14 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
 
     function getNumberOfCarsMinted() external view returns(uint256) {
         return _latestCarId;
+    }
+
+    function getCarStats(uint256 carId) external view returns(CarStats memory) {
+        return carStats[carId];
+    }
+
+    function getCarOwner(uint256 carId, address account) external view returns(bool) {
+        return IERC1155(assets).balanceOf(account, carId) == 1;
     }
 
     /**

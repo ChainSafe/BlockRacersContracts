@@ -2,10 +2,17 @@ import { ethers } from "hardhat";
 import { getAccounts } from "./generalFunctions";
 import { AddressLike, BigNumberish, ContractTransactionResponse } from "ethers";
 import { defaultGameSettings } from "../../scripts/defaultSettings";
-import { deployTokenFixture } from "./BlockRacersToken.contract";
+import { approvalToken, deployTokenFixture } from "./BlockRacersToken.contract";
 import { deployAssetsFixture } from "./BlockRacersAssets.contract";
-import { BlockRacers } from "../../typechain-types";
+import { BlockRacers, BlockRacersToken } from "../../typechain-types";
 import { assert } from "chai";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+
+export enum CarTypeOption {
+    FIRST = 0,
+    SECOND = 1,
+    THIRD = 2
+}
 
 export const deployCoreFixture = (
     erc20TokenAddress?: AddressLike,
@@ -42,6 +49,38 @@ export const deployCoreFixture = (
     }
 }
 
+export const mintCar = async (
+    coreContract: BlockRacers & {
+        deploymentTransaction(): ContractTransactionResponse
+    }, 
+    tokenContract: BlockRacersToken & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    carType: CarTypeOption,
+    minter: HardhatEthersSigner
+) => {
+    const { carCost } = await getCarOption(coreContract, carType)
+    await approvalToken(tokenContract, minter, await coreContract.getAddress(), carCost)
+    await numberOfCarsMinted(coreContract, 0);
+
+    // TODO: Check Event once 
+    // Get from latest before then
+    await coreContract.connect(minter).mintCar(carType)
+
+    const carOption = await getCarOption(coreContract, carType);
+
+    const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
+    
+    await getCarOwner(coreContract, minter, numberOfCarsMintedAsID, true);
+
+    await getCarStats(coreContract, numberOfCarsMintedAsID, {
+        carTypeId: carType,
+        carOptionData: carOption,
+        nosLevel: 1,
+        handlingLevel: 1,
+        engineLevel: 1
+    })
+}
 
 export const blockRacersFeeAccount = async (
     coreContract: BlockRacers & {
@@ -58,11 +97,15 @@ export const numberOfCarsMinted = async (
     coreContract: BlockRacers & {
         deploymentTransaction(): ContractTransactionResponse
     },
-    expectedValue: BigNumberish
+    expectedValue?: BigNumberish
 ) => {
     const minted = await coreContract.getNumberOfCarsMinted();
 
-    assert(minted == expectedValue, `Number minted incorrect. Actual: ${minted} | Expected: ${expectedValue}`)
+    if (expectedValue) {
+        assert(minted == expectedValue, `Number minted incorrect. Actual: ${minted} | Expected: ${expectedValue}`)
+    }
+
+    return minted;
 }
 
 export const checkOwner = async (
@@ -93,4 +136,65 @@ export const checkAssets = async (
 ) => {
     const assets = await coreContract.assets();
     assert(assets == expectedAssets, `Assets incorrect. Actual: ${assets} | Expected: ${expectedAssets}`)
+}
+
+export const getCarOwner = async (
+    coreContract: BlockRacers & {
+        deploymentTransaction(): ContractTransactionResponse
+    },
+    owner: AddressLike,
+    id: BigNumberish,
+    expectedValue?: boolean
+) => {
+    const isOwner = await coreContract.getCarOwner(id, owner)
+
+    if (expectedValue) {
+        assert(isOwner == expectedValue, `Ownership incorrect. Actual: ${isOwner} | Expected: ${expectedValue}`)
+    }
+
+    return isOwner;
+}
+
+export const getCarOption = async (
+    coreContract: BlockRacers & {
+        deploymentTransaction(): ContractTransactionResponse
+    },
+    carType: CarTypeOption,
+    expectedCost?: BigNumberish,
+    expectedUri?: string
+) => {
+    const option = await coreContract.getCarOption(carType)
+
+    if (expectedCost) {
+        assert(option[0] == expectedCost, `Option cost incorrect. Actual: ${option[0]} | Expected: ${expectedCost}`)
+    }
+    if(expectedUri) {
+        assert(option[1] == expectedUri, `Option uri incorrect. Actual: ${option[1]} | Expected: ${expectedUri}`)
+    }
+
+    return {
+        carCost: option[0],
+        carUri: option[1]
+    }
+}
+
+export const getCarStats = async (
+    coreContract: BlockRacers & {
+        deploymentTransaction(): ContractTransactionResponse
+    },
+    carId: BigNumberish,
+    expectedStats?: BlockRacers.CarStatsStruct
+) => {
+    const stats = await coreContract.getCarStats(carId)
+
+    if (expectedStats) {
+        assert(stats.carId == expectedStats.carId, `carId incorrect. Actual: ${stats.carId} | Expected: ${expectedStats.carId}`)
+        assert(stats.carOptionData.carCost == expectedStats.carOptionData.carCost, `carCost incorrect. Actual: ${stats.carOptionData.carCost} | Expected: ${expectedStats.carOptionData.carCost}`)
+        assert(stats.carOptionData.carUri == expectedStats.carOptionData.carUri, `carUri  incorrect. Actual: ${stats.carOptionData.carUri} | Expected: ${expectedStats.carOptionData.carUri}`)
+        assert(stats.engineLevel == expectedStats.engineLevel, `engineLevel incorrect. Actual: ${stats.engineLevel} | Expected: ${expectedStats.engineLevel}`)
+        assert(stats.handlingLevel == expectedStats.handlingLevel, `handlingLevel incorrect. Actual: ${stats.handlingLevel} | Expected: ${expectedStats.handlingLevel}`)
+        assert(stats.nosLevel == expectedStats.nosLevel, `nosLevel incorrect. Actual: ${stats.nosLevel} | Expected: ${expectedStats.nosLevel}`)
+    }
+
+    return stats;
 }

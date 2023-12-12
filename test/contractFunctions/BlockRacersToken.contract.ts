@@ -45,13 +45,14 @@ export const setAllowanceToken = async (
     },
     sender: HardhatEthersSigner,
     spender: AddressLike,
-    expected: BigNumberish,
+    value: BigNumberish,
+    expected?: BigNumberish
 ) => {
-    await approvalToken(tokenContract, sender, spender, 0)
+    await tokenContract.connect(sender).approve(spender, value);
 
-    await tokenContract.connect(sender).approve(spender, expected);
-
-    await approvalToken(tokenContract, sender, spender, expected)
+    if (expected) {
+        await approvalToken(tokenContract, sender, spender, expected)
+    }
 }
 
 export const transferFromToken = async (
@@ -94,9 +95,10 @@ export const approvalToken = async (
     },
     sender: AddressLike,
     spender: AddressLike,
-    expected: BigNumberish,
+    value: BigNumberish,
 ) => {
     const approval = await tokenContract.allowance(sender, spender)
 
-    assert(approval == expected, "Approval invalid")
+
+    assert(approval == value, "Approval invalid")
 }
