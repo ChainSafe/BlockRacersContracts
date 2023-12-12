@@ -10,7 +10,7 @@ describe("BlockRacersWagering", function () {
   
   describe("deployment", () => {
     it("deploys as expected", async () => {
-      const wageringContract = await loadFixture(deployWageringFixture)
+      const wageringContract = await loadFixture(deployWageringFixture())
 
       wageringContract.trustedForwarder
     })  

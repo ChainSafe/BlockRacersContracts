@@ -5,27 +5,29 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { deployTokenFixture } from "./BlockRacersToken.contract";
 
 // Functions for reducing redundancy on function logic later on
-export const deployWageringFixture = async (
+export const deployWageringFixture = (
     erc20TokenAddress?: AddressLike
 ) => {
-    const {
-        admin,
-        trustedForwarder,
-    } = await getAccounts()
-
-    if(!erc20TokenAddress) {
-        erc20TokenAddress = (await (deployTokenFixture())()).getAddress();
+    return async function wageringFixture() {
+        const {
+            admin,
+            trustedForwarder,
+        } = await getAccounts()
+    
+        if(!erc20TokenAddress) {
+            erc20TokenAddress = (await (deployTokenFixture())()).getAddress();
+        }
+    
+        const BlockRacersWagering = await ethers.getContractFactory("BlockRacersWagering", admin);
+        const BlockRacersWageringContract = await BlockRacersWagering.deploy(
+            trustedForwarder, 
+            admin,
+            erc20TokenAddress,
+        );
+    
+        await BlockRacersWageringContract.waitForDeployment();
+        return BlockRacersWageringContract;
     }
-
-    const BlockRacersWagering = await ethers.getContractFactory("BlockRacersWagering", admin);
-    const BlockRacersWageringContract = await BlockRacersWagering.deploy(
-        trustedForwarder, 
-        admin,
-        erc20TokenAddress,
-    );
-
-    await BlockRacersWageringContract.waitForDeployment();
-    return BlockRacersWageringContract;
 }
 
 export const createWagerCompleteProof = async (signer: HardhatEthersSigner, wagerId: BigNumberish, winnerAddress: AddressLike) => {
