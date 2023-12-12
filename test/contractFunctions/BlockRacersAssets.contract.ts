@@ -38,7 +38,7 @@ export const mintNftWithURI = async (
     const { admin, issuerAccount} = await getAccounts();
     const BLOCK_RACERS = await assetsContract.BLOCK_RACERS();
 
-    await balanceOf(assetsContract, receiver, id, 0);
+    await balanceOfNft(assetsContract, receiver, id, 0);
 
     let hasRole = await assetsContract.hasRole(BLOCK_RACERS, issuerAccount);
 
@@ -49,7 +49,7 @@ export const mintNftWithURI = async (
     }
 
     await assetsContract.connect(issuerAccount)["mint(address,uint256,uint256,string)"](receiver, id, value, uri)
-    await balanceOf(assetsContract, receiver, id, 1);
+    await balanceOfNft(assetsContract, receiver, id, 1);
 }
 
 export const setApprovalForAll = async (
@@ -78,12 +78,12 @@ export const safeTransferFrom = async (
 ) => {
     await isApprovedForAll(assetsContract, from, operator, true)
 
-    await balanceOf(assetsContract, operator, id, 0)
+    await balanceOfNft(assetsContract, operator, id, 0)
     await assetsContract.connect(operator).safeTransferFrom(from, operator, id, value, ZeroHash);
-    await balanceOf(assetsContract, operator, id, 1)
+    await balanceOfNft(assetsContract, operator, id, 1)
 }
 
-export const balanceOf = async (
+export const balanceOfNft = async (
     assetsContract: BlockRacersAssets & {
         deploymentTransaction(): ContractTransactionResponse;
     },

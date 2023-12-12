@@ -1,11 +1,10 @@
 import {
   loadFixture,
-  time,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { defaultDeployFixture, getAccounts } from "./contractFunctions/generalFunctions";
+import { getAccounts } from "./contractFunctions/generalFunctions";
 import { assert } from "chai";
 import { parseUnits } from "ethers";
-import { deployTokenFixture } from "./contractFunctions/BlockRacersToken.contract";
+import { balanceOfToken, deployTokenFixture, setAllowanceToken, testnetMint, transferFromToken } from "./contractFunctions/BlockRacersToken.contract";
 
 describe("BlockRacersToken", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -25,28 +24,50 @@ describe("BlockRacersToken", function () {
     describe("testnet-only", () => {
       it("mint(to,amount)", async () => {
         const { player1 } = await getAccounts();
-        const { tokenContract } = await loadFixture(defaultDeployFixture)
+        const tokenContract = await loadFixture(deployTokenFixture)
         const mintingAmount = parseUnits("100", 18);
 
-        // Check player1 balance 0
-        let player1Balance = await tokenContract.balanceOf(player1)
-        assert(player1Balance == BigInt(0), "Player1 balance not 0");
-
-        await tokenContract["mint(address,uint256)"](player1, mintingAmount);
-
-        player1Balance = await tokenContract.balanceOf(player1);
-        assert(mintingAmount == player1Balance, "Mint did not update Player 1 balance accurately");
+        await testnetMint(tokenContract, player1, mintingAmount);
       })
     })
 
     it("mint(to,amount,permit)")
-    it("approve")
+    it("approve", async () => {
+      const { player1, player2 } = await getAccounts();
+      const tokenContract = await loadFixture(deployTokenFixture)
+
+      const mintingAmount = parseUnits("100", 18);
+      await testnetMint(tokenContract, player1, mintingAmount);
+
+      await setAllowanceToken(tokenContract, player1, player2, mintingAmount)
+
+    })
     it("transfer")
-    it("transferFrom")
+    it("transferFrom", async () => {
+      const { player1, player2 } = await getAccounts();
+      const tokenContract = await loadFixture(deployTokenFixture)
+
+      const mintingAmount = parseUnits("100", 18);
+      await testnetMint(tokenContract, player1, mintingAmount);
+
+      await setAllowanceToken(tokenContract, player1, player2, mintingAmount)
+
+      await transferFromToken(tokenContract, player1, player2, mintingAmount)
+    })
   });
 
   describe("read", () => {
-    it("balanceOf")
+    it("balanceOf", async () => {
+      const { player1 } = await getAccounts();
+      const tokenContract = await loadFixture(deployTokenFixture)
+      await balanceOfToken(tokenContract, player1, 0);
+      const mintingAmount = parseUnits("100", 18);
+
+      await testnetMint(tokenContract, player1, mintingAmount);
+
+      await balanceOfToken(tokenContract, player1, mintingAmount);
+
+    })
     it("allowance")
     it("isTrustedForwarder")
     it("issuerAccount")
