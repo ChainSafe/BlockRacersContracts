@@ -4,7 +4,6 @@ import { AddressLike, BigNumberish, keccak256, toUtf8Bytes } from "ethers";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { deployTokenFixture } from "./BlockRacersToken.contract";
 
-// Functions for reducing redundancy on function logic later on
 export const deployWageringFixture = (
     erc20TokenAddress?: AddressLike
 ) => {

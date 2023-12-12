@@ -3,7 +3,9 @@ import { deployTokenFixture } from "./BlockRacersToken.contract";
 import { deployAssetsFixture } from "./BlockRacersAssets.contract";
 import { deployWageringFixture } from "./BlockRacersWagering.contract";
 import { deployCoreFixture } from "./BlockRacers.contract";
-import { parseUnits } from "ethers";
+import { AddressLike, parseUnits } from "ethers";
+import { ERC2771Context } from "../../typechain-types/@openzeppelin/contracts/metatx/ERC2771Context";
+import { assert } from "chai";
 
 export const mintingAmount = parseUnits("200", 18);
 
@@ -19,7 +21,7 @@ export const defaultDeployFixture = async (withMint: boolean = false) => {
     return async function generalFixture() {
         const tokenContract = await (deployTokenFixture())();
         const assetsContract = await deployAssetsFixture();
-        const wageringContract = await deployWageringFixture(await tokenContract.getAddress())
+        const wageringContract = await (deployWageringFixture(await tokenContract.getAddress()))()
         const coreContract = await (deployCoreFixture(await tokenContract.getAddress(), await assetsContract.getAddress()))()
 
         // Register BlockRacers core
@@ -42,4 +44,13 @@ export const defaultDeployFixture = async (withMint: boolean = false) => {
             coreContract,
         }
     }
+}
+
+export const isTrustedForwarder = async (
+    contract: ERC2771Context,
+    address: AddressLike,
+    expectedState: boolean
+) => {
+    const state = await contract.isTrustedForwarder(address);
+    assert(state == expectedState, `TrustedForwarder incorrect. Actual: ${state} | Expected: ${expectedState}`)
 }

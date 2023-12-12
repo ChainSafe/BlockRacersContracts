@@ -3,9 +3,10 @@ import {
   time,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { deployAssetsFixture, mintNftWithURI, safeTransferFrom, setApprovalForAll } from "./contractFunctions/BlockRacersAssets.contract";
-import { getAccounts } from "./contractFunctions/generalFunctions";
+import { getAccounts, isTrustedForwarder } from "./contractFunctions/generalFunctions";
 import { assert } from "chai";
 import { defaultGameSettings } from "../scripts/defaultSettings";
+import { ERC2771Context } from "../typechain-types";
 
 describe("BlockRacersNfts", function () {
   describe("Deployment", function () {
@@ -27,7 +28,12 @@ describe("BlockRacersNfts", function () {
     it("getRoleAdmin")
     it("hasRole")
     it("isApprovedForAll")
-    it("isTrustedForwarder")
+    it("isTrustedForwarder", async () => {
+      const { trustedForwarder } = await getAccounts()
+      const assetsContract = await loadFixture(deployAssetsFixture)
+
+      await isTrustedForwarder(assetsContract as ERC2771Context, trustedForwarder.address, true)
+    })
     it("supportsInterface")
     it("trustedForwarder")
     it("uri")

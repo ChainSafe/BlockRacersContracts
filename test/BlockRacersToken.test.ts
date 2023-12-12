@@ -1,10 +1,11 @@
 import {
   loadFixture,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { getAccounts } from "./contractFunctions/generalFunctions";
+import { getAccounts, isTrustedForwarder } from "./contractFunctions/generalFunctions";
 import { assert } from "chai";
 import { parseUnits } from "ethers";
 import { balanceOfToken, deployTokenFixture, setAllowanceToken, testnetMint, transferFromToken } from "./contractFunctions/BlockRacersToken.contract";
+import { ERC2771Context } from "../typechain-types";
 
 describe("BlockRacersToken", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -69,7 +70,12 @@ describe("BlockRacersToken", function () {
 
     })
     it("allowance")
-    it("isTrustedForwarder")
+    it("isTrustedForwarder", async () => {
+      const { trustedForwarder } = await getAccounts()
+      const tokenContract = await loadFixture(deployTokenFixture())
+
+      await isTrustedForwarder(tokenContract as ERC2771Context, trustedForwarder.address, true)
+    })
     it("issuerAccount")
     it("name")
     it("symbol")

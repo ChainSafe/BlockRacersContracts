@@ -5,7 +5,6 @@ import { BlockRacersToken } from "../../typechain-types";
 import { assert } from "chai";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-// Functions for reducing redundancy on function logic later on
 export const deployTokenFixture = (
     initialAdminMint: BigNumberish = 0
 ) => {

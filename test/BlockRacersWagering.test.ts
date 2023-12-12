@@ -5,6 +5,8 @@ import {
 import { ethers } from "hardhat";
 import { deployWageringFixture } from "./contractFunctions/BlockRacersWagering.contract";
 import { deployTokenFixture } from "./contractFunctions/BlockRacersToken.contract";
+import { getAccounts, isTrustedForwarder } from "./contractFunctions/generalFunctions";
+import { ERC2771Context } from "../typechain-types";
 
 describe("BlockRacersWagering", function () {
   
@@ -32,7 +34,12 @@ describe("BlockRacersWagering", function () {
   })
 
   describe("read", function () {
-    it("isTrustedForwarder")
+    it("isTrustedForwarder", async () => {
+      const { trustedForwarder } = await getAccounts()
+      const wageringContract = await loadFixture(deployWageringFixture())
+
+      await isTrustedForwarder(wageringContract as ERC2771Context, trustedForwarder.address, true)
+    })
     it("latestWagerId")
     it("token")
     it("trustedForwarder")

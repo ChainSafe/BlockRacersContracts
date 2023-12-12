@@ -6,7 +6,6 @@ import { AddressLike, BigNumberish, ContractTransactionResponse, ZeroHash } from
 import { BlockRacersAssets } from "../../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-// Functions for reducing redundancy on function logic later on
 export const deployAssetsFixture = async (
 ) => {
     const {
