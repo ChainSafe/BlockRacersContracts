@@ -5,6 +5,8 @@ import { defaultGameSettings } from "../../scripts/defaultSettings";
 import { deployTokenFixture } from "./BlockRacersToken.contract";
 import { deployAssetsFixture } from "./BlockRacersAssets.contract";
 
+// Functions for reducing redundancy on function logic later on
+
 export const deployCoreFixture = async (
     erc20TokenAddress?: AddressLike,
     erc1155TokenAddress?: AddressLike,

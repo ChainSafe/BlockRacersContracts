@@ -2,9 +2,10 @@ import {
   loadFixture,
   time,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { deployAssetsFixture } from "./contractFunctions/BlockRacersAssets.contract";
+import { approveNft, deployAssetsFixture, isApprovedForAll, mintNftWithURI, setApprovalForAll } from "./contractFunctions/BlockRacersAssets.contract";
 import { getAccounts } from "./contractFunctions/generalFunctions";
 import { assert } from "chai";
+import { defaultGameSettings } from "../scripts/defaultSettings";
 
 describe("BlockRacersNfts", function () {
   describe("Deployment", function () {
@@ -14,7 +15,7 @@ describe("BlockRacersNfts", function () {
       const DEFAULT_ADMIN_ROLE = await assetsContract.DEFAULT_ADMIN_ROLE();
       const hasRole = await assetsContract.hasRole(DEFAULT_ADMIN_ROLE, admin);
 
-      assert(hasRole, "Admin not issued rights")
+      assert(hasRole, "Admin not been issued rights")
     })
   });
 
@@ -33,11 +34,41 @@ describe("BlockRacersNfts", function () {
   });
 
   describe("Write functions", function () {
-    it("grantRole")
+    it("grantRole", async () => {
+      const { admin, issuerAccount } = await getAccounts();
+      const assetsContract = await loadFixture(deployAssetsFixture)
+      const DEFAULT_ADMIN_ROLE = await assetsContract.DEFAULT_ADMIN_ROLE();
+
+      let hasRole = await assetsContract.hasRole(DEFAULT_ADMIN_ROLE, issuerAccount);
+      assert(!hasRole, "Issuer account already has role")
+
+      await assetsContract.connect(admin).grantRole(DEFAULT_ADMIN_ROLE, issuerAccount);
+
+      hasRole = await assetsContract.hasRole(DEFAULT_ADMIN_ROLE, issuerAccount);
+      assert(hasRole, "Issuer account was not granted role")
+    })
     it("mint(address,uint256,uint256)")
-    it("mint(address,uint256,uint256,string)")
+    it("mint(address,uint256,uint256,string)", async () => {
+    const { player1 } = await getAccounts();
+    const assetsContract = await loadFixture(deployAssetsFixture)
+      await mintNftWithURI(assetsContract, player1, 1, 1, defaultGameSettings.carOptions[0].carUri)
+    })
     it("mintBatch(address,uint256[],uint256[])")
     it("mintBatch(address,uint256[],uint256[],string[])")
+    it("setApprovalForAll", async () => {
+      const assetsContract = await loadFixture(deployAssetsFixture)
+
+      const { player1, player2 } = await getAccounts();
+
+      const nftId = 1;
+      const value = 1;
+      await mintNftWithURI(assetsContract, player1, nftId, value, defaultGameSettings.carOptions[0].carUri)
+
+      let balanceOfPlayer1 = await assetsContract.balanceOf(player1, nftId)
+      assert(balanceOfPlayer1 == BigInt(1), "Player1 was not issued nft")
+
+      await setApprovalForAll(assetsContract, player1, player2, true)
+    })
     it("revokeRole")
     it("safeBatchTransferFrom")
     it("safeTransferFrom")
