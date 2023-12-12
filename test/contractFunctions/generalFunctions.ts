@@ -16,28 +16,30 @@ export const getAccounts = async () => {
 }
 
 export const defaultDeployFixture = async (withMint: boolean = false) => {
-    const tokenContract = await deployTokenFixture();
-    const assetsContract = await deployAssetsFixture();
-    const wageringContract = await deployWageringFixture(await tokenContract.getAddress())
-    const coreContract = await deployCoreFixture(await tokenContract.getAddress(), await assetsContract.getAddress())
+    return async function generalFixture() {
+        const tokenContract = await (deployTokenFixture())();
+        const assetsContract = await deployAssetsFixture();
+        const wageringContract = await deployWageringFixture(await tokenContract.getAddress())
+        const coreContract = await (deployCoreFixture(await tokenContract.getAddress(), await assetsContract.getAddress()))()
 
-    // Register BlockRacers core
-    const { admin } = await getAccounts();
-    await assetsContract.connect(admin).grantRole(await assetsContract.BLOCK_RACERS(), await coreContract.getAddress());
+        // Register BlockRacers core
+        const { admin } = await getAccounts();
+        await assetsContract.connect(admin).grantRole(await assetsContract.BLOCK_RACERS(), await coreContract.getAddress());
 
 
-    if (withMint) {
-        const { player1, player2, player3 } = await getAccounts();
+        if (withMint) {
+            const { player1, player2, player3 } = await getAccounts();
 
-        await tokenContract["mint(address,uint256)"](player1, mintingAmount);
-        await tokenContract["mint(address,uint256)"](player2, mintingAmount);
-        await tokenContract["mint(address,uint256)"](player3, mintingAmount);
-    }
+            await tokenContract["mint(address,uint256)"](player1, mintingAmount);
+            await tokenContract["mint(address,uint256)"](player2, mintingAmount);
+            await tokenContract["mint(address,uint256)"](player3, mintingAmount);
+        }
 
-    return {
-        tokenContract,
-        assetsContract,
-        wageringContract,
-        coreContract,
+        return {
+            tokenContract,
+            assetsContract,
+            wageringContract,
+            coreContract,
+        }
     }
 }

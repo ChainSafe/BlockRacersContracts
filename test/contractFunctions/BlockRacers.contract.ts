@@ -7,35 +7,37 @@ import { deployAssetsFixture } from "./BlockRacersAssets.contract";
 
 // Functions for reducing redundancy on function logic later on
 
-export const deployCoreFixture = async (
+export const deployCoreFixture = (
     erc20TokenAddress?: AddressLike,
     erc1155TokenAddress?: AddressLike,
 ) => {
-    const {
-        admin,
-        trustedForwarder,
-        feeAccount
-    } = await getAccounts()
-
-    if(!erc20TokenAddress) {
-        erc20TokenAddress = await (await deployTokenFixture()).getAddress();
-    }
-
-    if(!erc1155TokenAddress) {
-        erc1155TokenAddress = await (await deployAssetsFixture()).getAddress();
-    }
-
-    const BlockRacers = await ethers.getContractFactory("BlockRacers", admin);
-    const BlockRacersContract = await BlockRacers.deploy(
-        trustedForwarder, 
-        admin, 
-        erc20TokenAddress, 
-        erc1155TokenAddress,
-        feeAccount,
-        defaultGameSettings,
-        );
-
-    await BlockRacersContract.waitForDeployment();
+    return async function coreFixture() {
+        const {
+            admin,
+            trustedForwarder,
+            feeAccount
+        } = await getAccounts()
     
-    return BlockRacersContract;
+        if(!erc20TokenAddress) {
+            erc20TokenAddress = (await (deployTokenFixture())()).getAddress()
+        }
+    
+        if(!erc1155TokenAddress) {
+            erc1155TokenAddress = await (await deployAssetsFixture()).getAddress();
+        }
+    
+        const BlockRacers = await ethers.getContractFactory("BlockRacers", admin);
+        const BlockRacersContract = await BlockRacers.deploy(
+            trustedForwarder, 
+            admin, 
+            erc20TokenAddress, 
+            erc1155TokenAddress,
+            feeAccount,
+            defaultGameSettings,
+            );
+    
+        await BlockRacersContract.waitForDeployment();
+        
+        return BlockRacersContract;
+    }
 }

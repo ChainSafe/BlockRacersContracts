@@ -13,7 +13,7 @@ describe("BlockRacersToken", function () {
   
   describe("deployment", () => {
     it("deploys as expected", async () => {
-      const tokenContract = await loadFixture(deployTokenFixture)
+      const tokenContract = await loadFixture(deployTokenFixture())
       const symbol = await tokenContract.symbol();
 
       assert(symbol == "RACE", "Symbol not set")
@@ -24,7 +24,7 @@ describe("BlockRacersToken", function () {
     describe("testnet-only", () => {
       it("mint(to,amount)", async () => {
         const { player1 } = await getAccounts();
-        const tokenContract = await loadFixture(deployTokenFixture)
+        const tokenContract = await loadFixture(deployTokenFixture())
         const mintingAmount = parseUnits("100", 18);
 
         await testnetMint(tokenContract, player1, mintingAmount);
@@ -34,7 +34,7 @@ describe("BlockRacersToken", function () {
     it("mint(to,amount,permit)")
     it("approve", async () => {
       const { player1, player2 } = await getAccounts();
-      const tokenContract = await loadFixture(deployTokenFixture)
+      const tokenContract = await loadFixture(deployTokenFixture())
 
       const mintingAmount = parseUnits("100", 18);
       await testnetMint(tokenContract, player1, mintingAmount);
@@ -45,7 +45,7 @@ describe("BlockRacersToken", function () {
     it("transfer")
     it("transferFrom", async () => {
       const { player1, player2 } = await getAccounts();
-      const tokenContract = await loadFixture(deployTokenFixture)
+      const tokenContract = await loadFixture(deployTokenFixture())
 
       const mintingAmount = parseUnits("100", 18);
       await testnetMint(tokenContract, player1, mintingAmount);
@@ -59,7 +59,7 @@ describe("BlockRacersToken", function () {
   describe("read", () => {
     it("balanceOf", async () => {
       const { player1 } = await getAccounts();
-      const tokenContract = await loadFixture(deployTokenFixture)
+      const tokenContract = await loadFixture(deployTokenFixture())
       await balanceOfToken(tokenContract, player1, 0);
       const mintingAmount = parseUnits("100", 18);
 

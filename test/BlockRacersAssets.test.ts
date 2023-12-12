@@ -2,7 +2,7 @@ import {
   loadFixture,
   time,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { approveNft, deployAssetsFixture, isApprovedForAll, mintNftWithURI, safeTransferFrom, setApprovalForAll } from "./contractFunctions/BlockRacersAssets.contract";
+import { deployAssetsFixture, mintNftWithURI, safeTransferFrom, setApprovalForAll } from "./contractFunctions/BlockRacersAssets.contract";
 import { getAccounts } from "./contractFunctions/generalFunctions";
 import { assert } from "chai";
 import { defaultGameSettings } from "../scripts/defaultSettings";

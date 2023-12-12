@@ -14,7 +14,7 @@ export const deployWageringFixture = async (
     } = await getAccounts()
 
     if(!erc20TokenAddress) {
-        erc20TokenAddress = await (await deployTokenFixture()).getAddress();
+        erc20TokenAddress = (await (deployTokenFixture())()).getAddress();
     }
 
     const BlockRacersWagering = await ethers.getContractFactory("BlockRacersWagering", admin);

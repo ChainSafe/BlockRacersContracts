@@ -6,24 +6,26 @@ import { assert } from "chai";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
 // Functions for reducing redundancy on function logic later on
-export const deployTokenFixture = async (
+export const deployTokenFixture = (
     initialAdminMint: BigNumberish = 0
 ) => {
-    const {
-        admin,
-        issuerAccount,
-        trustedForwarder,
-    } = await getAccounts()
-
-    const BlockRacersToken = await ethers.getContractFactory("BlockRacersToken", admin);
-    const BlockRacersTokenContract =  await BlockRacersToken.deploy(
-        trustedForwarder, 
-        issuerAccount,
-        initialAdminMint
-        );
-    await BlockRacersTokenContract.waitForDeployment()
+    return async function tokenFixture() {
+        const {
+            admin,
+            issuerAccount,
+            trustedForwarder,
+        } = await getAccounts()
     
-    return BlockRacersTokenContract;
+        const BlockRacersToken = await ethers.getContractFactory("BlockRacersToken", admin);
+        const BlockRacersTokenContract =  await BlockRacersToken.deploy(
+            trustedForwarder, 
+            issuerAccount,
+            initialAdminMint
+            );
+        await BlockRacersTokenContract.waitForDeployment()
+        
+        return BlockRacersTokenContract;
+    }
 }
 
 export const testnetMint = async (

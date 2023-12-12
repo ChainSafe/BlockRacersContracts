@@ -7,7 +7,7 @@ describe("BlockRacers", function () {
   describe("deployment", () => {
     it("deploys as expected", async () => {
       const { feeAccount } = await getAccounts()
-      const coreContract = await loadFixture(deployCoreFixture)
+      const coreContract = await loadFixture(deployCoreFixture())
 
       const feeAccountFetched = await coreContract.blockRacersFeeAccount()
 
