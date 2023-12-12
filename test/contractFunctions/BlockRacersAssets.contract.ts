@@ -1,9 +1,8 @@
 import { ethers } from "hardhat";
 import { getAccounts } from "./generalFunctions";
-import { defaultGameSettings, generalSettings } from "../../scripts/defaultSettings";
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { generalSettings } from "../../scripts/defaultSettings";
 import { assert } from "chai";
-import { AddressLike, BigNumberish, ContractTransactionResponse } from "ethers";
+import { AddressLike, BigNumberish, ContractTransactionResponse, ZeroHash } from "ethers";
 import { BlockRacersAssets } from "../../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
@@ -39,9 +38,8 @@ export const mintNftWithURI = async (
     const { admin, issuerAccount} = await getAccounts();
     const BLOCK_RACERS = await assetsContract.BLOCK_RACERS();
 
-    let balanceOf = await assetsContract.balanceOf(receiver, 1)
+    await balanceOf(assetsContract, receiver, id, 0);
 
-    assert(balanceOf == BigInt(0), "Player has nft already")
     let hasRole = await assetsContract.hasRole(BLOCK_RACERS, issuerAccount);
 
     if(!hasRole) {
@@ -51,8 +49,7 @@ export const mintNftWithURI = async (
     }
 
     await assetsContract.connect(issuerAccount)["mint(address,uint256,uint256,string)"](receiver, id, value, uri)
-    balanceOf = await assetsContract.balanceOf(receiver, id)
-    assert(balanceOf == BigInt(1), "Player was not issued nft")
+    await balanceOf(assetsContract, receiver, id, 1);
 }
 
 export const setApprovalForAll = async (
@@ -68,6 +65,35 @@ export const setApprovalForAll = async (
     await assetsContract.connect(from).setApprovalForAll(operator, authorized)
 
     await isApprovedForAll(assetsContract, from, operator, authorized);
+}
+
+export const safeTransferFrom = async (
+    assetsContract: BlockRacersAssets & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    from: HardhatEthersSigner, 
+    operator: HardhatEthersSigner,
+    id: BigNumberish,
+    value: BigNumberish
+) => {
+    await isApprovedForAll(assetsContract, from, operator, true)
+
+    await balanceOf(assetsContract, operator, id, 0)
+    await assetsContract.connect(operator).safeTransferFrom(from, operator, id, value, ZeroHash);
+    await balanceOf(assetsContract, operator, id, 1)
+}
+
+export const balanceOf = async (
+    assetsContract: BlockRacersAssets & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    account: AddressLike,
+    nftId: BigNumberish,
+    expectedBalance: BigNumberish,
+) => {
+    let balanceOf = await assetsContract.balanceOf(account, nftId)
+
+    assert(balanceOf == expectedBalance, `Balance incorrect: Actual:${balanceOf} | Expected: ${expectedBalance}`)
 }
 
 export const isApprovedForAll = async (

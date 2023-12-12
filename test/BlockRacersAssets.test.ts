@@ -2,7 +2,7 @@ import {
   loadFixture,
   time,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { approveNft, deployAssetsFixture, isApprovedForAll, mintNftWithURI, setApprovalForAll } from "./contractFunctions/BlockRacersAssets.contract";
+import { approveNft, deployAssetsFixture, isApprovedForAll, mintNftWithURI, safeTransferFrom, setApprovalForAll } from "./contractFunctions/BlockRacersAssets.contract";
 import { getAccounts } from "./contractFunctions/generalFunctions";
 import { assert } from "chai";
 import { defaultGameSettings } from "../scripts/defaultSettings";
@@ -49,8 +49,9 @@ describe("BlockRacersNfts", function () {
     })
     it("mint(address,uint256,uint256)")
     it("mint(address,uint256,uint256,string)", async () => {
-    const { player1 } = await getAccounts();
-    const assetsContract = await loadFixture(deployAssetsFixture)
+      const { player1 } = await getAccounts();
+      const assetsContract = await loadFixture(deployAssetsFixture)
+
       await mintNftWithURI(assetsContract, player1, 1, 1, defaultGameSettings.carOptions[0].carUri)
     })
     it("mintBatch(address,uint256[],uint256[])")
@@ -71,7 +72,16 @@ describe("BlockRacersNfts", function () {
     })
     it("revokeRole")
     it("safeBatchTransferFrom")
-    it("safeTransferFrom")
+    it("safeTransferFrom", async () => {
+      const assetsContract = await loadFixture(deployAssetsFixture)
+      const { player1, player2 } = await getAccounts();
+      const nftId = 1;
+      const value = 1;
+
+      await mintNftWithURI(assetsContract, player1, nftId, value, defaultGameSettings.carOptions[0].carUri)
+      await setApprovalForAll(assetsContract, player1, player2, true)
+      await safeTransferFrom(assetsContract, player1, player2, nftId, value)
+    })
   });
 
   describe("events", function() {
