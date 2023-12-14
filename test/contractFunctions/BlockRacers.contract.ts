@@ -61,25 +61,27 @@ export const mintCar = async (
 ) => {
     const { carCost } = await getCarOption(coreContract, carType)
     await approvalToken(tokenContract, minter, await coreContract.getAddress(), carCost)
-    await numberOfCarsMinted(coreContract, 0);
 
     // TODO: Check Event once 
     // Get from latest before then
     await coreContract.connect(minter).mintCar(carType)
+}
 
-    const carOption = await getCarOption(coreContract, carType);
+export const upgradeEngine = async (
+    coreContract: BlockRacers & {
+        deploymentTransaction(): ContractTransactionResponse
+    }, 
+    ownerAccount: HardhatEthersSigner,
+    carId: BigNumberish,
+    expectedLevel?: BigNumberish
+) => {
+    await coreContract.connect(ownerAccount).upgradeEngine(carId)
 
-    const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
-    
-    await getCarOwner(coreContract, minter, numberOfCarsMintedAsID, true);
+    if(expectedLevel) {
+        const stats = await getCarStats(coreContract, carId);
 
-    await getCarStats(coreContract, numberOfCarsMintedAsID, {
-        carTypeId: carType,
-        carOptionData: carOption,
-        nosLevel: 1,
-        handlingLevel: 1,
-        engineLevel: 1
-    })
+        assert(stats.engineLevel == expectedLevel, `Engine level was not increased incorrect. Actual: ${stats.engineLevel} | Expected: ${expectedLevel}`)
+    }
 }
 
 export const blockRacersFeeAccount = async (
@@ -188,7 +190,7 @@ export const getCarStats = async (
     const stats = await coreContract.getCarStats(carId)
 
     if (expectedStats) {
-        assert(stats.carId == expectedStats.carId, `carId incorrect. Actual: ${stats.carId} | Expected: ${expectedStats.carId}`)
+        assert(stats.carTypeId == expectedStats.carTypeId, `carId incorrect. Actual: ${stats.carTypeId} | Expected: ${expectedStats.carTypeId}`)
         assert(stats.carOptionData.carCost == expectedStats.carOptionData.carCost, `carCost incorrect. Actual: ${stats.carOptionData.carCost} | Expected: ${expectedStats.carOptionData.carCost}`)
         assert(stats.carOptionData.carUri == expectedStats.carOptionData.carUri, `carUri  incorrect. Actual: ${stats.carOptionData.carUri} | Expected: ${expectedStats.carOptionData.carUri}`)
         assert(stats.engineLevel == expectedStats.engineLevel, `engineLevel incorrect. Actual: ${stats.engineLevel} | Expected: ${expectedStats.engineLevel}`)
@@ -197,4 +199,30 @@ export const getCarStats = async (
     }
 
     return stats;
+}
+
+export const getUpgradeData = async (
+    coreContract: BlockRacers & {
+        deploymentTransaction(): ContractTransactionResponse
+    },
+    expected?: BlockRacers.GameSettingsDataStruct
+) => {
+    const data = await coreContract.getUpgradeData()
+
+    if (expected) {
+        assert(data.engineMaxLevel == expected.engineMaxLevel, `engineMaxLevel incorrect. Actual: ${data.engineMaxLevel} | Expected: ${expected.engineMaxLevel}`)
+        assert(data.enginePrice == expected.enginePrice, `enginePrice incorrect. Actual: ${data.enginePrice} | Expected: ${expected.enginePrice}`)
+        assert(data.handlingMaxLevel == expected.handlingMaxLevel, `handlingMaxLevel incorrect. Actual: ${data.handlingMaxLevel} | Expected: ${expected.handlingMaxLevel}`)
+        assert(data.handlingPrice == expected.handlingPrice, `handlingPrice incorrect. Actual: ${data.handlingPrice} | Expected: ${expected.handlingPrice}`)
+        assert(data.nosMaxLevel == expected.nosMaxLevel, `nosMaxLevel incorrect. Actual: ${data.nosMaxLevel} | Expected: ${expected.nosMaxLevel}`)
+        assert(data.nosPrice == expected.nosPrice, `nosPrice incorrect. Actual: ${data.nosPrice} | Expected: ${expected.nosPrice}`)
+        assert(data.carOptions.length == expected.carOptions.length, `carOptions incorrect. Actual: ${data.carOptions.length} | Expected: ${expected.carOptions.length}`)
+        
+        data.carOptions.map((item: BlockRacers.CarOptionStructOutput, index: number) => {
+            assert(item.carCost == expected.carOptions[index].carCost, `Car option cost @ ${index} incorrect. Actual: ${item.carCost} | Expected: ${expected.carOptions[index].carCost}`)
+            assert(item.carUri == expected.carOptions[index].carUri, `Car option uri @ ${index} incorrect. Actual: ${item.carUri} | Expected: ${expected.carOptions[index].carUri}`)
+
+        })
+    }
+    return data
 }

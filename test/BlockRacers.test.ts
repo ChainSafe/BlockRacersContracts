@@ -1,5 +1,5 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { CarTypeOption, blockRacersFeeAccount, checkAssets, checkOwner, checkToken, deployCoreFixture, getCarOption, mintCar, numberOfCarsMinted } from "./contractFunctions/BlockRacers.contract";
+import { CarTypeOption, blockRacersFeeAccount, checkAssets, checkOwner, checkToken, deployCoreFixture, getCarOption, getCarOwner, getCarStats, getUpgradeData, mintCar, numberOfCarsMinted, upgradeEngine } from "./contractFunctions/BlockRacers.contract";
 import { defaultDeployFixture, getAccounts, isTrustedForwarder } from "./contractFunctions/generalFunctions";
 import { approvalToken, deployTokenFixture, setAllowanceToken } from "./contractFunctions/BlockRacersToken.contract";
 import { deployAssetsFixture } from "./contractFunctions/BlockRacersAssets.contract";
@@ -46,22 +46,16 @@ describe("BlockRacers", function () {
 
             // Mint car then check
         })
-        it("getUpgradeData")
+        it("getUpgradeData", async () => {
+            const coreContract = await loadFixture(deployCoreFixture())
+            
+            await getUpgradeData(coreContract, defaultGameSettings)
+        })
         it("isTrustedForwarder", async () => {
             const { trustedForwarder } = await getAccounts()
             const coreContract = await loadFixture(deployCoreFixture())
 
             await isTrustedForwarder(coreContract as ERC2771Context, trustedForwarder.address, true)
-        })
-        it("mintCar", async () => {
-            const { player1 } = await getAccounts()
-
-            const { coreContract, tokenContract } = await loadFixture(defaultDeployFixture(true))
- 
-            const { carCost } = await getCarOption(coreContract, CarTypeOption.FIRST)
-
-            await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
-            await mintCar(coreContract, tokenContract, CarTypeOption.FIRST, player1)
         })
         it("owner", async () => {
             const { admin } = await getAccounts()
@@ -87,8 +81,48 @@ describe("BlockRacers", function () {
     })
 
     describe("write", function () {
-        it("mintCar")
-        it("upgradeEngine")
+        it("mintCar", async () => {
+            const { player1 } = await getAccounts()
+
+            const { coreContract, tokenContract } = await loadFixture(defaultDeployFixture(true))
+            
+            const carType = CarTypeOption.FIRST;
+            const { carCost } = await getCarOption(coreContract, carType)
+            await numberOfCarsMinted(coreContract, 0);
+
+            await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
+            await mintCar(coreContract, tokenContract, carType, player1)
+
+            const carOption = await getCarOption(coreContract, carType);
+
+            const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
+            
+            await getCarOwner(coreContract, player1, numberOfCarsMintedAsID, true);
+        
+            await getCarStats(coreContract, numberOfCarsMintedAsID, {
+                carTypeId: carType,
+                carOptionData: carOption,
+                nosLevel: 1,
+                handlingLevel: 1,
+                engineLevel: 1
+            })
+        })
+        it("upgradeEngine", async () => {
+            const { player1 } = await getAccounts()
+            const { coreContract, tokenContract } = await loadFixture(defaultDeployFixture(true))
+
+            const carType = CarTypeOption.FIRST;
+            const { carCost } = await getCarOption(coreContract, carType)
+            await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
+            await mintCar(coreContract, tokenContract, carType, player1)
+            const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
+
+            const upgradeData = await getUpgradeData(coreContract)
+
+            await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), upgradeData.enginePrice);
+
+            await upgradeEngine(coreContract, player1, numberOfCarsMintedAsID, 2)
+        })
         it("upgradeHandling")
         it("upgradeNos")
     });
