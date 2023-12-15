@@ -75,7 +75,7 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
     /// @notice PVP and wager tokens
     /// @param prize The amount of tokens being wagered
     /// @return true if successful
-    function createPvpWager(uint256 prize) 
+    function createWager(uint256 prize) 
         external 
         isNotBlacklisted(_msgSender())
         nonReentrant() 
@@ -219,6 +219,14 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
 
         emit WagerCancelled(wagerId, _msgSender());
         return true;
+    }
+
+    function getWager(uint256 wagerId) external view returns(Wager memory) {
+        return wagers[wagerId];
+    }
+
+    function getPlayersWagers(address player) external view returns(uint256[] memory) {
+        return playerWagers[player];
     }
 
     /**
