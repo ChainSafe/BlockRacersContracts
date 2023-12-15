@@ -84,6 +84,40 @@ export const upgradeEngine = async (
     }
 }
 
+export const upgradeHandling = async (
+    coreContract: BlockRacers & {
+        deploymentTransaction(): ContractTransactionResponse
+    }, 
+    ownerAccount: HardhatEthersSigner,
+    carId: BigNumberish,
+    expectedLevel?: BigNumberish
+) => {
+    await coreContract.connect(ownerAccount).upgradeHandling(carId)
+
+    if(expectedLevel) {
+        const stats = await getCarStats(coreContract, carId);
+
+        assert(stats.handlingLevel == expectedLevel, `Handling level was not increased incorrect. Actual: ${stats.handlingLevel} | Expected: ${expectedLevel}`)
+    }
+}
+
+export const upgradeNos = async (
+    coreContract: BlockRacers & {
+        deploymentTransaction(): ContractTransactionResponse
+    }, 
+    ownerAccount: HardhatEthersSigner,
+    carId: BigNumberish,
+    expectedLevel?: BigNumberish
+) => {
+    await coreContract.connect(ownerAccount).upgradeNos(carId)
+
+    if(expectedLevel) {
+        const stats = await getCarStats(coreContract, carId);
+
+        assert(stats.nosLevel == expectedLevel, `Nos level was not increased incorrect. Actual: ${stats.nosLevel} | Expected: ${expectedLevel}`)
+    }
+}
+
 export const blockRacersFeeAccount = async (
     coreContract: BlockRacers & {
         deploymentTransaction(): ContractTransactionResponse

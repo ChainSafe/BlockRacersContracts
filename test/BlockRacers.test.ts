@@ -1,5 +1,5 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { CarTypeOption, blockRacersFeeAccount, checkAssets, checkOwner, checkToken, deployCoreFixture, getCarOption, getCarOwner, getCarStats, getUpgradeData, mintCar, numberOfCarsMinted, upgradeEngine } from "./contractFunctions/BlockRacers.contract";
+import { CarTypeOption, blockRacersFeeAccount, checkAssets, checkOwner, checkToken, deployCoreFixture, getCarOption, getCarOwner, getCarStats, getUpgradeData, mintCar, numberOfCarsMinted, upgradeEngine, upgradeHandling, upgradeNos } from "./contractFunctions/BlockRacers.contract";
 import { defaultDeployFixture, getAccounts, isTrustedForwarder } from "./contractFunctions/generalFunctions";
 import { approvalToken, deployTokenFixture, setAllowanceToken } from "./contractFunctions/BlockRacersToken.contract";
 import { deployAssetsFixture } from "./contractFunctions/BlockRacersAssets.contract";
@@ -123,8 +123,38 @@ describe("BlockRacers", function () {
 
             await upgradeEngine(coreContract, player1, numberOfCarsMintedAsID, 2)
         })
-        it("upgradeHandling")
-        it("upgradeNos")
+        it("upgradeHandling", async () => {
+            const { player1 } = await getAccounts()
+            const { coreContract, tokenContract } = await loadFixture(defaultDeployFixture(true))
+
+            const carType = CarTypeOption.FIRST;
+            const { carCost } = await getCarOption(coreContract, carType)
+            await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
+            await mintCar(coreContract, tokenContract, carType, player1)
+            const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
+
+            const upgradeData = await getUpgradeData(coreContract)
+
+            await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), upgradeData.handlingPrice);
+
+            await upgradeHandling(coreContract, player1, numberOfCarsMintedAsID, 2)
+        })
+        it("upgradeNos", async () => {
+            const { player1 } = await getAccounts()
+            const { coreContract, tokenContract } = await loadFixture(defaultDeployFixture(true))
+
+            const carType = CarTypeOption.FIRST;
+            const { carCost } = await getCarOption(coreContract, carType)
+            await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
+            await mintCar(coreContract, tokenContract, carType, player1)
+            const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
+
+            const upgradeData = await getUpgradeData(coreContract)
+
+            await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), upgradeData.nosPrice);
+
+            await upgradeNos(coreContract, player1, numberOfCarsMintedAsID, 2)
+        })
     });
 
     describe("events", function () {
