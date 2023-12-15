@@ -155,6 +155,12 @@ describe("BlockRacers", function () {
 
             await upgradeNos(coreContract, player1, numberOfCarsMintedAsID, 2)
         })
+
+        describe("Max level tests", () => {
+            it("stops at the max level for Engine")
+            it("stops at the max level for Handling")
+            it("stops at the max level for Nos")
+        })
     });
 
     describe("events", function () {
