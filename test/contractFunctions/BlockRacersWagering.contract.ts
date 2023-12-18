@@ -37,12 +37,18 @@ export const createWager = async (
     },
     creator: HardhatEthersSigner,
     prize: BigNumberish,
-    expectedProperties?: unknown
+    expectedId?: BigNumberish
 ) => {
+    if (expectedId) {
+        const currentId = await getLatestWagerId(wageringContract)
+        assert(currentId < BigInt(expectedId), `Current ID not lower than expected. Actual: ${currentId} | Expected: ${expectedId}`)
+    }
+        
     await wageringContract.connect(creator).createWager(prize);
 
+    if (expectedId)
+        await getLatestWagerId(wageringContract, expectedId)
 }
-
 
 export const getLatestWagerId = async (
     wageringContract: BlockRacersWagering & {
