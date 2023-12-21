@@ -1,10 +1,24 @@
 import { ethers } from "hardhat";
 import { getAccounts } from "./generalFunctions";
-import { AddressLike, BigNumberish, ContractTransactionResponse, keccak256, toUtf8Bytes } from "ethers";
+import { AddressLike, BigNumberish, ContractTransactionResponse, ZeroAddress, keccak256, toUtf8Bytes } from "ethers";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { deployTokenFixture } from "./BlockRacersToken.contract";
 import { BlockRacersWagering } from "../../typechain-types";
 import { assert } from "chai";
+
+export enum CarTypeOption {
+    FIRST = 0,
+    SECOND = 1,
+    THIRD = 2
+}
+
+export enum WagerState { 
+    NOT_STARTED = 0, 
+    CREATED = 1, 
+    ACCEPTED = 2, 
+    COMPLETED = 3, 
+    CANCELLED = 4
+}
 
 export const deployWageringFixture = (
     erc20TokenAddress?: AddressLike
@@ -37,17 +51,106 @@ export const createWager = async (
     },
     creator: HardhatEthersSigner,
     prize: BigNumberish,
-    expectedId?: BigNumberish
+    expectedWagerState?: BlockRacersWagering.WagerStruct
 ) => {
-    if (expectedId) {
-        const currentId = await getLatestWagerId(wageringContract)
-        assert(currentId < BigInt(expectedId), `Current ID not lower than expected. Actual: ${currentId} | Expected: ${expectedId}`)
+    if (expectedWagerState) {
+        const latestWagerId = await getLatestWagerId(wageringContract)
+        const curentState = await getWager(wageringContract, latestWagerId + BigInt(1))
+        assert(curentState.prize == BigInt(0), `Pre-create wager prize incorrect. Actual: ${curentState.prize} | Expected: ${0}`)
+        assert(curentState.creator == ZeroAddress, `Pre-create wager creator incorrect. Actual: ${curentState.creator} | Expected: ${ZeroAddress}`)
+        assert(curentState.opponent == ZeroAddress, `Pre-create wager opponent incorrect. Actual: ${curentState.opponent} | Expected: ${ZeroAddress}`)
+        assert(curentState.winner == ZeroAddress, `Pre-create wager winner incorrect. Actual: ${curentState.winner} | Expected: ${ZeroAddress}`)
+        assert(curentState.state == BigInt(WagerState.NOT_STARTED), `Pre-create wager state incorrect. Actual: ${curentState.state} | Expected: ${WagerState.NOT_STARTED}`)
     }
         
     await wageringContract.connect(creator).createWager(prize);
 
-    if (expectedId)
-        await getLatestWagerId(wageringContract, expectedId)
+    if (expectedWagerState) {
+        const latestWagerId = await getLatestWagerId(wageringContract)
+
+        const curentState = await getWager(wageringContract, latestWagerId)
+        assert(curentState.prize == expectedWagerState.prize, `Post-create wager prize incorrect. Actual: ${curentState.prize} | Expected: ${expectedWagerState.prize}`)
+        assert(curentState.creator == expectedWagerState.creator, `Post-create wager creator incorrect. Actual: ${curentState.creator} | Expected: ${expectedWagerState.creator}`)
+        assert(curentState.opponent == expectedWagerState.opponent, `Post-create wager opponent incorrect. Actual: ${curentState.opponent} | Expected: ${expectedWagerState.opponent}`)
+        assert(curentState.winner == expectedWagerState.winner, `Post-create wager winner incorrect. Actual: ${curentState.winner} | Expected: ${expectedWagerState.winner}`)
+        assert(curentState.state == expectedWagerState.state, `Post-create wager state incorrect. Actual: ${curentState.state} | Expected: ${expectedWagerState.state}`)
+    }
+}
+
+export const acceptWager = async (
+    wageringContract: BlockRacersWagering & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    opponent: HardhatEthersSigner,
+    wagerId: BigNumberish,
+    expectedWagerState?: BlockRacersWagering.WagerStruct
+) => {
+    if (expectedWagerState) {
+        const currentState = await getWager(wageringContract, wagerId)
+        assert(currentState.prize == expectedWagerState.prize, `Pre-accept wager prize incorrect. Actual: ${currentState.prize} | Expected: ${expectedWagerState.prize}`)
+        assert(currentState.creator == expectedWagerState.creator, `Pre-accept wager creator incorrect. Actual: ${currentState.creator} | Expected: ${expectedWagerState.creator}`)
+        assert(currentState.opponent != expectedWagerState.opponent, `Pre-accept wager opponent incorrect. Actual: ${currentState.opponent} | Expected: ${expectedWagerState.opponent}`)
+        assert(currentState.winner == expectedWagerState.winner, `Pre-accept wager winner incorrect. Actual: ${currentState.winner} | Expected: ${expectedWagerState.winner}`)
+        assert(currentState.state == BigInt(WagerState.CREATED), `Pre-accept wager state incorrect. Actual: ${currentState.state} | Expected: ${expectedWagerState.state}`)
+    }
+
+    await wageringContract.connect(opponent).acceptWager(wagerId);
+
+    if (expectedWagerState) {
+        const currentState = await getWager(wageringContract, wagerId)
+        assert(currentState.prize == expectedWagerState.prize, `Post-accept wager prize incorrect. Actual: ${currentState.prize} | Expected: ${expectedWagerState.prize}`)
+        assert(currentState.creator == expectedWagerState.creator, `Post-accept wager creator incorrect. Actual: ${currentState.creator} | Expected: ${expectedWagerState.creator}`)
+        assert(currentState.opponent == expectedWagerState.opponent, `Post-accept wager opponent incorrect. Actual: ${currentState.opponent} | Expected: ${expectedWagerState.opponent}`)
+        assert(currentState.winner == expectedWagerState.winner, `Post-accept wager winner incorrect. Actual: ${currentState.winner} | Expected: ${expectedWagerState.winner}`)
+        assert(currentState.state == expectedWagerState.state, `Post-accept wager state incorrect. Actual: ${currentState.state} | Expected: ${expectedWagerState.state}`)
+    }
+}
+
+export const getWager = async (
+    wageringContract: BlockRacersWagering & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    wagerId: BigNumberish,
+    expectedWagerState?: BlockRacersWagering.WagerStruct
+) => {
+    const wager = await wageringContract.getWager(wagerId);
+
+    if (expectedWagerState) {
+        assert(wager.prize == expectedWagerState.prize, `Wager prize incorrect. Actual: ${wager.prize} | Expected: ${expectedWagerState.prize}`)
+        assert(wager.creator == expectedWagerState.creator, `Wager creator incorrect. Actual: ${wager.creator} | Expected: ${expectedWagerState.creator}`)
+        assert(wager.opponent == expectedWagerState.opponent, `Wager opponent incorrect. Actual: ${wager.opponent} | Expected: ${expectedWagerState.opponent}`)
+        assert(wager.winner == expectedWagerState.winner, `Wager winner incorrect. Actual: ${wager.winner} | Expected: ${expectedWagerState.winner}`)
+        assert(wager.state == expectedWagerState.state, `Wager state incorrect. Actual: ${wager.state} | Expected: ${expectedWagerState.state}`)
+    }
+    return wager
+}
+
+export const getTokenAddressWagering = async (
+    wageringContract: BlockRacersWagering & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    expected?: AddressLike
+) => {
+    const tokenAddress = await wageringContract.token();
+
+    if(expected) 
+        assert(tokenAddress == expected, `Token Address incorrect. Actual: ${tokenAddress} | Expected: ${expected}`)
+
+    return tokenAddress;
+}
+
+export const getPlayersWagers = async (
+    wageringContract: BlockRacersWagering & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    player: AddressLike,
+    expected?: BigNumberish[]
+) => {
+    const playersWagers = await wageringContract.getPlayersWagers(player);
+    if (expected) {
+        assert(playersWagers.length == expected.length, `Players wagers incorrect. Actual: ${playersWagers.length} | Expected: ${expected.length}`)
+    }
+    return playersWagers
 }
 
 export const getLatestWagerId = async (
