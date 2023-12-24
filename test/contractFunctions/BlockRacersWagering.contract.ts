@@ -106,6 +106,30 @@ export const acceptWager = async (
     }
 }
 
+export const cancelWager = async (
+    wageringContract: BlockRacersWagering & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    canceller: HardhatEthersSigner,
+    wagerId: BigNumberish,
+    expectedWagerState?: BlockRacersWagering.WagerStruct
+) => {
+    const currentState = await getWager(wageringContract, wagerId)
+
+    assert(canceller.address == currentState.creator || canceller.address == currentState.opponent, `Only participants can cancel. Creator: ${currentState.creator} | Opponent: ${currentState.opponent} | Canceller: ${canceller}`)
+
+    await wageringContract.connect(canceller).cancelWager(wagerId);
+    
+    if (expectedWagerState) {
+        const currentState = await getWager(wageringContract, wagerId)
+        assert(currentState.prize == expectedWagerState.prize, `Post-cancel wager prize incorrect. Actual: ${currentState.prize} | Expected: ${expectedWagerState.prize}`)
+        assert(currentState.creator == expectedWagerState.creator, `Post-cancel wager creator incorrect. Actual: ${currentState.creator} | Expected: ${expectedWagerState.creator}`)
+        assert(currentState.opponent == expectedWagerState.opponent, `Post-cancel wager opponent incorrect. Actual: ${currentState.opponent} | Expected: ${expectedWagerState.opponent}`)
+        assert(currentState.winner == expectedWagerState.winner, `Post-cancel wager winner incorrect. Actual: ${currentState.winner} | Expected: ${expectedWagerState.winner}`)
+        assert(currentState.state == expectedWagerState.state, `Post-cancel wager state incorrect. Actual: ${currentState.state} | Expected: ${expectedWagerState.state}`)
+    }
+}
+
 export const getWager = async (
     wageringContract: BlockRacersWagering & {
         deploymentTransaction(): ContractTransactionResponse;

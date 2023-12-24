@@ -148,12 +148,11 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
         if (!creatorProofValid || !opponentProofValid) 
             revert PlayerSignatureInvalid(wagerId, winner, creatorProof, opponentProof);
         
-
         wager.winner = winner;
         wager.state = WagerState.COMPLETED;
         // Both the creator & the opponent transfered the wager tokens to this contract,
         // so this functionally returns the winner's stake and transfers the losers stake to the winner in one transaction
-        token.safeTransferFrom(address(this), winner, wager.prize * 2);
+        token.safeTransfer(winner, wager.prize * 2);
         emit WagerCompleted(wagerId, winner);
         return true;
     }
@@ -168,8 +167,9 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
         returns (bool) {
         Wager storage wager = wagers[wagerId];
 
-        if (wager.state != WagerState.CREATED || wager.state != WagerState.ACCEPTED)
+        if (wager.state != WagerState.CREATED && wager.state != WagerState.ACCEPTED) {
             revert WagerCantBeCancelled(wagerId, wager.state);
+        }
 
         address requestor = _msgSender();
 
@@ -181,11 +181,11 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
             // changing the wager state before transfers prevents replay attacks if possible
             if (wager.state == WagerState.CREATED) {
                 wager.state = WagerState.CANCELLED;
-                token.safeTransferFrom(address(this), wager.creator, wager.prize);
+                token.safeTransfer(wager.creator, wager.prize);
             } else {
                 wager.state = WagerState.CANCELLED;
-                token.safeTransferFrom(address(this), wager.creator, wager.prize);
-                token.safeTransferFrom(address(this), wager.opponent, wager.prize);
+                token.safeTransfer(wager.creator, wager.prize);
+                token.safeTransfer(wager.opponent, wager.prize);
             }
         }  else {
             revert OnlyParticipantsCanCancel(wagerId, requestor);
@@ -207,12 +207,12 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
 
         if (wager.state == WagerState.CREATED) {
             wager.state = WagerState.CANCELLED;
-            token.safeTransferFrom(address(this), wager.creator, wager.prize);
+            token.safeTransfer(wager.creator, wager.prize);
 
         } else if (wager.state == WagerState.ACCEPTED) {
             wager.state = WagerState.CANCELLED;
-            token.safeTransferFrom(address(this), wager.creator, wager.prize);
-            token.safeTransferFrom(address(this), wager.opponent, wager.prize);
+            token.safeTransfer(wager.creator, wager.prize);
+            token.safeTransfer(wager.opponent, wager.prize);
         } else {
             revert WagerCantBeCancelled(wagerId, wager.state);
         }
