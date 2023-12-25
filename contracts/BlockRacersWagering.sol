@@ -236,15 +236,15 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
     }
 
     function getSignedMessageHash(uint256 wagerId, address winner) public pure returns(bytes32) {
-        //return MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerId, "-", winner)));
-        bytes32 message = keccak256(abi.encodePacked(wagerId, "-", winner));
-        return keccak256(bytes.concat("\x19Ethereum Signed Message:\n", bytes(Strings.toString(message.length)), message));
+        return MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerId, "-", winner)));
+        // bytes32 message = keccak256(abi.encodePacked(wagerId, "-", winner));
+        // return keccak256(bytes.concat("\x19Ethereum Signed Message:\n", bytes(Strings.toString(message.length)), message));
     }
 
     function getSignedMessageInterior(uint256 wagerId, address winner) public pure returns(bytes memory) {
         //return MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerId, "-", winner)));
         bytes32 message = keccak256(abi.encodePacked(wagerId, "-", winner));
-        return bytes.concat("\x19Ethereum Signed Message:\n", bytes(Strings.toString(message.length)), message);
+        return bytes.concat("\x19Ethereum Signed Message:\n32", message);
     }
 
 

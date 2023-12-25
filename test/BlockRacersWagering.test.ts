@@ -202,10 +202,11 @@ describe("BlockRacersWagering", function () {
             console.log()
 
             console.log("Hash interior:                     ", concat([
-                toUtf8Bytes(MessagePrefix),
-                toUtf8Bytes(String(messageHash.length)),
+                toUtf8Bytes(MessagePrefix + "32"),
                 messageHash
             ]))
+            console.log("getSignedMessage:                  ", await wageringContract.getSignedMessageHash(player1Wagers[0], player1.address))
+            console.log("hashMessage(messageHash):          ", hashMessage(messageHash))
             console.log("getSignedMessageInterior:          ", await wageringContract.getSignedMessageInterior(player1Wagers[0], player1.address))
             console.log("Messagehash with prefix match:     ", signedMessageHashBytes.toString() === await wageringContract.getSignedMessageHash(player1Wagers[0], player1.address))
             
@@ -217,21 +218,20 @@ describe("BlockRacersWagering", function () {
 
             const signedMessageHashFetched = await wageringContract.getSignedMessageHash(player1Wagers[0], player1.address)
 
-            const creatorProof = await player1.signMessage(signedMessageHashFetched)
-            const opponentProof = await player2.signMessage(signedMessageHashFetched)        
+            const creatorProof = await player1.signMessage(signedMessageHashBytes)
+            const opponentProof = await player2.signMessage(signedMessageHashBytes)        
 
-            const verifyCreatorSigner = verifyMessage(signedMessageHashFetched, creatorProof);
-            const verifyOpponentSigner = verifyMessage(signedMessageHashFetched, opponentProof);
+            const verifyCreatorSigner = verifyMessage(signedMessageHashBytes, creatorProof);
+            const verifyOpponentSigner = verifyMessage(signedMessageHashBytes, opponentProof);
             console.log()
             console.log("Creator valid: ", verifyCreatorSigner === player1.address)
             console.log("Opponent valid: ", verifyOpponentSigner === player2.address)
 
             const creatorProofOnchainCheck = await wageringContract.verifySignature(
                 player1.address, 
-                signedMessageHashFetched, 
+                signedMessageHashBytes, 
                 creatorProof
             )
-
             // 1: ABI >-> Bytes
             // 2: Keccak Encoded -> Bytes32
             // 3: Length taken from bytes32
@@ -245,12 +245,14 @@ describe("BlockRacersWagering", function () {
             // Local message length: 66
             // Local message length bytes: 0x3636
 
+            // bytes32 message = keccak256(abi.encodePacked(wagerId, "-", winner));
+            // return bytes(Strings.toString(message.length));
             // Fetched message length: 32n
             // Fetched message length bytes: 0x3332
 
-            // Local:   0x19457468657265756d205369676e6564204d6573736167653a0a 3636 bbe13e8bb5ad7012922ad63ad1164a63cab8268aed7f1fd3946ec8a72ab17186
-            // Fetched: 0x19457468657265756d205369676e6564204d6573736167653a0a 3332 bbe13e8bb5ad7012922ad63ad1164a63cab8268aed7f1fd3946ec8a72ab17186
-
+            // Local:           0x19457468657265756d205369676e6564204d6573736167653a0a 3636 bbe13e8bb5ad7012922ad63ad1164a63cab8268aed7f1fd3946ec8a72ab17186
+            // Fetched:         0x19457468657265756d205369676e6564204d6573736167653a0a 3332 bbe13e8bb5ad7012922ad63ad1164a63cab8268aed7f1fd3946ec8a72ab17186
+            // Fixed length:    0x19457468657265756d205369676e6564204d6573736167653a0a 3332 bbe13e8bb5ad7012922ad63ad1164a63cab8268aed7f1fd3946ec8a72ab17186
             // 0x42c4a6b0d21c483e354116cbbc09bfc4da6e2dfa94dab0fddbaa21aa710c9362
             // 0x3f75414aab3f21fef79c064350fc8713d2b0fdf6b71e6f74e04dd59be90a65cc
             console.log("creatorProofOnchainCheck: ", creatorProofOnchainCheck)
