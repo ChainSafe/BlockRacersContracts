@@ -130,6 +130,38 @@ export const cancelWager = async (
     }
 }
 
+export const completeWager = async (
+    wageringContract: BlockRacersWagering & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    submitter: HardhatEthersSigner,
+    winner: AddressLike,
+    wagerId: BigNumberish,
+    creatorProof: string,
+    opponentProof: string,
+    expectedWagerState?: BlockRacersWagering.WagerStruct
+) => {
+    let currentState = await getWager(wageringContract, wagerId)
+
+    assert(currentState.state === BigInt(WagerState.ACCEPTED), `Wager not ready to complete. State: ${currentState.state}`)
+
+    await wageringContract.connect(submitter).completeWager(wagerId, winner, creatorProof, opponentProof);
+    
+    currentState = await getWager(wageringContract, wagerId)
+
+    assert(currentState.state === BigInt(WagerState.COMPLETED), `Wager completed. State: ${currentState.state}`)
+    assert(currentState.winner === winner, `Winner not updated correctly. Winner: ${currentState.winner}`)
+
+    if (expectedWagerState) {
+        const currentState = await getWager(wageringContract, wagerId)
+        assert(currentState.prize == expectedWagerState.prize, `Post-complete wager prize incorrect. Actual: ${currentState.prize} | Expected: ${expectedWagerState.prize}`)
+        assert(currentState.creator == expectedWagerState.creator, `Post-complete wager creator incorrect. Actual: ${currentState.creator} | Expected: ${expectedWagerState.creator}`)
+        assert(currentState.opponent == expectedWagerState.opponent, `Post-complete wager opponent incorrect. Actual: ${currentState.opponent} | Expected: ${expectedWagerState.opponent}`)
+        assert(currentState.winner == expectedWagerState.winner, `Post-complete wager winner incorrect. Actual: ${currentState.winner} | Expected: ${expectedWagerState.winner}`)
+        assert(currentState.state == expectedWagerState.state, `Post-complete wager state incorrect. Actual: ${currentState.state} | Expected: ${expectedWagerState.state}`)
+    }
+}
+
 export const getWager = async (
     wageringContract: BlockRacersWagering & {
         deploymentTransaction(): ContractTransactionResponse;

@@ -1,12 +1,11 @@
 import {
   loadFixture,
-  time,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { WagerState, acceptWager, cancelWager, createWager, deployWageringFixture, getLatestWagerId, getPlayersWagers, getTokenAddressWagering } from "./contractFunctions/BlockRacersWagering.contract";
+import { WagerState, acceptWager, cancelWager, completeWager, createWager, deployWageringFixture, getLatestWagerId, getPlayersWagers, getTokenAddressWagering } from "./contractFunctions/BlockRacersWagering.contract";
 import { balanceOfToken, setAllowanceToken } from "./contractFunctions/BlockRacersToken.contract";
 import { defaultDeployFixture, getAccounts, isTrustedForwarder, mintingAmount } from "./contractFunctions/generalFunctions";
 import { ERC2771Context } from "../typechain-types";
-import { parseUnits, ZeroAddress } from "ethers";
+import { hashMessage, parseUnits, recoverAddress, ZeroAddress, solidityPacked, keccak256, getBytes, verifyMessage, toBeHex, solidityPackedKeccak256, concat, toUtf8Bytes, MessagePrefix } from "ethers";
 
 describe("BlockRacersWagering", function () {
   const standardPrize = parseUnits("4", 18);
@@ -163,9 +162,127 @@ describe("BlockRacersWagering", function () {
             await balanceOfToken(tokenContract, player1, mintingAmount)
             await balanceOfToken(tokenContract, player2, mintingAmount)
         })
+        it("does not allow cancel when not created")
+        it("does not allow cancel when completed")
+        it("does not allow non participants to cancel")
     })
     
-    it("completeWager")
+    describe("completeWager", () => {
+        it("Allows any account to submit completion TX", async () => {
+            const { player1, player2, player3 } = await getAccounts()
+    
+            const { tokenContract, wageringContract } = await loadFixture(defaultDeployFixture(true))
+                
+            await setAllowanceToken(tokenContract, player1, wageringContract, standardPrize)
+    
+            await createWager(wageringContract, player1, standardPrize)
+    
+            const player1Wagers = await getPlayersWagers(wageringContract, player1, [1])
+            await setAllowanceToken(tokenContract, player2, wageringContract, standardPrize)
+    
+            await acceptWager(wageringContract, player2, player1Wagers[0], {
+                prize: standardPrize,
+                creator: player1.address,
+                opponent: player2.address,
+                winner: ZeroAddress,
+                state: WagerState.ACCEPTED,
+            })
+            let message = solidityPacked([ "uint256", "string", "address" ], [ player1Wagers[0], "-",  player1.address]);
+            const messageHash = solidityPackedKeccak256([ "uint256", "string", "address" ], [ player1Wagers[0], "-",  player1.address]);
+           
+            const signedMessageHashBytes = getBytes(hashMessage(messageHash))
+           
+            console.log("Message match (Abi encoding): ", message === await wageringContract.getMessage(player1Wagers[0], player1.address))
+            console.log("Message keccak match: ", messageHash === await wageringContract.getMessageHash(player1Wagers[0], player1.address))
+            console.log()
+
+            console.log("messageHash", messageHash)
+
+            console.log("Fetch Eth signed message:          ", await wageringContract.getSignedMessageHash(player1Wagers[0], player1.address))
+            console.log()
+
+            console.log("Hash interior:                     ", concat([
+                toUtf8Bytes(MessagePrefix),
+                toUtf8Bytes(String(messageHash.length)),
+                messageHash
+            ]))
+            console.log("getSignedMessageInterior:          ", await wageringContract.getSignedMessageInterior(player1Wagers[0], player1.address))
+            console.log("Messagehash with prefix match:     ", signedMessageHashBytes.toString() === await wageringContract.getSignedMessageHash(player1Wagers[0], player1.address))
+            
+            console.log("getInteriorComponents:             ", await wageringContract.getInteriorComponents(player1Wagers[0], player1.address))
+            console.log("messageHash as Bytes:              ", concat([
+                toUtf8Bytes(String(messageHash.length)),
+            ]))
+            console.log("String(signedMessageHash.length)", String(messageHash.length))
+
+            const signedMessageHashFetched = await wageringContract.getSignedMessageHash(player1Wagers[0], player1.address)
+
+            const creatorProof = await player1.signMessage(signedMessageHashFetched)
+            const opponentProof = await player2.signMessage(signedMessageHashFetched)        
+
+            const verifyCreatorSigner = verifyMessage(signedMessageHashFetched, creatorProof);
+            const verifyOpponentSigner = verifyMessage(signedMessageHashFetched, opponentProof);
+            console.log()
+            console.log("Creator valid: ", verifyCreatorSigner === player1.address)
+            console.log("Opponent valid: ", verifyOpponentSigner === player2.address)
+
+            const creatorProofOnchainCheck = await wageringContract.verifySignature(
+                player1.address, 
+                signedMessageHashFetched, 
+                creatorProof
+            )
+
+            // 1: ABI >-> Bytes
+            // 2: Keccak Encoded -> Bytes32
+            // 3: Length taken from bytes32
+            // 4: length -> string -> to bytes
+            // 5: concat prefix string, length as bytes, keccak.abi.encoded
+
+            // Prefixed message bytes
+            // Prefix:  0x19457468657265756d205369676e6564204d6573736167653a0a
+            // Message: 0xbbe13e8bb5ad7012922ad63ad1164a63cab8268aed7f1fd3946ec8a72ab17186
+                
+            // Local message length: 66
+            // Local message length bytes: 0x3636
+
+            // Fetched message length: 32n
+            // Fetched message length bytes: 0x3332
+
+            // Local:   0x19457468657265756d205369676e6564204d6573736167653a0a 3636 bbe13e8bb5ad7012922ad63ad1164a63cab8268aed7f1fd3946ec8a72ab17186
+            // Fetched: 0x19457468657265756d205369676e6564204d6573736167653a0a 3332 bbe13e8bb5ad7012922ad63ad1164a63cab8268aed7f1fd3946ec8a72ab17186
+
+            // 0x42c4a6b0d21c483e354116cbbc09bfc4da6e2dfa94dab0fddbaa21aa710c9362
+            // 0x3f75414aab3f21fef79c064350fc8713d2b0fdf6b71e6f74e04dd59be90a65cc
+            console.log("creatorProofOnchainCheck: ", creatorProofOnchainCheck)
+
+            const opponentProofOnchainCheck = await wageringContract.verifySignature(
+                player2.address, 
+                signedMessageHashFetched, 
+                opponentProof
+            )
+            console.log("opponentProofOnchainCheck: ", opponentProofOnchainCheck)
+
+
+            await completeWager(
+                wageringContract, 
+                player3, 
+                player1.address, 
+                player1Wagers[0], 
+                creatorProof, 
+                opponentProof,
+                {
+                    prize: standardPrize,
+                    creator: player1.address,
+                    opponent: player2.address,
+                    winner: player1.address,
+                    state: WagerState.COMPLETED,
+                }
+            )
+            await balanceOfToken(tokenContract, wageringContract, 0)
+
+            await balanceOfToken(tokenContract, player1, mintingAmount + standardPrize)
+        })
+    })
   });
 
   describe("admin", () => {

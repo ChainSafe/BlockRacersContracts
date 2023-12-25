@@ -53,7 +53,8 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
     error OnlyParticipantsCanCancel(uint256 wagerId, address requestor);
 
     error OpponentCantBeChallenger(uint256 wagerId, address opponent);
-    error PlayerSignatureInvalid(uint256 wagerId, address winner, bytes creatorProof, bytes opponentProof);
+    error WinnerMustBeParticipant(uint256 wagerId, address winner);
+    error PlayerSignatureInvalid(uint256 wagerId, address winner, bytes32 message, bytes creatorProof, bytes opponentProof);
 
     modifier wagerStateMustBe(WagerState state, uint256 wagerId) {
         Wager memory wager = wagers[wagerId];
@@ -134,7 +135,12 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
         nonReentrant() 
         returns (bool) {
         Wager storage wager = wagers[wagerId];
-        bytes32 message = MessageHashUtils.toEthSignedMessageHash(abi.encodePacked(wagerId, "-", winner));
+
+        if(winner != wager.creator && winner != wager.opponent) 
+            revert WinnerMustBeParticipant(wagerId, winner);
+
+        bytes32 message = getSignedMessageHash(wagerId, winner);
+        
         bool creatorProofValid = SignatureChecker.isValidSignatureNow(
             wager.creator,
             message,
@@ -146,7 +152,7 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
             opponentProof);
 
         if (!creatorProofValid || !opponentProofValid) 
-            revert PlayerSignatureInvalid(wagerId, winner, creatorProof, opponentProof);
+            revert PlayerSignatureInvalid(wagerId, winner, message, creatorProof, opponentProof);
         
         wager.winner = winner;
         wager.state = WagerState.COMPLETED;
@@ -229,6 +235,41 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
         return playerWagers[player];
     }
 
+    function getSignedMessageHash(uint256 wagerId, address winner) public pure returns(bytes32) {
+        //return MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerId, "-", winner)));
+        bytes32 message = keccak256(abi.encodePacked(wagerId, "-", winner));
+        return keccak256(bytes.concat("\x19Ethereum Signed Message:\n", bytes(Strings.toString(message.length)), message));
+    }
+
+    function getSignedMessageInterior(uint256 wagerId, address winner) public pure returns(bytes memory) {
+        //return MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerId, "-", winner)));
+        bytes32 message = keccak256(abi.encodePacked(wagerId, "-", winner));
+        return bytes.concat("\x19Ethereum Signed Message:\n", bytes(Strings.toString(message.length)), message);
+    }
+
+
+    function getInteriorComponents(uint256 wagerId, address winner) public pure returns(bytes memory) {
+        //return MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerId, "-", winner)));
+        bytes32 message = keccak256(abi.encodePacked(wagerId, "-", winner));
+        return bytes(Strings.toString(message.length));
+    }
+    
+    // This matches
+    function getMessageHash(uint256 wagerId, address winner) public pure returns(bytes32) {
+        return keccak256(abi.encodePacked(wagerId, "-", winner));
+    }
+
+    function getMessage(uint256 wagerId, address winner) public pure returns(bytes memory) {
+        return abi.encodePacked(wagerId, "-", winner);
+    }
+
+    function verifySignature(address signer, bytes32 hash, bytes memory signature) public view returns (bool) {
+        return SignatureChecker.isValidSignatureNow(
+            signer,
+            hash,
+            signature
+        );
+    }
     /**
      * @dev Override required as inheritance was indeterminant for which function to use
      */
