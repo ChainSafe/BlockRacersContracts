@@ -18,7 +18,7 @@ This token is pretty simple for now, it allows for ERC2771 relayed transactions,
 
 This token is pretty simple, it allows for minting by approved BlockRacer contracts, the minting presently is to represent cars in the game, it has AccessControl to manage BlockRacer core contracts, this would allow a new version of the core contract to be deployed without affecting the assets. 
 
-There are URI features for setting explict URI strings for assets instead of implied, ID based, this allows for futureproofing.
+There are URI features for setting explicit URI strings for assets instead of implied, ID based, this allows for futureproofing.
 
 ### BlockRacers Core 
 
@@ -74,13 +74,13 @@ Only the Owner of the contract can publish new game settings.
 
 ### Player actions
 
-The players are able to mint a new car, upgrade it's engine, handling & NOS.
+The players are able to mint a new car, upgrade its engine, handling & NOS.
 
 All of these actions require sending an `approve` transaction to the BlockRacers ERC20, to the `blockRacersFeeAccount`
 
 ### BlockRacers Wager
 
-The wager contract allows for players to stake tokens from the Block Racers ERC20 to then race eachother, the winner would then receive their staked tokens back as well as be transfered the tokens staked by their defeated opponent.
+The wager contract allows for players to stake tokens from the Block Racers ERC20 to then race each other, the winner would then receive their staked tokens back as well as be transferred the tokens staked by their defeated opponent.
 
 This contract also has ERC2771 for relaying transactions
 
@@ -96,7 +96,7 @@ There are 5 states a wager can be in
 
 #### Mechanics 
 
-A player can initiate a wager by staking tokens into the Wager contract. Their opponent can then accept the wager by staking tokens in to the contract, these would both require approving the Wager contract for transfer of the Wager creators stake.
+A player can initiate a wager by staking tokens into the Wager contract. Their opponent can then accept the wager by staking tokens into the contract, these would both require approving the Wager contract for transfer of the Wager creators stake.
 
 When a race is completed, both players would sign a message of the winner's address to then release the funds to the winner.
 
