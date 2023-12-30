@@ -43,11 +43,15 @@ contract Blacklist is Ownable {
         emit AddedToBlacklist(account);
     }
 
-    function removedFromBlackList(address account) external onlyOwner() {
+    function removeFromBlackList(address account) external onlyOwner() {
          if (!blacklisted[account])
             revert AccountNotBlacklisted(account);
 
         blacklisted[account] = false;
         emit RemovedFromBlacklisted(account);
+    }
+
+    function isBlackListed(address account) public view returns(bool) {
+        return blacklisted[account];
     }
 }
