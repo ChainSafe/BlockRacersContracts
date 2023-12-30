@@ -5,7 +5,7 @@ import { defaultGameSettings } from "../../scripts/defaultSettings";
 import { approvalToken, deployTokenFixture } from "./BlockRacersToken.contract";
 import { deployAssetsFixture } from "./BlockRacersAssets.contract";
 import { BlockRacers, BlockRacersToken } from "../../typechain-types";
-import { assert } from "chai";
+import { assert, expect } from "chai";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
 export enum CarTypeOption {
@@ -118,6 +118,110 @@ export const upgradeNos = async (
     }
 }
 
+export const mintCarWithEvent = async (
+    coreContract: BlockRacers & {
+        deploymentTransaction(): ContractTransactionResponse
+    }, 
+    tokenContract: BlockRacersToken & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    carType: CarTypeOption,
+    minter: HardhatEthersSigner,
+    eventName: string,
+    eventArgs?: any[]
+) => {
+    const { carCost } = await getCarOption(coreContract, carType)
+
+    await approvalToken(tokenContract, minter, await coreContract.getAddress(), carCost)
+    if(eventArgs) {
+        await expect(await coreContract.connect(minter).mintCar(carType), `${eventName} Failed`)
+            .to.emit(coreContract, eventName)
+            .withArgs(...eventArgs)
+    } else {
+        await expect(await coreContract.connect(minter).mintCar(carType), `${eventName} Failed`)
+            .to.emit(coreContract, eventName)
+    }
+}
+
+export const upgradeEngineWithEvent = async (
+    coreContract: BlockRacers & {
+        deploymentTransaction(): ContractTransactionResponse
+    }, 
+    ownerAccount: HardhatEthersSigner,
+    carId: BigNumberish,
+    eventName: string,
+    eventArgs?: any[],
+    expectedLevel?: BigNumberish,
+) => {
+    if(eventArgs) {
+        await expect(await coreContract.connect(ownerAccount).upgradeEngine(carId), `${eventName} Failed`)
+            .to.emit(coreContract, eventName)
+            .withArgs(...eventArgs)
+    } else {
+        await expect(await coreContract.connect(ownerAccount).upgradeEngine(carId), `${eventName} Failed`)
+            .to.emit(coreContract, eventName)
+    }
+
+    if(expectedLevel) {
+        const stats = await getCarStats(coreContract, carId);
+
+        assert(stats.engineLevel == expectedLevel, `Engine level was not increased incorrect. Actual: ${stats.engineLevel} | Expected: ${expectedLevel}`)
+    }
+}
+
+export const upgradeHandlingWithEvent = async (
+    coreContract: BlockRacers & {
+        deploymentTransaction(): ContractTransactionResponse
+    }, 
+    ownerAccount: HardhatEthersSigner,
+    carId: BigNumberish,
+    eventName: string,
+    eventArgs?: any[],
+    expectedLevel?: BigNumberish,
+) => {
+    if(eventArgs) {
+        await expect(await coreContract.connect(ownerAccount).upgradeHandling(carId), `${eventName} Failed`)
+            .to.emit(coreContract, eventName)
+            .withArgs(...eventArgs)
+    } else {
+        await expect(await coreContract.connect(ownerAccount).upgradeHandling(carId), `${eventName} Failed`)
+            .to.emit(coreContract, eventName)
+    }
+
+    if(expectedLevel) {
+        const stats = await getCarStats(coreContract, carId);
+
+        assert(stats.handlingLevel == expectedLevel, `Handling level was not increased incorrect. Actual: ${stats.handlingLevel} | Expected: ${expectedLevel}`)
+    }
+}
+
+export const upgradeNosWithEvent = async (
+    coreContract: BlockRacers & {
+        deploymentTransaction(): ContractTransactionResponse
+    }, 
+    ownerAccount: HardhatEthersSigner,
+    carId: BigNumberish,
+    eventName: string,
+    eventArgs?: any[],
+    expectedLevel?: BigNumberish,
+    ) => {
+    if(eventArgs) {
+        await expect(await coreContract.connect(ownerAccount).upgradeNos(carId), `${eventName} Failed`)
+            .to.emit(coreContract, eventName)
+            .withArgs(...eventArgs)
+    } else {
+        await expect(await coreContract.connect(ownerAccount).upgradeNos(carId), `${eventName} Failed`)
+            .to.emit(coreContract, eventName)
+    }
+
+    if(expectedLevel) {
+        const stats = await getCarStats(coreContract, carId);
+
+        assert(stats.nosLevel == expectedLevel, `Nos level was not increased incorrect. Actual: ${stats.nosLevel} | Expected: ${expectedLevel}`)
+    }
+}
+
+// Read
 export const blockRacersFeeAccount = async (
     coreContract: BlockRacers & {
         deploymentTransaction(): ContractTransactionResponse

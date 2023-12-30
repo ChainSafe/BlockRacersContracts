@@ -215,7 +215,7 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
         CarStats storage car = carStats[carId];
         car.nosLevel++;
 
-        emit UpgradeNos(player, price, car.handlingLevel);
+        emit UpgradeNos(player, price, car.nosLevel);
         return true;
     }
 
