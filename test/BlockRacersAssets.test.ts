@@ -2,7 +2,7 @@ import {
   loadFixture,
   time,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { deployAssetsFixture, mintNftWithURI, safeTransferFrom, setApprovalForAll } from "./contractFunctions/BlockRacersAssets.contract";
+import { balanceOfNft, deployAssetsFixture, mintNftWithURI, safeTransferFrom, setApprovalForAll } from "./contractFunctions/BlockRacersAssets.contract";
 import { getAccounts, isTrustedForwarder } from "./contractFunctions/generalFunctions";
 import { assert } from "chai";
 import { defaultGameSettings } from "../scripts/defaultSettings";
@@ -23,7 +23,13 @@ describe("BlockRacersNfts", function () {
   describe("Read functions", function () {
     it("BLOCK_RACERS")
     it("DEFAULT_ADMIN_ROLE")
-    it("balanceOf")
+    it("balanceOf", async () => {
+      const { player1 } = await getAccounts();
+      const assetsContract = await loadFixture(deployAssetsFixture)
+      await balanceOfNft(assetsContract, player1.address, 1, 0)
+      await mintNftWithURI(assetsContract, player1, 1, 1, defaultGameSettings.carOptions[0].carUri)
+      await balanceOfNft(assetsContract, player1.address, 1, 1)
+    })
     it("balanceOfBatch")
     it("getRoleAdmin")
     it("hasRole")

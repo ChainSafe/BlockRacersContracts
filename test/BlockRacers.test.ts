@@ -74,7 +74,7 @@ describe("BlockRacers", function () {
     });
 
     describe("admin", () => {
-        it("renounceOwnership")
+        it("renounceOwnership",)
         it("setBlockRacersFeeAccount")
         it("setNewGameSettings")
         it("transferOwnership")
@@ -157,9 +157,7 @@ describe("BlockRacers", function () {
         })
 
         describe("Max level tests", () => {
-            it("stops at the max level for Engine", async () => {
-                
-            })
+            it("stops at the max level for Engine")
             it("stops at the max level for Handling")
             it("stops at the max level for Nos")
         })
