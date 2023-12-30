@@ -8,8 +8,8 @@
   "scripts": {
     "node": "npx hardhat node",
     "test": "npx hardhat test",
-    "compile": "npx hardhat compile",
-    "generateClasses": "npx ts-node --files ./scripts/generateUnityClasses.ts"
+    "compile": "npx hardhat compile && yarn generateUnityClasses",
+    "generateUnityClasses": "npx ts-node --files ./scripts/generateUnityClasses.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
