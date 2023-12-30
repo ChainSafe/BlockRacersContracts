@@ -139,7 +139,7 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
         if(winner != wager.creator && winner != wager.opponent) 
             revert WinnerMustBeParticipant(wagerId, winner);
 
-        bytes32 message = getSignedMessageHash(wagerId, winner);
+        bytes32 message = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerId, "-", winner)));
         
         bool creatorProofValid = SignatureChecker.isValidSignatureNow(
             wager.creator,
@@ -235,41 +235,6 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
         return playerWagers[player];
     }
 
-    function getSignedMessageHash(uint256 wagerId, address winner) public pure returns(bytes32) {
-        return MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerId, "-", winner)));
-        // bytes32 message = keccak256(abi.encodePacked(wagerId, "-", winner));
-        // return keccak256(bytes.concat("\x19Ethereum Signed Message:\n", bytes(Strings.toString(message.length)), message));
-    }
-
-    function getSignedMessageInterior(uint256 wagerId, address winner) public pure returns(bytes memory) {
-        //return MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerId, "-", winner)));
-        bytes32 message = keccak256(abi.encodePacked(wagerId, "-", winner));
-        return bytes.concat("\x19Ethereum Signed Message:\n32", message);
-    }
-
-
-    function getInteriorComponents(uint256 wagerId, address winner) public pure returns(bytes memory) {
-        //return MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerId, "-", winner)));
-        bytes32 message = keccak256(abi.encodePacked(wagerId, "-", winner));
-        return bytes(Strings.toString(message.length));
-    }
-    
-    // This matches
-    function getMessageHash(uint256 wagerId, address winner) public pure returns(bytes32) {
-        return keccak256(abi.encodePacked(wagerId, "-", winner));
-    }
-
-    function getMessage(uint256 wagerId, address winner) public pure returns(bytes memory) {
-        return abi.encodePacked(wagerId, "-", winner);
-    }
-
-    function verifySignature(address signer, bytes32 hash, bytes memory signature) public view returns (bool) {
-        return SignatureChecker.isValidSignatureNow(
-            signer,
-            hash,
-            signature
-        );
-    }
     /**
      * @dev Override required as inheritance was indeterminant for which function to use
      */
