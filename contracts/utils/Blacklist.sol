@@ -50,4 +50,8 @@ contract Blacklist is Ownable {
         blacklisted[account] = false;
         emit RemovedFromBlacklisted(account);
     }
+
+    function isBlackListed(address account) public view returns(bool) {
+        return blacklisted[account];
+    }
 }

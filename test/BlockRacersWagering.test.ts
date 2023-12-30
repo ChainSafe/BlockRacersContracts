@@ -1,11 +1,12 @@
 import {
   loadFixture,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { WagerState, acceptWager, cancelWager, completeWager, createWager, deployWageringFixture, getLatestWagerId, getPlayersWagers, getTokenAddressWagering } from "./contractFunctions/BlockRacersWagering.contract";
+import { WagerState, acceptWager, adminCancelWager, cancelWager, completeWager, createWager, deployWageringFixture, getLatestWagerId, getPlayersWagers, getTokenAddressWagering } from "./contractFunctions/BlockRacersWagering.contract";
 import { balanceOfToken, setAllowanceToken } from "./contractFunctions/BlockRacersToken.contract";
 import { defaultDeployFixture, getAccounts, isTrustedForwarder, mintingAmount } from "./contractFunctions/generalFunctions";
 import { ERC2771Context } from "../typechain-types";
-import { hashMessage, parseUnits, ZeroAddress, solidityPacked, getBytes, verifyMessage,  solidityPackedKeccak256, concat, toUtf8Bytes, MessagePrefix, hexlify } from "ethers";
+import { parseUnits, ZeroAddress, getBytes,  solidityPackedKeccak256 } from "ethers";
+import { addToBlacklist } from "./contractFunctions/Blacklist.contract";
 
 describe("BlockRacersWagering", function () {
   const standardPrize = parseUnits("4", 18);
@@ -217,10 +218,199 @@ describe("BlockRacersWagering", function () {
   });
 
   describe("admin", () => {
-    it("addToBlackList")
-    it("adminCancelWager")
-    it("removeFromBlackList")
-    it("transferOwnership")
+    it("adminCancelWager:CREATED", async () => {
+        const { player1, admin } = await getAccounts()
+    
+        const { tokenContract, wageringContract } = await loadFixture(defaultDeployFixture(true))
+            
+        await setAllowanceToken(tokenContract, player1, wageringContract, standardPrize)
+
+        await createWager(wageringContract, player1, standardPrize)
+        const player1Wagers = await getPlayersWagers(wageringContract, player1, [1])
+
+        await adminCancelWager(wageringContract, admin, player1Wagers[0], {
+            prize: standardPrize,
+            creator: player1.address,
+            opponent: ZeroAddress,
+            winner: ZeroAddress,
+            state: WagerState.CANCELLED,
+        })
+
+        await balanceOfToken(tokenContract, wageringContract, 0)
+        await balanceOfToken(tokenContract, player1, mintingAmount)
+
+    })
+    it("adminCancelWager:ACCEPTED", async () => {
+        const { player1, player2, admin } = await getAccounts()
+    
+        const { tokenContract, wageringContract } = await loadFixture(defaultDeployFixture(true))
+            
+        await setAllowanceToken(tokenContract, player1, wageringContract, standardPrize)
+
+        await createWager(wageringContract, player1, standardPrize)
+
+        const player1Wagers = await getPlayersWagers(wageringContract, player1, [1])
+        await setAllowanceToken(tokenContract, player2, wageringContract, standardPrize)
+
+        await acceptWager(wageringContract, player2, player1Wagers[0], {
+            prize: standardPrize,
+            creator: player1.address,
+            opponent: player2.address,
+            winner: ZeroAddress,
+            state: WagerState.ACCEPTED,
+        })
+
+        await balanceOfToken(tokenContract, wageringContract, standardPrize * BigInt(2))
+
+        await adminCancelWager(wageringContract, admin, player1Wagers[0], {
+            prize: standardPrize,
+            creator: player1.address,
+            opponent: player2.address,
+            winner: ZeroAddress,
+            state: WagerState.CANCELLED,
+        })
+
+        await balanceOfToken(tokenContract, wageringContract, 0)
+        await balanceOfToken(tokenContract, player1, mintingAmount)
+        await balanceOfToken(tokenContract, player2, mintingAmount)
+    })
+
+    describe("Creator blacklisted", () => {
+        it("adminCancelWager:CREATED", async () => {
+            const { player1, admin } = await getAccounts()
+    
+            const { tokenContract, wageringContract } = await loadFixture(defaultDeployFixture(true))
+                
+            await setAllowanceToken(tokenContract, player1, wageringContract, standardPrize)
+    
+            await createWager(wageringContract, player1, standardPrize)
+            const player1Wagers = await getPlayersWagers(wageringContract, player1, [1])
+            
+            await addToBlacklist(wageringContract, admin, player1.address)
+
+            await adminCancelWager(wageringContract, admin, player1Wagers[0], {
+                prize: standardPrize,
+                creator: player1.address,
+                opponent: ZeroAddress,
+                winner: ZeroAddress,
+                state: WagerState.CANCELLED,
+            })
+    
+            await balanceOfToken(tokenContract, wageringContract, 0)
+            await balanceOfToken(tokenContract, player1, mintingAmount)
+        })
+        it("adminCancelWager:ACCEPTED", async () => {
+            const { player1, player2, admin } = await getAccounts()
+    
+            const { tokenContract, wageringContract } = await loadFixture(defaultDeployFixture(true))
+                
+            await setAllowanceToken(tokenContract, player1, wageringContract, standardPrize)
+
+            await createWager(wageringContract, player1, standardPrize)
+
+            const player1Wagers = await getPlayersWagers(wageringContract, player1, [1])
+            await setAllowanceToken(tokenContract, player2, wageringContract, standardPrize)
+
+            await acceptWager(wageringContract, player2, player1Wagers[0], {
+                prize: standardPrize,
+                creator: player1.address,
+                opponent: player2.address,
+                winner: ZeroAddress,
+                state: WagerState.ACCEPTED,
+            })
+
+            await addToBlacklist(wageringContract, admin, player2.address)
+
+            await balanceOfToken(tokenContract, wageringContract, standardPrize * BigInt(2))
+
+            await adminCancelWager(wageringContract, admin, player1Wagers[0], {
+                prize: standardPrize,
+                creator: player1.address,
+                opponent: player2.address,
+                winner: ZeroAddress,
+                state: WagerState.CANCELLED,
+            })
+
+            await balanceOfToken(tokenContract, wageringContract, 0)
+            await balanceOfToken(tokenContract, player1, mintingAmount)
+            await balanceOfToken(tokenContract, player2, mintingAmount)
+        })
+    })
+    describe("Opponent blacklisted", () => {
+        it("adminCancelWager:ACCEPTED", async () => {
+            const { player1, player2, admin } = await getAccounts()
+    
+            const { tokenContract, wageringContract } = await loadFixture(defaultDeployFixture(true))
+                
+            await setAllowanceToken(tokenContract, player1, wageringContract, standardPrize)
+
+            await createWager(wageringContract, player1, standardPrize)
+
+            const player1Wagers = await getPlayersWagers(wageringContract, player1, [1])
+            await setAllowanceToken(tokenContract, player2, wageringContract, standardPrize)
+
+            await acceptWager(wageringContract, player2, player1Wagers[0], {
+                prize: standardPrize,
+                creator: player1.address,
+                opponent: player2.address,
+                winner: ZeroAddress,
+                state: WagerState.ACCEPTED,
+            })
+
+            await addToBlacklist(wageringContract, admin, player2.address)
+
+            await balanceOfToken(tokenContract, wageringContract, standardPrize * BigInt(2))
+
+            await adminCancelWager(wageringContract, admin, player1Wagers[0], {
+                prize: standardPrize,
+                creator: player1.address,
+                opponent: player2.address,
+                winner: ZeroAddress,
+                state: WagerState.CANCELLED,
+            })
+
+            await balanceOfToken(tokenContract, wageringContract, 0)
+            await balanceOfToken(tokenContract, player1, mintingAmount)
+            await balanceOfToken(tokenContract, player2, mintingAmount)
+        })
+    })
+    it("Both Blacklisted | adminCancelWager:ACCEPTED", async () => {
+        const { player1, player2, admin } = await getAccounts()
+
+        const { tokenContract, wageringContract } = await loadFixture(defaultDeployFixture(true))
+            
+        await setAllowanceToken(tokenContract, player1, wageringContract, standardPrize)
+
+        await createWager(wageringContract, player1, standardPrize)
+
+        const player1Wagers = await getPlayersWagers(wageringContract, player1, [1])
+        await setAllowanceToken(tokenContract, player2, wageringContract, standardPrize)
+
+        await acceptWager(wageringContract, player2, player1Wagers[0], {
+            prize: standardPrize,
+            creator: player1.address,
+            opponent: player2.address,
+            winner: ZeroAddress,
+            state: WagerState.ACCEPTED,
+        })
+
+        await addToBlacklist(wageringContract, admin, player1.address)
+        await addToBlacklist(wageringContract, admin, player2.address)
+
+        await balanceOfToken(tokenContract, wageringContract, standardPrize * BigInt(2))
+
+        await adminCancelWager(wageringContract, admin, player1Wagers[0], {
+            prize: standardPrize,
+            creator: player1.address,
+            opponent: player2.address,
+            winner: ZeroAddress,
+            state: WagerState.CANCELLED,
+        })
+
+        await balanceOfToken(tokenContract, wageringContract, 0)
+        await balanceOfToken(tokenContract, player1, mintingAmount)
+        await balanceOfToken(tokenContract, player2, mintingAmount)
+    })
   })
 
   describe("read", function () {
