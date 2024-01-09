@@ -52,17 +52,6 @@ contract BlockRacersAssets is ERC2771Context, ERC1155, ERC1155URIStorage, Access
     /// @param id The ID of the token
     /// @param value The amount of token being sent
     /// @return true if successful
-    function mint(address to, uint256 id, uint256 value) external onlyBlockracers() returns(bool) {
-       _mint(to, id, value, new bytes(0));
-       return true;
-    }
-
-    /// @dev Minting functions
-    /// @notice Mints an Nft to a users wallet
-    /// @param to The receiving account
-    /// @param id The ID of the token
-    /// @param value The amount of token being sent
-    /// @return true if successful
     function mint(address to, uint256 id, uint256 value, string memory newUri) external onlyBlockracers() returns(bool) {
        _mint(to, id, value, new bytes(0));
        ERC1155URIStorage._setURI(id, newUri);
@@ -73,24 +62,14 @@ contract BlockRacersAssets is ERC2771Context, ERC1155, ERC1155URIStorage, Access
     /// @param to receiver account
     /// @param ids ID list
     /// @param values Quantity list
-    function mintBatch(address to, uint256[] memory ids, uint256[] memory values) external onlyBlockracers() returns(bool) {
-        _mintBatch(to, ids, values, new bytes(0));
-        return true;
-    }
-
-    /// Batch minting function
-    /// @param to receiver account
-    /// @param ids ID list
-    /// @param values Quantity list
     /// @param uriList URI list
     function mintBatch(address to, uint256[] memory ids, uint256[] memory values, string[] memory uriList) external onlyBlockracers() returns(bool) {
         uint256 nftCount = uriList.length;
-        if(ids.length == nftCount)
+        if(ids.length != nftCount)
             revert UriArrayLengthInvalid();
             
         _mintBatch(to, ids, values, new bytes(0));
 
-        
         for(uint256 i = 0; i < nftCount;) {
             ERC1155URIStorage._setURI(ids[i], uriList[i]);
             unchecked{
