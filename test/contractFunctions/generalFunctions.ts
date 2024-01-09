@@ -54,3 +54,11 @@ export const isTrustedForwarder = async (
     const state = await contract.isTrustedForwarder(address);
     assert(state == expectedState, `TrustedForwarder incorrect. Actual: ${state} | Expected: ${expectedState}`)
 }
+
+export const checkTrustedForwarder = async (
+    contract: ERC2771Context,
+    expectedState: AddressLike
+) => {
+    const state = await contract.trustedForwarder();
+    assert(state == expectedState, `TrustedForwarder incorrect. Actual: ${state} | Expected: ${expectedState}`)
+}

@@ -143,8 +143,6 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
         nonReentrant() 
         returns (bool) {
         (uint256 price, string memory carUri) = getCarOption(carTypeId);
-        if (price == 0) 
-            revert CarTypeDoesNotExist(carTypeId);
 
         address player = _msgSender();
 
@@ -231,6 +229,9 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
     }
 
     function getItemData(GameItem itemType) public view returns (uint256 price, uint16 maxLevel) {
+        if (itemType == GameItem.CAR) 
+            revert InvalidItemType();
+
         if (itemType == GameItem.ENGINE) {
             price = gameSettingsData[_currentSettingsId].enginePrice;
             maxLevel = gameSettingsData[_currentSettingsId].engineMaxLevel;
@@ -244,6 +245,9 @@ contract BlockRacers is ERC2771Context, Ownable, ReentrancyGuard {
     }
 
     function getCarOption(uint256 carTypeId) public view returns(uint256, string memory) {
+        if (carTypeId >= gameSettingsData[_currentSettingsId].carOptions.length) 
+            revert CarTypeDoesNotExist(carTypeId);
+
         CarOption memory option = gameSettingsData[_currentSettingsId].carOptions[carTypeId];
         return (option.carCost, option.carUri);
     }
