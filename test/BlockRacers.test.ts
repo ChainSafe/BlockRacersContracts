@@ -1,10 +1,11 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { CarTypeOption, blockRacersFeeAccount, checkAssets, checkOwner, checkToken, deployCoreFixture, getCarOption, getCarOwner, getCarStats, getUpgradeData, mintCar, mintCarWithEvent, numberOfCarsMinted, upgradeEngine, upgradeEngineWithEvent, upgradeHandling, upgradeHandlingWithEvent, upgradeNos, upgradeNosWithEvent } from "./contractFunctions/BlockRacers.contract";
-import { defaultDeployFixture, getAccounts, isTrustedForwarder } from "./contractFunctions/generalFunctions";
-import { approvalToken, deployTokenFixture, setAllowanceToken } from "./contractFunctions/BlockRacersToken.contract";
+import { CarTypeOption, GameItem, blockRacersFeeAccount, checkAssets, checkOwner, checkToken, deployCoreFixture, getBlockracersFeeAccount, getCarOption, getCarOwner, getCarStats, getItemData, getItemDataWithError, getOwner, getUpgradeData, mintCar, mintCarWithErrors, mintCarWithEvent, modifiedGameSettings, numberOfCarsMinted, renounceOwnership, setBlockracersFeeAccount, setNewGameSettings, transferOwnership, upgradeEngine, upgradeEngineWithErrors, upgradeEngineWithEvent, upgradeHandling, upgradeHandlingWithErrors, upgradeHandlingWithEvent, upgradeNos, upgradeNosWithErrors, upgradeNosWithEvent } from "./contractFunctions/BlockRacers.contract";
+import { checkTrustedForwarder, defaultDeployFixture, getAccounts, isTrustedForwarder } from "./contractFunctions/generalFunctions";
+import { deployTokenFixture, setAllowanceToken } from "./contractFunctions/BlockRacersToken.contract";
 import { deployAssetsFixture } from "./contractFunctions/BlockRacersAssets.contract";
 import { ERC2771Context } from "../typechain-types";
 import { defaultGameSettings } from "../scripts/defaultSettings";
+import { ZeroAddress } from "ethers";
 
 describe("BlockRacers", function () {
     describe("deployment", () => {
@@ -39,12 +40,36 @@ describe("BlockRacers", function () {
                 defaultGameSettings.carOptions[0].carUri,
             )
         })
-        it("getItemData")
-        it("getNumberOfCarsMinted", async () => {
+        it("getItemData", async () => {
             const coreContract = await loadFixture(deployCoreFixture())
+
+            await getItemData(coreContract, GameItem.NOS, {
+                price: defaultGameSettings.nosPrice,
+                maxLevel: defaultGameSettings.nosMaxLevel,
+            })
+            await getItemData(coreContract, GameItem.HANDLING, {
+                price: defaultGameSettings.handlingPrice,
+                maxLevel: defaultGameSettings.handlingMaxLevel,
+            })
+            await getItemData(coreContract, GameItem.ENGINE, {
+                price: defaultGameSettings.enginePrice,
+                maxLevel: defaultGameSettings.engineMaxLevel,
+            })
+        })
+        it("getNumberOfCarsMinted", async () => {
+            const { player1 } = await getAccounts()
+            const { coreContract, tokenContract } = await loadFixture(defaultDeployFixture(true))
+
             await numberOfCarsMinted(coreContract, 0);
 
-            // Mint car then check
+            const carType = CarTypeOption.FIRST;
+            const { carCost } = await getCarOption(coreContract, carType)
+
+            await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
+            await mintCar(coreContract, carType, player1)
+
+            await numberOfCarsMinted(coreContract, 1);
+            
         })
         it("getUpgradeData", async () => {
             const coreContract = await loadFixture(deployCoreFixture())
@@ -70,14 +95,57 @@ describe("BlockRacers", function () {
 
             await checkToken(coreContract, tokenAddress)
         })
-        it("trustedForwarder")
+        it("trustedForwarder", async () => {
+            const { trustedForwarder } = await getAccounts()
+            const coreContract = await loadFixture(deployCoreFixture())
+            await checkTrustedForwarder(coreContract as ERC2771Context, trustedForwarder.address)
+        })
     });
 
     describe("admin", () => {
-        it("renounceOwnership",)
-        it("setBlockRacersFeeAccount")
-        it("setNewGameSettings")
-        it("transferOwnership")
+        it("renounceOwnership", async () => {
+            const { admin } = await getAccounts()
+
+            const { coreContract } = await loadFixture(defaultDeployFixture(true))
+            await getOwner(coreContract, admin.address)
+
+            await renounceOwnership(coreContract, admin)
+
+            await getOwner(coreContract, ZeroAddress)
+
+        })
+        it("setBlockRacersFeeAccount", async () => {
+            const { admin, feeAccount, player3 } = await getAccounts()
+            const coreContract = await loadFixture(deployCoreFixture())
+            
+            await getBlockracersFeeAccount(coreContract, feeAccount.address)
+
+            await setBlockracersFeeAccount(coreContract, admin, player3.address)
+
+            await getBlockracersFeeAccount(coreContract, player3.address)
+
+        })
+        it("setNewGameSettings", async () => {
+            const { admin } = await getAccounts()
+            const coreContract = await loadFixture(deployCoreFixture())
+            
+            await getUpgradeData(coreContract, defaultGameSettings)
+
+            await setNewGameSettings(coreContract, admin, modifiedGameSettings)
+
+            await getUpgradeData(coreContract, modifiedGameSettings)
+
+        })
+        it("transferOwnership", async () => {
+            const { admin, player3 } = await getAccounts()
+            const coreContract = await loadFixture(deployCoreFixture())
+
+            await getOwner(coreContract, admin.address)
+
+            await transferOwnership(coreContract, admin, player3.address)
+
+            await getOwner(coreContract, player3.address)
+        })
     })
 
     describe("write", function () {
@@ -91,7 +159,7 @@ describe("BlockRacers", function () {
             await numberOfCarsMinted(coreContract, 0);
 
             await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
-            await mintCar(coreContract, tokenContract, carType, player1)
+            await mintCar(coreContract, carType, player1)
 
             const carOption = await getCarOption(coreContract, carType);
 
@@ -114,7 +182,7 @@ describe("BlockRacers", function () {
             const carType = CarTypeOption.FIRST;
             const { carCost } = await getCarOption(coreContract, carType)
             await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
-            await mintCar(coreContract, tokenContract, carType, player1)
+            await mintCar(coreContract, carType, player1)
             const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
 
             const upgradeData = await getUpgradeData(coreContract)
@@ -130,7 +198,7 @@ describe("BlockRacers", function () {
             const carType = CarTypeOption.FIRST;
             const { carCost } = await getCarOption(coreContract, carType)
             await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
-            await mintCar(coreContract, tokenContract, carType, player1)
+            await mintCar(coreContract, carType, player1)
             const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
 
             const upgradeData = await getUpgradeData(coreContract)
@@ -146,7 +214,7 @@ describe("BlockRacers", function () {
             const carType = CarTypeOption.FIRST;
             const { carCost } = await getCarOption(coreContract, carType)
             await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
-            await mintCar(coreContract, tokenContract, carType, player1)
+            await mintCar(coreContract, carType, player1)
             const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
 
             const upgradeData = await getUpgradeData(coreContract)
@@ -157,9 +225,84 @@ describe("BlockRacers", function () {
         })
 
         describe("Max level tests", () => {
-            it("stops at the max level for Engine")
-            it("stops at the max level for Handling")
-            it("stops at the max level for Nos")
+            it("stops at the max level for Engine", async () => {
+                const { player1 } = await getAccounts()
+                const { coreContract, tokenContract } = await loadFixture(defaultDeployFixture(true))
+                const carType = CarTypeOption.FIRST;
+                const { carCost } = await getCarOption(coreContract, carType)
+
+                await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
+                await mintCar(coreContract, carType, player1)
+                const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
+    
+                const upgradeData = await getUpgradeData(coreContract)
+
+                // Max out stat
+                for(let i = 1; i < upgradeData.engineMaxLevel; i++) {
+                    await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), upgradeData.enginePrice);
+    
+                    await upgradeEngine(coreContract, player1, numberOfCarsMintedAsID, i + 1)
+                }
+
+                await upgradeEngineWithErrors(coreContract, player1, numberOfCarsMintedAsID, "UpgradeNotPossible", [
+                    numberOfCarsMintedAsID,
+                    GameItem.ENGINE,
+                    upgradeData.engineMaxLevel,
+                    upgradeData.engineMaxLevel
+                ])
+            })
+            it("stops at the max level for Handling", async () => {
+                const { player1 } = await getAccounts()
+                const { coreContract, tokenContract } = await loadFixture(defaultDeployFixture(true))
+                const carType = CarTypeOption.FIRST;
+                const { carCost } = await getCarOption(coreContract, carType)
+
+                await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
+                await mintCar(coreContract, carType, player1)
+                const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
+    
+                const upgradeData = await getUpgradeData(coreContract)
+
+                // Max out stat
+                for(let i = 1; i < upgradeData.handlingMaxLevel; i++) {
+                    await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), upgradeData.handlingPrice);
+    
+                    await upgradeHandling(coreContract, player1, numberOfCarsMintedAsID, i + 1)
+                }
+
+                await upgradeHandlingWithErrors(coreContract, player1, numberOfCarsMintedAsID, "UpgradeNotPossible", [
+                    numberOfCarsMintedAsID,
+                    GameItem.HANDLING,
+                    upgradeData.handlingMaxLevel,
+                    upgradeData.handlingMaxLevel
+                ])
+            })
+            it("stops at the max level for Nos", async () => {
+                const { player1 } = await getAccounts()
+                const { coreContract, tokenContract } = await loadFixture(defaultDeployFixture(true))
+                const carType = CarTypeOption.FIRST;
+                const { carCost } = await getCarOption(coreContract, carType)
+
+                await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
+                await mintCar(coreContract, carType, player1)
+                const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
+    
+                const upgradeData = await getUpgradeData(coreContract)
+
+                // Max out stat
+                for(let i = 1; i < upgradeData.nosMaxLevel; i++) {
+                    await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), upgradeData.nosPrice);
+    
+                    await upgradeNos(coreContract, player1, numberOfCarsMintedAsID, i + 1)
+                }
+
+                await upgradeNosWithErrors(coreContract, player1, numberOfCarsMintedAsID, "UpgradeNotPossible", [
+                    numberOfCarsMintedAsID,
+                    GameItem.NOS,
+                    upgradeData.nosMaxLevel,
+                    upgradeData.nosMaxLevel
+                ])
+            })
         })
     });
 
@@ -183,7 +326,7 @@ describe("BlockRacers", function () {
             const carType = CarTypeOption.FIRST;
             const { carCost } = await getCarOption(coreContract, carType)
             await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
-            await mintCar(coreContract, tokenContract, carType, player1)
+            await mintCar(coreContract, carType, player1)
             const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
 
             const upgradeData = await getUpgradeData(coreContract)
@@ -199,7 +342,7 @@ describe("BlockRacers", function () {
             const carType = CarTypeOption.FIRST;
             const { carCost } = await getCarOption(coreContract, carType)
             await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
-            await mintCar(coreContract, tokenContract, carType, player1)
+            await mintCar(coreContract, carType, player1)
             const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
 
             const upgradeData = await getUpgradeData(coreContract)
@@ -215,7 +358,7 @@ describe("BlockRacers", function () {
             const carType = CarTypeOption.FIRST;
             const { carCost } = await getCarOption(coreContract, carType)
             await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
-            await mintCar(coreContract, tokenContract, carType, player1)
+            await mintCar(coreContract, carType, player1)
             const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
 
             const upgradeData = await getUpgradeData(coreContract)
@@ -227,9 +370,57 @@ describe("BlockRacers", function () {
     })
 
     describe("errors", function () {
-        it("CarTypeDoesNotExist")
-        it("NotCarOwner")
-        it("InvalidItemType")
-        it("UpgradeNotPossible")
+        it("CarTypeDoesNotExist", async () => {
+            const { player1 } = await getAccounts()
+            const coreContract = await loadFixture(deployCoreFixture())
+
+            await mintCarWithErrors(coreContract, 4 as CarTypeOption, player1, "CarTypeDoesNotExist", [4])
+        })
+        it("NotCarOwner", async () => {
+            const { player1, player2 } = await getAccounts()
+            const { coreContract, tokenContract } = await loadFixture(defaultDeployFixture(true))
+
+            const carType = CarTypeOption.FIRST;
+            const { carCost } = await getCarOption(coreContract, carType)
+            await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
+            await mintCar(coreContract, carType, player1)
+            const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
+
+            const upgradeData = await getUpgradeData(coreContract)
+
+            await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), upgradeData.enginePrice);
+
+            await upgradeEngineWithErrors(coreContract, player2, numberOfCarsMintedAsID, "NotCarOwner", [numberOfCarsMintedAsID])
+        })
+        it("InvalidItemType", async () => {
+            const coreContract = await loadFixture(deployCoreFixture())
+            await getItemDataWithError(coreContract, GameItem.CAR, "InvalidItemType", [])
+        })
+        it("UpgradeNotPossible", async () => {
+            const { player1 } = await getAccounts()
+            const { coreContract, tokenContract } = await loadFixture(defaultDeployFixture(true))
+            const carType = CarTypeOption.FIRST;
+            const { carCost } = await getCarOption(coreContract, carType)
+
+            await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), carCost);
+            await mintCar(coreContract, carType, player1)
+            const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
+
+            const upgradeData = await getUpgradeData(coreContract)
+
+            // Max out stat
+            for(let i = 1; i < upgradeData.nosMaxLevel; i++) {
+                await setAllowanceToken(tokenContract, player1, await coreContract.getAddress(), upgradeData.nosPrice);
+
+                await upgradeNos(coreContract, player1, numberOfCarsMintedAsID, i + 1)
+            }
+
+            await upgradeNosWithErrors(coreContract, player1, numberOfCarsMintedAsID, "UpgradeNotPossible", [
+                numberOfCarsMintedAsID,
+                GameItem.NOS,
+                upgradeData.nosMaxLevel,
+                upgradeData.nosMaxLevel
+            ])
+        })
     })
 });
