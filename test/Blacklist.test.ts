@@ -61,6 +61,7 @@ describe("Blacklist", function () {
     })
 
     describe("errors", function () {
+        // TODO: Use a contract which implements this
         it("AccountBlacklisted")
         it("AccountAlreadyBlacklisted", async () => {
             const { admin, player1 } = await getAccounts()

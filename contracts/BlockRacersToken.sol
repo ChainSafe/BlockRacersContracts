@@ -31,10 +31,10 @@ contract BlockRacersToken is ERC20, ERC2771Context, Ownable, ReentrancyGuard {
 
     error InvalidIssuer(address proposedIssuer);
 
-    modifier onlyValidPermit(bytes memory permit, uint256 amount) {
+    modifier onlyValidPermit(bytes memory permit, address player, uint256 amount) {
         require(SignatureChecker.isValidSignatureNow(
             issuerAccount, 
-            MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(playerNonce[_msgSender()], _msgSender(), amount))),
+            MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(playerNonce[player], player, amount))),
             permit),
             "Sig not made by auth");
         _;
@@ -61,7 +61,7 @@ contract BlockRacersToken is ERC20, ERC2771Context, Ownable, ReentrancyGuard {
     /// @return true if  mint is successful
     function mint(address to, uint256 amount, bytes memory permit) 
         external 
-        onlyValidPermit(permit, amount) 
+        onlyValidPermit(permit, to, amount) 
         nonReentrant() 
         returns (bool) {
         playerNonce[_msgSender()]++;

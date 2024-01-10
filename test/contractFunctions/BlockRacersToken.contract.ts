@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { getAccounts } from "./generalFunctions";
-import { AddressLike, BigNumberish, ContractTransactionResponse, getBytes, solidityPackedKeccak256 } from "ethers";
+import { AddressLike, BigNumberish, ContractTransactionResponse, getBytes, solidityPackedKeccak256, toBeHex, verifyMessage } from "ethers";
 import { BlockRacersToken } from "../../typechain-types";
 import { assert, expect } from "chai";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
@@ -205,8 +205,10 @@ export const createMintPermit = async (
     account: AddressLike,
     value: BigNumberish
 ) => {
-    return await signer.signMessage(getBytes(solidityPackedKeccak256(
+    const message = getBytes(solidityPackedKeccak256(
         ["uint256", "address", "uint256"],
-        [nonce, account, value]
-    )))
+        [nonce, account, toBeHex(value)]
+    ))
+
+    return await signer.signMessage(message)
 }
