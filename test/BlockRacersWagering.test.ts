@@ -1,9 +1,9 @@
 import {
   loadFixture,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { WagerState, acceptWager, adminCancelWager, cancelWager, completeWager, createWager, deployWageringFixture, getLatestWagerId, getPlayersWagers, getTokenAddressWagering } from "./contractFunctions/BlockRacersWagering.contract";
+import { WagerState, acceptWager, acceptWagerWithEvent, adminCancelWager, cancelWager, cancelWagerWithEvent, completeWager, completeWagerWithEvent, createWager, createWagerWithEvent, deployWageringFixture, getLatestWagerId, getPlayersWagers, getTokenAddressWagering } from "./contractFunctions/BlockRacersWagering.contract";
 import { balanceOfToken, setAllowanceToken } from "./contractFunctions/BlockRacersToken.contract";
-import { defaultDeployFixture, getAccounts, isTrustedForwarder, mintingAmount } from "./contractFunctions/generalFunctions";
+import { checkTrustedForwarder, defaultDeployFixture, getAccounts, isTrustedForwarder, mintingAmount } from "./contractFunctions/generalFunctions";
 import { ERC2771Context } from "../typechain-types";
 import { parseUnits, ZeroAddress, getBytes,  solidityPackedKeccak256 } from "ethers";
 import { addToBlacklist } from "./contractFunctions/Blacklist.contract";
@@ -436,14 +436,76 @@ describe("BlockRacersWagering", function () {
 
         await getTokenAddressWagering(wageringContract, await tokenContract.getAddress())
     })
-    it("trustedForwarder")
+    it("trustedForwarder", async () => {
+        const { trustedForwarder } = await getAccounts()
+        const wageringContract = await loadFixture(deployWageringFixture())  
+        await checkTrustedForwarder(wageringContract as ERC2771Context, trustedForwarder.address)
+    })
   });
 
   describe("events", function () {
-    it("WagerCreated")
-    it("WagerAccepted")
-    it("WagerCancelled")
-    it("WagerCompleted")
+    it("WagerCreated", async () => {
+        const { player1 } = await getAccounts()
+
+        const { tokenContract, wageringContract } = await loadFixture(defaultDeployFixture(true))
+        await setAllowanceToken(tokenContract, player1, wageringContract, standardPrize)
+        await createWagerWithEvent(wageringContract, player1, standardPrize, "WagerCreated", [1, player1.address, standardPrize])
+    })
+    it("WagerAccepted", async () => {
+        const { player1, player2 } = await getAccounts()
+
+        const { tokenContract, wageringContract } = await loadFixture(defaultDeployFixture(true))
+        await setAllowanceToken(tokenContract, player1, wageringContract, standardPrize)
+        await createWager(wageringContract, player1, standardPrize)
+
+        await setAllowanceToken(tokenContract, player2, wageringContract, standardPrize)
+
+        await acceptWagerWithEvent(wageringContract, player2, 1, "WagerAccepted", [1, player2.address])
+    })
+    it("WagerCancelled", async () => {
+        const { player1, player2 } = await getAccounts()
+
+        const { tokenContract, wageringContract } = await loadFixture(defaultDeployFixture(true))
+        await setAllowanceToken(tokenContract, player1, wageringContract, standardPrize)
+        await createWager(wageringContract, player1, standardPrize)
+
+        await setAllowanceToken(tokenContract, player2, wageringContract, standardPrize)
+
+        await acceptWager(wageringContract, player2, 1)
+        await cancelWagerWithEvent(wageringContract, player1, 1, "WagerCancelled", [1, player1.address])
+    })
+    it("WagerCompleted", async () => {
+        const { player1, player2, player3 } = await getAccounts()
+
+        const { tokenContract, wageringContract } = await loadFixture(defaultDeployFixture(true))
+        await setAllowanceToken(tokenContract, player1, wageringContract, standardPrize)
+        await createWager(wageringContract, player1, standardPrize)
+
+        await setAllowanceToken(tokenContract, player2, wageringContract, standardPrize)
+
+        await acceptWager(wageringContract, player2, 1)
+
+        const messageHash = solidityPackedKeccak256([ "uint256", "string", "address" ], [ 1, "-",  player1.address]);
+        const messageHashAsBytes32 = getBytes(messageHash)
+
+        const creatorProof = await player1.signMessage(messageHashAsBytes32)
+        const opponentProof = await player2.signMessage(messageHashAsBytes32)
+
+        
+        await completeWagerWithEvent(
+            wageringContract, 
+            player3, 
+            player1.address, 
+            1, 
+            creatorProof, 
+            opponentProof,
+            "WagerCompleted",
+            [
+                1,
+                player1.address
+            ]
+        )
+    })
   })
 
   describe("errors", () => {

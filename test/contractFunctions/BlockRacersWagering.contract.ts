@@ -4,7 +4,7 @@ import { AddressLike, BigNumberish, ContractTransactionResponse, ZeroAddress, ke
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { deployTokenFixture } from "./BlockRacersToken.contract";
 import { BlockRacersWagering } from "../../typechain-types";
-import { assert } from "chai";
+import { assert, expect } from "chai";
 
 export enum CarTypeOption {
     FIRST = 0,
@@ -77,6 +77,20 @@ export const createWager = async (
     }
 }
 
+export const createWagerWithEvent = async (
+    wageringContract: BlockRacersWagering & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    creator: HardhatEthersSigner,
+    prize: BigNumberish,
+    eventName: string,
+    eventArgs: any[]
+) => {
+    await expect(await wageringContract.connect(creator).createWager(prize), `${eventName} Failed`)
+        .to.emit(wageringContract, eventName)
+        .withArgs(...eventArgs)
+}
+
 export const acceptWager = async (
     wageringContract: BlockRacersWagering & {
         deploymentTransaction(): ContractTransactionResponse;
@@ -106,6 +120,20 @@ export const acceptWager = async (
     }
 }
 
+export const acceptWagerWithEvent = async (
+    wageringContract: BlockRacersWagering & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    opponent: HardhatEthersSigner,
+    wagerId: BigNumberish,
+    eventName: string,
+    eventArgs: any[]
+) => {
+    await expect(await wageringContract.connect(opponent).acceptWager(wagerId), `${eventName} Failed`)
+        .to.emit(wageringContract, eventName)
+        .withArgs(...eventArgs)
+}
+
 export const cancelWager = async (
     wageringContract: BlockRacersWagering & {
         deploymentTransaction(): ContractTransactionResponse;
@@ -128,6 +156,20 @@ export const cancelWager = async (
         assert(currentState.winner == expectedWagerState.winner, `Post-cancel wager winner incorrect. Actual: ${currentState.winner} | Expected: ${expectedWagerState.winner}`)
         assert(currentState.state == expectedWagerState.state, `Post-cancel wager state incorrect. Actual: ${currentState.state} | Expected: ${expectedWagerState.state}`)
     }
+}
+
+export const cancelWagerWithEvent = async (
+    wageringContract: BlockRacersWagering & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    canceller: HardhatEthersSigner,
+    wagerId: BigNumberish,
+    eventName: string,
+    eventArgs: any[]
+) => {
+    await expect(await wageringContract.connect(canceller).cancelWager(wagerId), `${eventName} Failed`)
+        .to.emit(wageringContract, eventName)
+        .withArgs(...eventArgs)
 }
 
 export const completeWager = async (
@@ -162,6 +204,23 @@ export const completeWager = async (
     }
 }
 
+export const completeWagerWithEvent = async (
+    wageringContract: BlockRacersWagering & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    submitter: HardhatEthersSigner,
+    winner: AddressLike,
+    wagerId: BigNumberish,
+    creatorProof: string,
+    opponentProof: string,
+    eventName: string,
+    eventArgs: any[]
+) => {
+    await expect(await wageringContract.connect(submitter).completeWager(wagerId, winner, creatorProof, opponentProof), `${eventName} Failed`)
+        .to.emit(wageringContract, eventName)
+        .withArgs(...eventArgs)
+}
+
 export const adminCancelWager = async (
     wageringContract: BlockRacersWagering & {
         deploymentTransaction(): ContractTransactionResponse;
@@ -181,7 +240,6 @@ export const adminCancelWager = async (
         assert(currentState.state == expectedWagerState.state, `Post-cancel wager state incorrect. Actual: ${currentState.state} | Expected: ${expectedWagerState.state}`)
     }
 }
-
 
 // Read functions
 export const getWager = async (
