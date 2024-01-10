@@ -1,7 +1,7 @@
 import {
   loadFixture,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { WagerState, acceptWager, acceptWagerWithEvent, adminCancelWager, cancelWager, cancelWagerWithEvent, completeWager, completeWagerWithEvent, createWager, createWagerWithEvent, deployWageringFixture, getLatestWagerId, getPlayersWagers, getTokenAddressWagering } from "./contractFunctions/BlockRacersWagering.contract";
+import { WagerState, acceptWager, acceptWagerWithError, acceptWagerWithEvent, adminCancelWager, cancelWager, cancelWagerWithError, cancelWagerWithEvent, completeWager, completeWagerWithError, completeWagerWithEvent, createWager, createWagerWithEvent, deployWageringFixture, getLatestWagerId, getPlayersWagers, getTokenAddressWagering } from "./contractFunctions/BlockRacersWagering.contract";
 import { balanceOfToken, setAllowanceToken } from "./contractFunctions/BlockRacersToken.contract";
 import { checkTrustedForwarder, defaultDeployFixture, getAccounts, isTrustedForwarder, mintingAmount } from "./contractFunctions/generalFunctions";
 import { ERC2771Context } from "../typechain-types";
@@ -509,8 +509,42 @@ describe("BlockRacersWagering", function () {
   })
 
   describe("errors", () => {
-    it("WagerStateIncorrect")
-    it("WagerCantBeCancelled")
+    it("WagerStateIncorrect", async () => {
+        const { player1, player2, player3 } = await getAccounts()
+
+        const { wageringContract } = await loadFixture(defaultDeployFixture(true))
+
+        await acceptWagerWithError(wageringContract, player2, 1, "WagerStateIncorrect", [1, WagerState.NOT_STARTED, WagerState.CREATED])
+        
+        const messageHash = solidityPackedKeccak256([ "uint256", "string", "address" ], [ 1, "-",  player1.address]);
+        const messageHashAsBytes32 = getBytes(messageHash)
+
+        const creatorProof = await player1.signMessage(messageHashAsBytes32)
+        const opponentProof = await player2.signMessage(messageHashAsBytes32)
+
+        await completeWagerWithError(
+            wageringContract, 
+            player3, 
+            player1.address, 
+            1, 
+            creatorProof, 
+            opponentProof,
+            "WagerStateIncorrect",
+            [
+                1,
+                WagerState.NOT_STARTED,
+                WagerState.ACCEPTED
+            ]
+        )
+    })
+    it("WagerCantBeCancelled", async () => {
+        const { player1 } = await getAccounts()
+
+        const { wageringContract } = await loadFixture(defaultDeployFixture(true))
+
+        await cancelWagerWithError(wageringContract, player1, 1, "WagerCantBeCancelled", [1, WagerState.NOT_STARTED])
+
+    })
     it("OnlyParticipantsCanCancel")
     it("OpponentCantBeChallenger")
     it("PlayerSignatureInvalid")

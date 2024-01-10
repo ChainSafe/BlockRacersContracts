@@ -91,6 +91,19 @@ export const createWagerWithEvent = async (
         .withArgs(...eventArgs)
 }
 
+export const createWagerWithError = async (
+    wageringContract: BlockRacersWagering & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    creator: HardhatEthersSigner,
+    prize: BigNumberish,
+    errorName: string,
+    errorArgs: any[]
+) => {
+    await expect(wageringContract.connect(creator).createWager(prize), `${errorName} Failed`)
+        .to.be.revertedWithCustomError(wageringContract, errorName).withArgs(...errorArgs)
+}
+
 export const acceptWager = async (
     wageringContract: BlockRacersWagering & {
         deploymentTransaction(): ContractTransactionResponse;
@@ -134,6 +147,19 @@ export const acceptWagerWithEvent = async (
         .withArgs(...eventArgs)
 }
 
+export const acceptWagerWithError = async (
+    wageringContract: BlockRacersWagering & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    opponent: HardhatEthersSigner,
+    wagerId: BigNumberish,
+    errorName: string,
+    errorArgs: any[]
+) => {
+    await expect(wageringContract.connect(opponent).acceptWager(wagerId), `${errorName} Failed`)
+        .to.be.revertedWithCustomError(wageringContract, errorName).withArgs(...errorArgs)
+}
+
 export const cancelWager = async (
     wageringContract: BlockRacersWagering & {
         deploymentTransaction(): ContractTransactionResponse;
@@ -170,6 +196,19 @@ export const cancelWagerWithEvent = async (
     await expect(await wageringContract.connect(canceller).cancelWager(wagerId), `${eventName} Failed`)
         .to.emit(wageringContract, eventName)
         .withArgs(...eventArgs)
+}
+
+export const cancelWagerWithError = async (
+    wageringContract: BlockRacersWagering & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    canceller: HardhatEthersSigner,
+    wagerId: BigNumberish,
+    errorName: string,
+    errorArgs: any[]
+) => {
+    await expect(wageringContract.connect(canceller).cancelWager(wagerId), `${errorName} Failed`)
+        .to.be.revertedWithCustomError(wageringContract, errorName).withArgs(...errorArgs)
 }
 
 export const completeWager = async (
@@ -219,6 +258,22 @@ export const completeWagerWithEvent = async (
     await expect(await wageringContract.connect(submitter).completeWager(wagerId, winner, creatorProof, opponentProof), `${eventName} Failed`)
         .to.emit(wageringContract, eventName)
         .withArgs(...eventArgs)
+}
+
+export const completeWagerWithError = async (
+    wageringContract: BlockRacersWagering & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    submitter: HardhatEthersSigner,
+    winner: AddressLike,
+    wagerId: BigNumberish,
+    creatorProof: string,
+    opponentProof: string,
+    errorName: string,
+    errorArgs: any[]
+) => {
+    await expect(wageringContract.connect(submitter).completeWager(wagerId, winner, creatorProof, opponentProof), `${errorName} Failed`)
+        .to.be.revertedWithCustomError(wageringContract, errorName).withArgs(...errorArgs)
 }
 
 export const adminCancelWager = async (
