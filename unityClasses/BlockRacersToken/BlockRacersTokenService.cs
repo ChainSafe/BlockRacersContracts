@@ -116,6 +116,20 @@ namespace BlockRacersToken.BlockRacersToken
             return ContractHandler.QueryAsync<DecimalsFunction, byte>(null, blockParameter);
         }
 
+        public Task<BigInteger> GetPlayerNonceQueryAsync(GetPlayerNonceFunction getPlayerNonceFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetPlayerNonceFunction, BigInteger>(getPlayerNonceFunction, blockParameter);
+        }
+
+        
+        public Task<BigInteger> GetPlayerNonceQueryAsync(string player, BlockParameter blockParameter = null)
+        {
+            var getPlayerNonceFunction = new GetPlayerNonceFunction();
+                getPlayerNonceFunction.Player = player;
+            
+            return ContractHandler.QueryAsync<GetPlayerNonceFunction, BigInteger>(getPlayerNonceFunction, blockParameter);
+        }
+
         public Task<bool> IsTrustedForwarderQueryAsync(IsTrustedForwarderFunction isTrustedForwarderFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<IsTrustedForwarderFunction, bool>(isTrustedForwarderFunction, blockParameter);
@@ -210,6 +224,63 @@ namespace BlockRacersToken.BlockRacersToken
             return ContractHandler.QueryAsync<NameFunction, string>(null, blockParameter);
         }
 
+        public Task<string> OwnerQueryAsync(OwnerFunction ownerFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<OwnerFunction, string>(ownerFunction, blockParameter);
+        }
+
+        
+        public Task<string> OwnerQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<OwnerFunction, string>(null, blockParameter);
+        }
+
+        public Task<string> RenounceOwnershipRequestAsync(RenounceOwnershipFunction renounceOwnershipFunction)
+        {
+             return ContractHandler.SendRequestAsync(renounceOwnershipFunction);
+        }
+
+        public Task<string> RenounceOwnershipRequestAsync()
+        {
+             return ContractHandler.SendRequestAsync<RenounceOwnershipFunction>();
+        }
+
+        public Task<TransactionReceipt> RenounceOwnershipRequestAndWaitForReceiptAsync(RenounceOwnershipFunction renounceOwnershipFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(renounceOwnershipFunction, cancellationToken);
+        }
+
+        public Task<TransactionReceipt> RenounceOwnershipRequestAndWaitForReceiptAsync(CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync<RenounceOwnershipFunction>(null, cancellationToken);
+        }
+
+        public Task<string> SetNewIssuerAccountRequestAsync(SetNewIssuerAccountFunction setNewIssuerAccountFunction)
+        {
+             return ContractHandler.SendRequestAsync(setNewIssuerAccountFunction);
+        }
+
+        public Task<TransactionReceipt> SetNewIssuerAccountRequestAndWaitForReceiptAsync(SetNewIssuerAccountFunction setNewIssuerAccountFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setNewIssuerAccountFunction, cancellationToken);
+        }
+
+        public Task<string> SetNewIssuerAccountRequestAsync(string newIssuer)
+        {
+            var setNewIssuerAccountFunction = new SetNewIssuerAccountFunction();
+                setNewIssuerAccountFunction.NewIssuer = newIssuer;
+            
+             return ContractHandler.SendRequestAsync(setNewIssuerAccountFunction);
+        }
+
+        public Task<TransactionReceipt> SetNewIssuerAccountRequestAndWaitForReceiptAsync(string newIssuer, CancellationTokenSource cancellationToken = null)
+        {
+            var setNewIssuerAccountFunction = new SetNewIssuerAccountFunction();
+                setNewIssuerAccountFunction.NewIssuer = newIssuer;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setNewIssuerAccountFunction, cancellationToken);
+        }
+
         public Task<string> SymbolQueryAsync(SymbolFunction symbolFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<SymbolFunction, string>(symbolFunction, blockParameter);
@@ -288,6 +359,32 @@ namespace BlockRacersToken.BlockRacersToken
                 transferFromFunction.Value = value;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(transferFromFunction, cancellationToken);
+        }
+
+        public Task<string> TransferOwnershipRequestAsync(TransferOwnershipFunction transferOwnershipFunction)
+        {
+             return ContractHandler.SendRequestAsync(transferOwnershipFunction);
+        }
+
+        public Task<TransactionReceipt> TransferOwnershipRequestAndWaitForReceiptAsync(TransferOwnershipFunction transferOwnershipFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(transferOwnershipFunction, cancellationToken);
+        }
+
+        public Task<string> TransferOwnershipRequestAsync(string newOwner)
+        {
+            var transferOwnershipFunction = new TransferOwnershipFunction();
+                transferOwnershipFunction.NewOwner = newOwner;
+            
+             return ContractHandler.SendRequestAsync(transferOwnershipFunction);
+        }
+
+        public Task<TransactionReceipt> TransferOwnershipRequestAndWaitForReceiptAsync(string newOwner, CancellationTokenSource cancellationToken = null)
+        {
+            var transferOwnershipFunction = new TransferOwnershipFunction();
+                transferOwnershipFunction.NewOwner = newOwner;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(transferOwnershipFunction, cancellationToken);
         }
 
         public Task<string> TrustedForwarderQueryAsync(TrustedForwarderFunction trustedForwarderFunction, BlockParameter blockParameter = null)

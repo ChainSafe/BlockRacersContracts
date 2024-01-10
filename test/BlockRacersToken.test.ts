@@ -3,8 +3,8 @@ import {
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { getAccounts, isTrustedForwarder } from "./contractFunctions/generalFunctions";
 import { assert } from "chai";
-import { parseUnits } from "ethers";
-import { balanceOfToken, deployTokenFixture, setAllowanceToken, testnetMint, transferFromToken } from "./contractFunctions/BlockRacersToken.contract";
+import { ZeroAddress, parseUnits } from "ethers";
+import { balanceOfToken, deployTokenFixture, getIssuerAccount, mintWithPermit, setAllowanceToken, setNewIssuerAccount, setNewIssuerAccountWithErrors, setNewIssuerAccountWithEvents, testnetMint, transferFromToken } from "./contractFunctions/BlockRacersToken.contract";
 import { ERC2771Context } from "../typechain-types";
 
 describe("BlockRacersToken", function () {
@@ -21,6 +21,27 @@ describe("BlockRacersToken", function () {
     })
   })
 
+  describe("restricted", () => {
+    it("mint(to,amount,permit)", async () => {
+      const { player1, issuerAccount } = await getAccounts();
+      const tokenContract = await loadFixture(deployTokenFixture())
+      const mintingAmount = parseUnits("100", 18);
+
+      await mintWithPermit(tokenContract, issuerAccount, player1.address, mintingAmount)
+    })
+
+    it("setNewIssuerAccount", async () => {
+      const { admin, player1, issuerAccount } = await getAccounts();
+      const tokenContract = await loadFixture(deployTokenFixture())
+
+      await getIssuerAccount(tokenContract, issuerAccount.address)
+
+      await setNewIssuerAccount(tokenContract, admin, player1.address)
+
+      await getIssuerAccount(tokenContract, player1.address)
+    })
+  })
+
   describe("write", function () {
     describe("testnet-only", () => {
       it("mint(to,amount)", async () => {
@@ -32,7 +53,7 @@ describe("BlockRacersToken", function () {
       })
     })
 
-    it("mint(to,amount,permit)")
+    
     it("approve", async () => {
       const { player1, player2 } = await getAccounts();
       const tokenContract = await loadFixture(deployTokenFixture())
@@ -43,7 +64,6 @@ describe("BlockRacersToken", function () {
       await setAllowanceToken(tokenContract, player1, player2, mintingAmount)
 
     })
-    it("transfer")
     it("transferFrom", async () => {
       const { player1, player2 } = await getAccounts();
       const tokenContract = await loadFixture(deployTokenFixture())
@@ -69,16 +89,36 @@ describe("BlockRacersToken", function () {
       await balanceOfToken(tokenContract, player1, mintingAmount);
 
     })
-    it("allowance")
     it("isTrustedForwarder", async () => {
       const { trustedForwarder } = await getAccounts()
       const tokenContract = await loadFixture(deployTokenFixture())
 
       await isTrustedForwarder(tokenContract as ERC2771Context, trustedForwarder.address, true)
     })
-    it("issuerAccount")
-    it("name")
-    it("symbol")
-    it("totalSupply")
+    it("issuerAccount", async () => {
+      const { issuerAccount } = await getAccounts();
+      const tokenContract = await loadFixture(deployTokenFixture())
+
+      await getIssuerAccount(tokenContract, issuerAccount.address)
+    })
   });
+
+  describe("events", () => {
+    it("NewIssuer", async () =>{
+      const { admin, player1 } = await getAccounts();
+      const tokenContract = await loadFixture(deployTokenFixture())
+
+      await setNewIssuerAccountWithEvents(tokenContract, admin, player1.address, "NewIssuer", [player1.address])
+    })
+  })
+
+  describe("errors", () => {
+    it("InvalidIssuer", async () =>{
+      const { admin, issuerAccount } = await getAccounts();
+      const tokenContract = await loadFixture(deployTokenFixture())
+
+      await setNewIssuerAccountWithErrors(tokenContract, admin, issuerAccount.address, "InvalidIssuer", [issuerAccount.address])
+      await setNewIssuerAccountWithErrors(tokenContract, admin, ZeroAddress, "InvalidIssuer", [ZeroAddress])
+    })
+  })
 });

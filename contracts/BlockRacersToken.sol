@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
@@ -19,12 +20,16 @@ import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 /// @title Block Racers Token Contract
 /// @author RyRy79261, Sneakz
 /// @notice This contract manages the ERC20 token used within the Block Racers game at https://github.com/Chainsafe/BlockRacers
-contract BlockRacersToken is ERC20, ERC2771Context, ReentrancyGuard {
+contract BlockRacersToken is ERC20, ERC2771Context, Ownable, ReentrancyGuard {
     /// @dev Wallet that auth signatures come from
     address public issuerAccount;
     
     /// @dev Nonce to stop replay attacks
     mapping(address => uint256) private playerNonce;
+
+    event NewIssuer(address newIssuer);
+
+    error InvalidIssuer(address proposedIssuer);
 
     modifier onlyValidPermit(bytes memory permit, uint256 amount) {
         require(SignatureChecker.isValidSignatureNow(
@@ -37,9 +42,10 @@ contract BlockRacersToken is ERC20, ERC2771Context, ReentrancyGuard {
 
     constructor(
         address trustedForwarder,
+        address owner,
         address issuerAccount_, 
         uint256 initialMint_
-    ) ERC20("BlockRacersToken", "RACE") ERC2771Context(trustedForwarder) {
+    ) ERC20("BlockRacersToken", "RACE") ERC2771Context(trustedForwarder) Ownable(owner) {
         issuerAccount = issuerAccount_;
 
         // TODO: If migrated to a mainnet, this logic should be expanded depending on distribution 
@@ -74,6 +80,18 @@ contract BlockRacersToken is ERC20, ERC2771Context, ReentrancyGuard {
 
         _mint(to, amount);
         return true;
+    }
+
+    function setNewIssuerAccount(address newIssuer) external onlyOwner() {
+        if (newIssuer == address(0) || newIssuer == issuerAccount) 
+            revert InvalidIssuer(newIssuer);
+
+        issuerAccount = newIssuer;
+        emit NewIssuer(issuerAccount);
+    }
+
+    function getPlayerNonce(address player) external view returns(uint256) {
+        return playerNonce[player];
     }
 
     /**

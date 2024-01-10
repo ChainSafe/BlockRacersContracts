@@ -1,8 +1,8 @@
 import { ethers } from "hardhat";
 import { getAccounts } from "./generalFunctions";
-import { AddressLike, BigNumberish, ContractTransactionResponse } from "ethers";
+import { AddressLike, BigNumberish, ContractTransactionResponse, getBytes, solidityPackedKeccak256 } from "ethers";
 import { BlockRacersToken } from "../../typechain-types";
-import { assert } from "chai";
+import { assert, expect } from "chai";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
 export const deployTokenFixture = (
@@ -18,6 +18,7 @@ export const deployTokenFixture = (
         const BlockRacersToken = await ethers.getContractFactory("BlockRacersToken", admin);
         const BlockRacersTokenContract =  await BlockRacersToken.deploy(
             trustedForwarder, 
+            admin,
             issuerAccount,
             initialAdminMint
             );
@@ -27,16 +28,72 @@ export const deployTokenFixture = (
     }
 }
 
+export const setNewIssuerAccount = async (
+    tokenContract: BlockRacersToken & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    owner: HardhatEthersSigner,
+    account: AddressLike,
+) => {
+    await tokenContract.connect(owner).setNewIssuerAccount(account)
+}
+
+export const setNewIssuerAccountWithEvents = async (
+    tokenContract: BlockRacersToken & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    owner: HardhatEthersSigner,
+    account: AddressLike,
+    eventName: string,
+    eventArgs: any[]
+) => {
+    await expect(await tokenContract.connect(owner).setNewIssuerAccount(account), `${eventName} Failed`)
+        .to.emit(tokenContract, eventName)
+        .withArgs(...eventArgs)
+}
+
+export const setNewIssuerAccountWithErrors = async (
+    tokenContract: BlockRacersToken & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    owner: HardhatEthersSigner,
+    account: AddressLike,
+    errorName: string,
+    errorArgs: any[]
+) => {
+    await expect(tokenContract.connect(owner).setNewIssuerAccount(account), `${errorName} Failed`)
+        .to.be.revertedWithCustomError(tokenContract, errorName).withArgs(...errorArgs)
+}
+
 export const testnetMint = async (
     tokenContract: BlockRacersToken & {
         deploymentTransaction(): ContractTransactionResponse;
     },
     account: AddressLike,
-    expectedBalance: BigNumberish,
+    value: BigNumberish,
 ) => {
-    await balanceOfToken(tokenContract, account, 0);
-    await tokenContract["mint(address,uint256)"](account, expectedBalance);
-    await balanceOfToken(tokenContract, account, expectedBalance);
+    const beforeMint = await balanceOfToken(tokenContract, account);
+
+    await tokenContract["mint(address,uint256)"](account, value);
+
+    await balanceOfToken(tokenContract, account, beforeMint + BigInt(value));
+}
+
+export const mintWithPermit = async (
+    tokenContract: BlockRacersToken & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    issuer: HardhatEthersSigner,
+    account: AddressLike,
+    value: BigNumberish,
+) => {
+    const beforeMint = await balanceOfToken(tokenContract, account);
+    const nonce = await getPlayerNonce(tokenContract, account, 0);
+
+    const permit = await createMintPermit(issuer, nonce, account, value)
+    await tokenContract["mint(address,uint256,bytes)"](account, value, permit);
+
+    await balanceOfToken(tokenContract, account, beforeMint + BigInt(value));
 }
 
 export const setAllowanceToken = async (
@@ -63,30 +120,35 @@ export const transferFromToken = async (
     spender: HardhatEthersSigner,
     value: BigNumberish,
 ) => {
-    await approvalToken(tokenContract, sender, spender, value)
+    const approvalBefore = await approvalToken(tokenContract, sender, spender)
 
-    await balanceOfToken(tokenContract, sender, value)
-    await balanceOfToken(tokenContract, spender, 0)
+    const balanceSenderBefore = await balanceOfToken(tokenContract, sender)
+    const balanceReceiverBefore = await balanceOfToken(tokenContract, spender)
 
     await tokenContract.connect(spender).transferFrom(sender, spender, value)
 
-    await approvalToken(tokenContract, sender, spender, 0)
+    await approvalToken(tokenContract, sender, spender, approvalBefore - BigInt(value))
 
-    await balanceOfToken(tokenContract, sender, 0)
-    await balanceOfToken(tokenContract, spender, value)
+    await balanceOfToken(tokenContract, sender, balanceSenderBefore - BigInt(value))
+    await balanceOfToken(tokenContract, spender, balanceReceiverBefore + BigInt(value))
 
 }
 
+// Read
 export const balanceOfToken = async (
     tokenContract: BlockRacersToken & {
         deploymentTransaction(): ContractTransactionResponse;
     },
     account: AddressLike,
-    expectedBalance: BigNumberish,
+    expectedBalance?: BigNumberish,
 ) => {
     let accountBalance = await tokenContract.balanceOf(account)
 
-    assert(accountBalance == expectedBalance, `Balance incorrect: Actual:${accountBalance} | Expected: ${expectedBalance}`)
+    if (expectedBalance) {
+        assert(accountBalance == expectedBalance, `Balance incorrect: Actual:${accountBalance} | Expected: ${expectedBalance}`)
+    }
+
+    return accountBalance;
 }
 
 export const approvalToken = async (
@@ -95,10 +157,56 @@ export const approvalToken = async (
     },
     sender: AddressLike,
     spender: AddressLike,
-    value: BigNumberish,
+    expectedValue?: BigNumberish,
 ) => {
     const approval = await tokenContract.allowance(sender, spender)
 
+    if(expectedValue) {
+        assert(approval == expectedValue, `Allowance incorrect: Actual:${approval} | Expected: ${expectedValue}`)
+    }
 
-    assert(approval == value, "Approval invalid")
+    return approval
+}
+
+export const getPlayerNonce = async (
+    tokenContract: BlockRacersToken & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    player: AddressLike,
+    expected?: BigNumberish,
+) => {
+    const nonce = await tokenContract.getPlayerNonce(player);
+
+    if (expected) {
+        assert(BigInt(nonce) == expected, `Nonce incorrect: Actual:${nonce} | Expected: ${expected}`)
+    }
+
+    return nonce;
+}
+
+export const getIssuerAccount = async (
+    tokenContract: BlockRacersToken & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    expected?: AddressLike,
+) => {
+    const issuerAccount = await tokenContract.issuerAccount();
+
+    if (expected) {
+        assert(issuerAccount == expected, `Issuer account incorrect: Actual:${issuerAccount} | Expected: ${expected}`)
+    }
+
+    return issuerAccount
+}
+
+export const createMintPermit = async (
+    signer: HardhatEthersSigner,
+    nonce: BigNumberish,
+    account: AddressLike,
+    value: BigNumberish
+) => {
+    return await signer.signMessage(getBytes(solidityPackedKeccak256(
+        ["uint256", "address", "uint256"],
+        [nonce, account, value]
+    )))
 }
