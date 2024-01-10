@@ -196,88 +196,26 @@ namespace BlockRacersAssets.BlockRacersAssets
              return ContractHandler.SendRequestAndWaitForReceiptAsync(mintFunction, cancellationToken);
         }
 
-        public Task<string> MintRequestAsync(string to, BigInteger id, BigInteger value)
+        public Task<string> MintRequestAsync(string to, BigInteger id, BigInteger value, string newUri)
         {
             var mintFunction = new MintFunction();
                 mintFunction.To = to;
                 mintFunction.Id = id;
                 mintFunction.Value = value;
+                mintFunction.NewUri = newUri;
             
              return ContractHandler.SendRequestAsync(mintFunction);
         }
 
-        public Task<TransactionReceipt> MintRequestAndWaitForReceiptAsync(string to, BigInteger id, BigInteger value, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> MintRequestAndWaitForReceiptAsync(string to, BigInteger id, BigInteger value, string newUri, CancellationTokenSource cancellationToken = null)
         {
             var mintFunction = new MintFunction();
                 mintFunction.To = to;
                 mintFunction.Id = id;
                 mintFunction.Value = value;
+                mintFunction.NewUri = newUri;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(mintFunction, cancellationToken);
-        }
-
-        public Task<string> MintRequestAsync(Mint1Function mint1Function)
-        {
-             return ContractHandler.SendRequestAsync(mint1Function);
-        }
-
-        public Task<TransactionReceipt> MintRequestAndWaitForReceiptAsync(Mint1Function mint1Function, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(mint1Function, cancellationToken);
-        }
-
-        public Task<string> MintRequestAsync(string to, BigInteger id, BigInteger value, string newUri)
-        {
-            var mint1Function = new Mint1Function();
-                mint1Function.To = to;
-                mint1Function.Id = id;
-                mint1Function.Value = value;
-                mint1Function.NewUri = newUri;
-            
-             return ContractHandler.SendRequestAsync(mint1Function);
-        }
-
-        public Task<TransactionReceipt> MintRequestAndWaitForReceiptAsync(string to, BigInteger id, BigInteger value, string newUri, CancellationTokenSource cancellationToken = null)
-        {
-            var mint1Function = new Mint1Function();
-                mint1Function.To = to;
-                mint1Function.Id = id;
-                mint1Function.Value = value;
-                mint1Function.NewUri = newUri;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(mint1Function, cancellationToken);
-        }
-
-        public Task<string> MintBatchRequestAsync(MintBatch1Function mintBatch1Function)
-        {
-             return ContractHandler.SendRequestAsync(mintBatch1Function);
-        }
-
-        public Task<TransactionReceipt> MintBatchRequestAndWaitForReceiptAsync(MintBatch1Function mintBatch1Function, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(mintBatch1Function, cancellationToken);
-        }
-
-        public Task<string> MintBatchRequestAsync(string to, List<BigInteger> ids, List<BigInteger> values, List<string> uriList)
-        {
-            var mintBatch1Function = new MintBatch1Function();
-                mintBatch1Function.To = to;
-                mintBatch1Function.Ids = ids;
-                mintBatch1Function.Values = values;
-                mintBatch1Function.UriList = uriList;
-            
-             return ContractHandler.SendRequestAsync(mintBatch1Function);
-        }
-
-        public Task<TransactionReceipt> MintBatchRequestAndWaitForReceiptAsync(string to, List<BigInteger> ids, List<BigInteger> values, List<string> uriList, CancellationTokenSource cancellationToken = null)
-        {
-            var mintBatch1Function = new MintBatch1Function();
-                mintBatch1Function.To = to;
-                mintBatch1Function.Ids = ids;
-                mintBatch1Function.Values = values;
-                mintBatch1Function.UriList = uriList;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(mintBatch1Function, cancellationToken);
         }
 
         public Task<string> MintBatchRequestAsync(MintBatchFunction mintBatchFunction)
@@ -290,22 +228,24 @@ namespace BlockRacersAssets.BlockRacersAssets
              return ContractHandler.SendRequestAndWaitForReceiptAsync(mintBatchFunction, cancellationToken);
         }
 
-        public Task<string> MintBatchRequestAsync(string to, List<BigInteger> ids, List<BigInteger> values)
+        public Task<string> MintBatchRequestAsync(string to, List<BigInteger> ids, List<BigInteger> values, List<string> uriList)
         {
             var mintBatchFunction = new MintBatchFunction();
                 mintBatchFunction.To = to;
                 mintBatchFunction.Ids = ids;
                 mintBatchFunction.Values = values;
+                mintBatchFunction.UriList = uriList;
             
              return ContractHandler.SendRequestAsync(mintBatchFunction);
         }
 
-        public Task<TransactionReceipt> MintBatchRequestAndWaitForReceiptAsync(string to, List<BigInteger> ids, List<BigInteger> values, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> MintBatchRequestAndWaitForReceiptAsync(string to, List<BigInteger> ids, List<BigInteger> values, List<string> uriList, CancellationTokenSource cancellationToken = null)
         {
             var mintBatchFunction = new MintBatchFunction();
                 mintBatchFunction.To = to;
                 mintBatchFunction.Ids = ids;
                 mintBatchFunction.Values = values;
+                mintBatchFunction.UriList = uriList;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(mintBatchFunction, cancellationToken);
         }

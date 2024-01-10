@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 import { getAccounts } from "./generalFunctions";
 import { generalSettings } from "../../scripts/defaultSettings";
-import { assert } from "chai";
+import { assert, expect } from "chai";
 import { AddressLike, BigNumberish, ContractTransactionResponse, ZeroHash } from "ethers";
 import { BlockRacersAssets } from "../../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
@@ -34,10 +34,10 @@ export const mintNftWithURI = async (
     value: BigNumberish,
     uri: string
 ) => {
-    const { admin, issuerAccount} = await getAccounts();
+    const { admin, issuerAccount } = await getAccounts();
     const BLOCK_RACERS = await assetsContract.BLOCK_RACERS();
 
-    await balanceOfNft(assetsContract, receiver, id, 0);
+    const before = await balanceOfNft(assetsContract, receiver, id);
 
     let hasRole = await assetsContract.hasRole(BLOCK_RACERS, issuerAccount);
 
@@ -47,8 +47,74 @@ export const mintNftWithURI = async (
         assert(hasRole, "Issuer account was not granted role")
     }
 
-    await assetsContract.connect(issuerAccount)["mint(address,uint256,uint256,string)"](receiver, id, value, uri)
-    await balanceOfNft(assetsContract, receiver, id, 1);
+    await assetsContract.connect(issuerAccount).mint(receiver, id, value, uri)
+    await balanceOfNft(assetsContract, receiver, id, BigInt(value) + before);
+}
+
+export const mintNftWithURIWithError = async (
+    assetsContract: BlockRacersAssets & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    receiver: AddressLike,
+    id: BigNumberish,
+    value: BigNumberish,
+    uri: string,
+    errorName: string,
+    errorArgs: any[]
+) => {
+    const { issuerAccount } = await getAccounts();
+
+    await expect((assetsContract.connect(issuerAccount).mint(receiver, id, value, uri)), `${errorName} Failed`)
+    .to.be.revertedWithCustomError(assetsContract, errorName).withArgs(...errorArgs)
+}
+
+export const batchMintNftWithURI = async (
+    assetsContract: BlockRacersAssets & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    receiver: AddressLike,
+    ids: BigNumberish[],
+    values: BigNumberish[],
+    uris: string[],
+) => {
+    const { admin, issuerAccount } = await getAccounts();
+    const BLOCK_RACERS = await assetsContract.BLOCK_RACERS();
+
+    let hasRole = await assetsContract.hasRole(BLOCK_RACERS, issuerAccount);
+
+    if(!hasRole) {
+        await assetsContract.connect(admin).grantRole(BLOCK_RACERS, issuerAccount);
+        hasRole = await assetsContract.hasRole(BLOCK_RACERS, issuerAccount);
+        assert(hasRole, "Issuer account was not granted role")
+    }
+
+    await assetsContract.connect(issuerAccount).mintBatch(receiver, ids, values, uris)
+}
+
+export const batchMintNftWithURIWithErrors = async (
+    assetsContract: BlockRacersAssets & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    receiver: AddressLike,
+    ids: BigNumberish[],
+    values: BigNumberish[],
+    uris: string[],
+    errorName: string,
+    errorArgs: any[]
+) => {
+    const { admin, issuerAccount } = await getAccounts();
+    const BLOCK_RACERS = await assetsContract.BLOCK_RACERS();
+
+    let hasRole = await assetsContract.hasRole(BLOCK_RACERS, issuerAccount);
+
+    if(!hasRole) {
+        await assetsContract.connect(admin).grantRole(BLOCK_RACERS, issuerAccount);
+        hasRole = await assetsContract.hasRole(BLOCK_RACERS, issuerAccount);
+        assert(hasRole, "Issuer account was not granted role")
+    }
+
+    await expect((assetsContract.connect(issuerAccount).mintBatch(receiver, ids, values, uris)), `${errorName} Failed`)
+        .to.be.revertedWithCustomError(assetsContract, errorName).withArgs(...errorArgs)
 }
 
 export const setApprovalForAll = async (
@@ -77,22 +143,25 @@ export const safeTransferFrom = async (
 ) => {
     await isApprovedForAll(assetsContract, from, operator, true)
 
-    await balanceOfNft(assetsContract, operator, id, 0)
     await assetsContract.connect(operator).safeTransferFrom(from, operator, id, value, ZeroHash);
-    await balanceOfNft(assetsContract, operator, id, 1)
 }
 
+// Read
 export const balanceOfNft = async (
     assetsContract: BlockRacersAssets & {
         deploymentTransaction(): ContractTransactionResponse;
     },
     account: AddressLike,
     nftId: BigNumberish,
-    expectedBalance: BigNumberish,
+    expectedBalance?: BigNumberish,
 ) => {
     let balanceOf = await assetsContract.balanceOf(account, nftId)
 
-    assert(balanceOf == expectedBalance, `Balance incorrect: Actual:${balanceOf} | Expected: ${expectedBalance}`)
+    if (expectedBalance) {
+        assert(balanceOf == expectedBalance, `Balance incorrect: Actual:${balanceOf} | Expected: ${expectedBalance}`)
+    }
+    
+    return balanceOf
 }
 
 export const isApprovedForAll = async (
@@ -106,4 +175,22 @@ export const isApprovedForAll = async (
     let isApprovedForAll = await assetsContract.isApprovedForAll(sender, operator)
 
     assert(isApprovedForAll == expected, "approval not set correctly")
+
+    return isApprovedForAll
+}
+
+export const getUri = async (
+    assetsContract: BlockRacersAssets & {
+        deploymentTransaction(): ContractTransactionResponse;
+    },
+    nftId: BigNumberish,
+    expected?: string
+) => {
+    let uri = await assetsContract.uri(nftId)
+
+    if (expected) {
+        assert(uri == expected, `Uri incorrect: Actual:${uri} | Expected: ${expected}`)
+    }
+
+    return uri
 }
