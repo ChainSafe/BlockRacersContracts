@@ -163,9 +163,6 @@ describe("BlockRacersWagering", function () {
             await balanceOfToken(tokenContract, player1, mintingAmount)
             await balanceOfToken(tokenContract, player2, mintingAmount)
         })
-        it("does not allow cancel when not created")
-        it("does not allow cancel when completed")
-        it("does not allow non participants to cancel")
     })
     
     describe("completeWager", () => {

@@ -1,7 +1,9 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { addToBlacklist, addToBlacklistWithErrors, addToBlacklistWithEvents, deployBlacklistFixture, isBlackListed, removeFromBlackList, removeFromBlackListWithErrors, removeFromBlackListWithEvents } from "./contractFunctions/Blacklist.contract";
-import { getAccounts } from "./contractFunctions/generalFunctions";
+import { defaultDeployFixture, getAccounts } from "./contractFunctions/generalFunctions";
 import { assert } from "chai";
+import { parseUnits } from "ethers";
+import { createWagerWithError } from "./contractFunctions/BlockRacersWagering.contract";
 
 describe("Blacklist", function () {
     describe("deployment", () => {
@@ -61,8 +63,15 @@ describe("Blacklist", function () {
     })
 
     describe("errors", function () {
-        // TODO: Use a contract which implements this
-        it("AccountBlacklisted")
+        it("AccountBlacklisted", async () => {
+            const { admin, player1 } = await getAccounts()
+            const { wageringContract } = await loadFixture(defaultDeployFixture(true))
+
+            await addToBlacklist(wageringContract, admin, player1.address)
+            const standardPrize = parseUnits("4", 18);
+
+            await createWagerWithError(wageringContract, player1, standardPrize, "AccountBlacklisted", [player1.address])
+        })
         it("AccountAlreadyBlacklisted", async () => {
             const { admin, player1 } = await getAccounts()
             const blacklistContract = await loadFixture(deployBlacklistFixture)
