@@ -4,16 +4,17 @@ import { deployAssetsFixture } from "./BlockRacersAssets.contract";
 import { deployWageringFixture } from "./BlockRacersWagering.contract";
 import { deployCoreFixture } from "./BlockRacers.contract";
 import { AddressLike, parseUnits } from "ethers";
-import { ERC2771Context } from "../../typechain-types/@openzeppelin/contracts/metatx/ERC2771Context";
+import { ERC2771Context } from "../typechain-types/@openzeppelin/contracts/metatx/ERC2771Context";
 import { assert } from "chai";
+import { GELATO_RELAY_1BALANCE_ERC2771 } from "./constants";
 
 export const mintingAmount = parseUnits("200", 18);
 
 export const getAccounts = async () => {
-    const [trustedForwarder, issuerAccount, admin, feeAccount, player1, player2, player3 ] = await ethers.getSigners();
+    const [, issuerAccount, admin, feeAccount, player1, player2, player3 ] = await ethers.getSigners();
 
     return {
-        trustedForwarder, issuerAccount, admin, feeAccount, player1, player2, player3
+        trustedForwarder: await ethers.getImpersonatedSigner(GELATO_RELAY_1BALANCE_ERC2771), issuerAccount, admin, feeAccount, player1, player2, player3
     }
 }
 

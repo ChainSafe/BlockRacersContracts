@@ -1,9 +1,9 @@
 import { ethers } from "hardhat";
 import { getAccounts } from "./generalFunctions";
-import { generalSettings } from "../../scripts/defaultSettings";
+import { generalSettings } from "../scripts/defaultSettings";
 import { assert, expect } from "chai";
 import { AddressLike, BigNumberish, ContractTransactionResponse, ZeroHash } from "ethers";
-import { BlockRacersAssets } from "../../typechain-types";
+import { BlockRacersAssets } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
 export const deployAssetsFixture = async (

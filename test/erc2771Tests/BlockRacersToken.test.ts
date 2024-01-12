@@ -1,13 +1,13 @@
 import {
   loadFixture,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { getAccounts, isTrustedForwarder } from "../src/generalFunctions";
+import { getAccounts, isTrustedForwarder } from "../../src/generalFunctions";
 import { assert } from "chai";
 import { ZeroAddress, parseUnits } from "ethers";
-import { balanceOfToken, deployTokenFixture, getIssuerAccount, mintWithPermit, setAllowanceToken, setNewIssuerAccount, setNewIssuerAccountWithErrors, setNewIssuerAccountWithEvents, testnetMint, transferFromToken } from "../src/BlockRacersToken.contract";
-import { ERC2771Context } from "../typechain-types";
+import { balanceOfToken, deployTokenFixture, getIssuerAccount, mintWithPermit, setAllowanceToken, setNewIssuerAccount, setNewIssuerAccountWithErrors, setNewIssuerAccountWithEvents, testnetMint, transferFromToken } from "../../src/BlockRacersToken.contract";
+import { ERC2771Context } from "../../typechain-types";
 
-describe("BlockRacersToken", function () {
+describe("BlockRacersToken - ERC2771", function () {
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.

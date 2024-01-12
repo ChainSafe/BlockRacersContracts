@@ -68,7 +68,7 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
         address trustedForwarder,
         address admin_,
         IERC20 token_
-    ) ERC2771Context(trustedForwarder) Blacklist(admin_){
+    ) Blacklist(admin_, trustedForwarder){
         token = token_;
     }
 
@@ -238,14 +238,14 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
     /**
      * @dev Override required as inheritance was indeterminant for which function to use
      */
-    function _msgSender() internal view override(ERC2771Context, Context) returns (address sender) {
+    function _msgSender() internal view override(ERC2771Context, Blacklist) returns (address sender) {
         return ERC2771Context._msgSender();
     }
 
     /**
      * @dev Override required as inheritance was indeterminant for which function to use
      */
-    function _msgData() internal view override(ERC2771Context, Context) returns (bytes calldata) {
+    function _msgData() internal view override(ERC2771Context, Blacklist) returns (bytes calldata) {
         return ERC2771Context._msgData();
     }
 }

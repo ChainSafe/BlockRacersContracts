@@ -3,7 +3,7 @@ import { getAccounts } from "./generalFunctions";
 import { AddressLike, BigNumberish, ContractTransactionResponse, ZeroAddress, keccak256, toUtf8Bytes } from "ethers";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { deployTokenFixture } from "./BlockRacersToken.contract";
-import { BlockRacersWagering } from "../../typechain-types";
+import { BlockRacersWagering } from "../typechain-types";
 import { assert, expect } from "chai";
 
 export enum CarTypeOption {

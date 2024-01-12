@@ -1,9 +1,9 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { addToBlacklist, addToBlacklistWithErrors, addToBlacklistWithEvents, deployBlacklistFixture, isBlackListed, removeFromBlackList, removeFromBlackListWithErrors, removeFromBlackListWithEvents } from "./contractFunctions/Blacklist.contract";
-import { defaultDeployFixture, getAccounts } from "./contractFunctions/generalFunctions";
+import { addToBlacklist, addToBlacklistWithErrors, addToBlacklistWithEvents, deployBlacklistFixture, isBlackListed, removeFromBlackList, removeFromBlackListWithErrors, removeFromBlackListWithEvents } from "../src/Blacklist.contract";
+import { defaultDeployFixture, getAccounts } from "../src/generalFunctions";
 import { assert } from "chai";
 import { parseUnits } from "ethers";
-import { createWagerWithError } from "./contractFunctions/BlockRacersWagering.contract";
+import { createWagerWithError } from "../src/BlockRacersWagering.contract";
 
 describe("Blacklist", function () {
     describe("deployment", () => {

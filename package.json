@@ -12,6 +12,8 @@
     "generateUnityClasses": "npx ts-node --files ./scripts/generateUnityClasses.ts"
   },
   "devDependencies": {
+    "@gelatonetwork/relay-sdk": "^5.5.5",
+    "@openzeppelin/contracts": "^5.0.0",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
@@ -26,13 +28,12 @@
     "ethers": "^6.4.0",
     "hardhat": "^2.19.1",
     "hardhat-gas-reporter": "^1.0.8",
+    "nethereum-codegen": "1.0.26",
     "solidity-coverage": "^0.8.0",
     "ts-node": ">=8.0.0",
     "typechain": "^8.3.0",
     "typescript": ">=4.5.0"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.0.0",
-    "nethereum-codegen": "1.0.26"
   }
 }

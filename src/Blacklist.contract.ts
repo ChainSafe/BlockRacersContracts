@@ -2,18 +2,22 @@ import { ethers } from "hardhat";
 import { getAccounts } from "./generalFunctions";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { AddressLike, ContractTransactionResponse } from "ethers";
-import { Blacklist } from "../../typechain-types";
+import { Blacklist } from "../typechain-types";
 import { assert, expect } from "chai";
+import { CallWithERC2771Request } from "@gelatonetwork/relay-sdk";
+import { sponsoredCallERC2771Local } from "./__mock__/relay-sdk";
 
 export const deployBlacklistFixture = async (
 ) => {
     const {
         admin,
+        trustedForwarder
     } = await getAccounts()
 
     const Blacklist = await ethers.getContractFactory("Blacklist", admin);
     const BlacklistContract = await Blacklist.deploy(
         admin, 
+        trustedForwarder
         );
 
     await BlacklistContract.waitForDeployment();
@@ -26,10 +30,24 @@ export const addToBlacklist = async (
         deploymentTransaction(): ContractTransactionResponse;
     },
     admin: HardhatEthersSigner,
-    addTo: AddressLike
+    addTo: AddressLike,
+    relay?: boolean
 ) => {
-    await blacklistContract.connect(admin).addToBlackList(addTo);
-    await isBlackListed(blacklistContract, addTo, true)
+    if (relay) {
+        const { data } = await blacklistContract.connect(admin).addToBlackList.populateTransaction(addTo);
+    
+        const request: CallWithERC2771Request = {
+            target: await blacklistContract.getAddress(),
+            user: admin.address,
+            data: data,
+            chainId: (await admin.provider.getNetwork()).chainId,
+        };
+      
+        await sponsoredCallERC2771Local(request);
+
+    } else {
+        await blacklistContract.connect(admin).addToBlackList(addTo);
+    }
 }
 
 export const removeFromBlackList = async (
@@ -37,9 +55,23 @@ export const removeFromBlackList = async (
         deploymentTransaction(): ContractTransactionResponse;
     },
     admin: HardhatEthersSigner,
-    removeFrom: AddressLike
+    removeFrom: AddressLike,
+    relay?: boolean
 ) => {
-    await blacklistContract.connect(admin).removeFromBlackList(removeFrom);
+    if (relay) {
+        const { data } = await blacklistContract.connect(admin).removeFromBlackList.populateTransaction(removeFrom);
+    
+        const request: CallWithERC2771Request = {
+            target: await blacklistContract.getAddress(),
+            user: admin.address,
+            data: data,
+            chainId: (await admin.provider.getNetwork()).chainId,
+        };
+      
+        await sponsoredCallERC2771Local(request);
+    } else {
+        await blacklistContract.connect(admin).removeFromBlackList(removeFrom);
+    }
 }
 
 export const addToBlacklistWithEvents = async (

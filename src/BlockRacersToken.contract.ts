@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 import { getAccounts } from "./generalFunctions";
-import { AddressLike, BigNumberish, ContractTransactionResponse, getBytes, solidityPackedKeccak256, toBeHex, verifyMessage } from "ethers";
-import { BlockRacersToken } from "../../typechain-types";
+import { AddressLike, BigNumberish, ContractTransactionResponse, getBytes, solidityPackedKeccak256, toBeHex } from "ethers";
+import { BlockRacersToken } from "../typechain-types";
 import { assert, expect } from "chai";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 

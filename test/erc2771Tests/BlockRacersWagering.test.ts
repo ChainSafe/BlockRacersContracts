@@ -1,14 +1,14 @@
 import {
   loadFixture,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { WagerState, acceptWager, acceptWagerWithError, acceptWagerWithEvent, adminCancelWager, cancelWager, cancelWagerWithError, cancelWagerWithEvent, completeWager, completeWagerWithError, completeWagerWithEvent, createWager, createWagerWithEvent, deployWageringFixture, getLatestWagerId, getPlayersWagers, getTokenAddressWagering } from "../src/BlockRacersWagering.contract";
-import { balanceOfToken, setAllowanceToken } from "../src/BlockRacersToken.contract";
-import { checkTrustedForwarder, defaultDeployFixture, getAccounts, isTrustedForwarder, mintingAmount } from "../src/generalFunctions";
-import { ERC2771Context } from "../typechain-types";
+import { WagerState, acceptWager, acceptWagerWithError, acceptWagerWithEvent, adminCancelWager, cancelWager, cancelWagerWithError, cancelWagerWithEvent, completeWager, completeWagerWithError, completeWagerWithEvent, createWager, createWagerWithEvent, deployWageringFixture, getLatestWagerId, getPlayersWagers, getTokenAddressWagering } from "../../src/BlockRacersWagering.contract";
+import { balanceOfToken, setAllowanceToken } from "../../src/BlockRacersToken.contract";
+import { checkTrustedForwarder, defaultDeployFixture, getAccounts, isTrustedForwarder, mintingAmount } from "../../src/generalFunctions";
+import { ERC2771Context } from "../../typechain-types";
 import { parseUnits, ZeroAddress, getBytes,  solidityPackedKeccak256 } from "ethers";
-import { addToBlacklist } from "../src/Blacklist.contract";
+import { addToBlacklist } from "../../src/Blacklist.contract";
 
-describe("BlockRacersWagering", function () {
+describe("BlockRacersWagering - ERC2771", function () {
   const standardPrize = parseUnits("4", 18);
 
   describe("deployment", () => {

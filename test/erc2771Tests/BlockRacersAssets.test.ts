@@ -1,14 +1,14 @@
 import {
   loadFixture,
 } from "@nomicfoundation/hardhat-toolbox/network-helpers";
-import { balanceOfNft, batchMintNftWithURI, batchMintNftWithURIWithErrors, deployAssetsFixture, getUri, mintNftWithURI, mintNftWithURIWithError, safeTransferFrom, setApprovalForAll } from "../src/BlockRacersAssets.contract";
-import { checkTrustedForwarder, getAccounts, isTrustedForwarder } from "../src/generalFunctions";
+import { balanceOfNft, batchMintNftWithURI, batchMintNftWithURIWithErrors, deployAssetsFixture, getUri, mintNftWithURI, mintNftWithURIWithError, safeTransferFrom, setApprovalForAll } from "../../src/BlockRacersAssets.contract";
+import { checkTrustedForwarder, getAccounts, isTrustedForwarder } from "../../src/generalFunctions";
 import { assert } from "chai";
-import { defaultGameSettings } from "../scripts/defaultSettings";
-import { ERC2771Context } from "../typechain-types";
+import { defaultGameSettings } from "../../scripts/defaultSettings";
+import { ERC2771Context } from "../../typechain-types";
 import { keccak256, toUtf8Bytes } from "ethers";
 
-describe("BlockRacersNfts", function () {
+describe("BlockRacersNfts - ERC2771", function () {
   describe("Deployment", function () {
     it("deploys as expected", async () => {
       const { admin } = await getAccounts();

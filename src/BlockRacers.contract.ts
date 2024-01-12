@@ -1,10 +1,10 @@
 import { ethers } from "hardhat";
 import { getAccounts } from "./generalFunctions";
 import { AddressLike, BigNumberish, ContractTransactionResponse, parseUnits } from "ethers";
-import { defaultGameSettings } from "../../scripts/defaultSettings";
+import { defaultGameSettings } from "../scripts/defaultSettings";
 import { approvalToken, deployTokenFixture } from "./BlockRacersToken.contract";
 import { deployAssetsFixture } from "./BlockRacersAssets.contract";
-import { BlockRacers, BlockRacersToken } from "../../typechain-types";
+import { BlockRacers, BlockRacersToken } from "../typechain-types";
 import { assert, expect } from "chai";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
