@@ -26,7 +26,7 @@ describe("BlockRacersNfts - ERC2771", function () {
       const { player1 } = await getAccounts();
       const assetsContract = await loadFixture(deployAssetsFixture)
 
-      await mintNftWithURI(assetsContract, player1, 1, 1, defaultGameSettings.carOptions[0].carUri)
+      await mintNftWithURI(assetsContract, player1, 1, 1, defaultGameSettings.carOptions[0].carUri, true)
     })
     it("mintBatch(address,uint256[],uint256[],string[])", async () => {
       const { player1 } = await getAccounts();
@@ -35,7 +35,7 @@ describe("BlockRacersNfts - ERC2771", function () {
       await batchMintNftWithURI(assetsContract, player1, [1, 2], [1,1], [
         defaultGameSettings.carOptions[0].carUri,
         defaultGameSettings.carOptions[1].carUri
-      ])
+      ], true)
     })
     it("setApprovalForAll", async () => {
       const assetsContract = await loadFixture(deployAssetsFixture)
@@ -44,12 +44,12 @@ describe("BlockRacersNfts - ERC2771", function () {
 
       const nftId = 1;
       const value = 1;
-      await mintNftWithURI(assetsContract, player1, nftId, value, defaultGameSettings.carOptions[0].carUri)
+      await mintNftWithURI(assetsContract, player1, nftId, value, defaultGameSettings.carOptions[0].carUri, true)
 
       let balanceOfPlayer1 = await assetsContract.balanceOf(player1, nftId)
       assert(balanceOfPlayer1 == BigInt(1), "Player1 was not issued nft")
 
-      await setApprovalForAll(assetsContract, player1, player2, true)
+      await setApprovalForAll(assetsContract, player1, player2, true, true)
     })
     it("safeTransferFrom", async () => {
       const assetsContract = await loadFixture(deployAssetsFixture)
@@ -57,9 +57,9 @@ describe("BlockRacersNfts - ERC2771", function () {
       const nftId = 1;
       const value = 1;
 
-      await mintNftWithURI(assetsContract, player1, nftId, value, defaultGameSettings.carOptions[0].carUri)
-      await setApprovalForAll(assetsContract, player1, player2, true)
-      await safeTransferFrom(assetsContract, player1, player2, nftId, value)
+      await mintNftWithURI(assetsContract, player1, nftId, value, defaultGameSettings.carOptions[0].carUri, true)
+      await setApprovalForAll(assetsContract, player1, player2, true, true)
+      await safeTransferFrom(assetsContract, player1, player2, nftId, value, true)
     })
   });
 });

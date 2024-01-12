@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { getAccounts } from "./generalFunctions";
+import { getAccounts, sponsorRelayCall } from "./generalFunctions";
 import { generalSettings } from "../scripts/defaultSettings";
 import { assert, expect } from "chai";
 import { AddressLike, BigNumberish, ContractTransactionResponse, ZeroHash } from "ethers";
@@ -33,7 +33,7 @@ export const mintNftWithURI = async (
     id: BigNumberish,
     value: BigNumberish,
     uri: string,
-    relay?: boolean
+    relay: boolean = false
 ) => {
     const { admin, issuerAccount } = await getAccounts();
     const BLOCK_RACERS = await assetsContract.BLOCK_RACERS();
@@ -48,7 +48,14 @@ export const mintNftWithURI = async (
         assert(hasRole, "Issuer account was not granted role")
     }
 
-    await assetsContract.connect(issuerAccount).mint(receiver, id, value, uri)
+    if(relay) {
+        const { data } = await assetsContract.connect(issuerAccount).mint.populateTransaction(receiver, id, value, uri)
+
+        await sponsorRelayCall(await assetsContract.getAddress(), issuerAccount, data);
+    } else {
+        await assetsContract.connect(issuerAccount).mint(receiver, id, value, uri)
+    }
+
     await balanceOfNft(assetsContract, receiver, id, BigInt(value) + before);
 }
 
@@ -77,6 +84,7 @@ export const batchMintNftWithURI = async (
     ids: BigNumberish[],
     values: BigNumberish[],
     uris: string[],
+    relay: boolean = false
 ) => {
     const { admin, issuerAccount } = await getAccounts();
     const BLOCK_RACERS = await assetsContract.BLOCK_RACERS();
@@ -89,7 +97,13 @@ export const batchMintNftWithURI = async (
         assert(hasRole, "Issuer account was not granted role")
     }
 
-    await assetsContract.connect(issuerAccount).mintBatch(receiver, ids, values, uris)
+    if (relay) {
+        const { data } = await assetsContract.connect(issuerAccount).mintBatch.populateTransaction(receiver, ids, values, uris)
+
+        await sponsorRelayCall(await assetsContract.getAddress(), issuerAccount, data);
+    } else {
+        await assetsContract.connect(issuerAccount).mintBatch(receiver, ids, values, uris)
+    }
 }
 
 export const batchMintNftWithURIWithErrors = async (
@@ -124,11 +138,18 @@ export const setApprovalForAll = async (
     },
     from: HardhatEthersSigner, 
     operator: AddressLike,
-    authorized: boolean
+    authorized: boolean,
+    relay: boolean = false
 ) => {
     await isApprovedForAll(assetsContract, from, operator, !authorized);
 
-    await assetsContract.connect(from).setApprovalForAll(operator, authorized)
+    if (relay) {
+        const { data } = await assetsContract.connect(from).setApprovalForAll.populateTransaction(operator, authorized)
+
+        await sponsorRelayCall(await assetsContract.getAddress(), from, data);
+    } else {
+        await assetsContract.connect(from).setApprovalForAll(operator, authorized)
+    }
 
     await isApprovedForAll(assetsContract, from, operator, authorized);
 }
@@ -140,11 +161,18 @@ export const safeTransferFrom = async (
     from: HardhatEthersSigner, 
     operator: HardhatEthersSigner,
     id: BigNumberish,
-    value: BigNumberish
+    value: BigNumberish,
+    relay: boolean = false
 ) => {
     await isApprovedForAll(assetsContract, from, operator, true)
+    if (relay) {
+        const { data } = await assetsContract.connect(operator).safeTransferFrom.populateTransaction(from, operator, id, value, ZeroHash)
 
-    await assetsContract.connect(operator).safeTransferFrom(from, operator, id, value, ZeroHash);
+        await sponsorRelayCall(await assetsContract.getAddress(), from, data);
+    } else {
+        await assetsContract.connect(operator).safeTransferFrom(from, operator, id, value, ZeroHash);
+    }
+
 }
 
 // Read

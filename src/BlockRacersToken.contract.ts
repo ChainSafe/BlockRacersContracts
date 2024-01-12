@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { getAccounts } from "./generalFunctions";
+import { getAccounts, sponsorRelayCall } from "./generalFunctions";
 import { AddressLike, BigNumberish, ContractTransactionResponse, getBytes, solidityPackedKeccak256, toBeHex } from "ethers";
 import { BlockRacersToken } from "../typechain-types";
 import { assert, expect } from "chai";
@@ -34,8 +34,15 @@ export const setNewIssuerAccount = async (
     },
     owner: HardhatEthersSigner,
     account: AddressLike,
+    relay: boolean = false
 ) => {
-    await tokenContract.connect(owner).setNewIssuerAccount(account)
+    if (relay) {
+        const { data } = await tokenContract.connect(owner).setNewIssuerAccount.populateTransaction(account)
+
+        await sponsorRelayCall(await tokenContract.getAddress(), owner, data);
+    } else {
+        await tokenContract.connect(owner).setNewIssuerAccount(account)
+    }
 }
 
 export const setNewIssuerAccountWithEvents = async (
@@ -65,20 +72,6 @@ export const setNewIssuerAccountWithErrors = async (
         .to.be.revertedWithCustomError(tokenContract, errorName).withArgs(...errorArgs)
 }
 
-export const testnetMint = async (
-    tokenContract: BlockRacersToken & {
-        deploymentTransaction(): ContractTransactionResponse;
-    },
-    account: AddressLike,
-    value: BigNumberish,
-) => {
-    const beforeMint = await balanceOfToken(tokenContract, account);
-
-    await tokenContract["mint(address,uint256)"](account, value);
-
-    await balanceOfToken(tokenContract, account, beforeMint + BigInt(value));
-}
-
 export const mintWithPermit = async (
     tokenContract: BlockRacersToken & {
         deploymentTransaction(): ContractTransactionResponse;
@@ -86,12 +79,19 @@ export const mintWithPermit = async (
     issuer: HardhatEthersSigner,
     account: AddressLike,
     value: BigNumberish,
+    relay: boolean = false
 ) => {
     const beforeMint = await balanceOfToken(tokenContract, account);
     const nonce = await getPlayerNonce(tokenContract, account, 0);
 
     const permit = await createMintPermit(issuer, nonce, account, value)
-    await tokenContract["mint(address,uint256,bytes)"](account, value, permit);
+    if (relay) {
+        const { data } = await tokenContract.mint.populateTransaction(account, value, permit)
+
+        await sponsorRelayCall(await tokenContract.getAddress(), issuer, data);
+    } else {
+        await tokenContract.mint(account, value, permit);
+    }
 
     await balanceOfToken(tokenContract, account, beforeMint + BigInt(value));
 }
@@ -103,9 +103,16 @@ export const setAllowanceToken = async (
     sender: HardhatEthersSigner,
     spender: AddressLike,
     value: BigNumberish,
-    expected?: BigNumberish
+    expected?: BigNumberish,
+    relay: boolean = false
 ) => {
-    await tokenContract.connect(sender).approve(spender, value);
+    if (relay) {
+        const { data } = await tokenContract.connect(sender).approve.populateTransaction(spender, value)
+
+        await sponsorRelayCall(await tokenContract.getAddress(), sender, data);
+    } else {
+        await tokenContract.connect(sender).approve(spender, value);
+    }
 
     if (expected) {
         await approvalToken(tokenContract, sender, spender, expected)
@@ -119,13 +126,20 @@ export const transferFromToken = async (
     sender: AddressLike,
     spender: HardhatEthersSigner,
     value: BigNumberish,
+    relay: boolean = false
 ) => {
     const approvalBefore = await approvalToken(tokenContract, sender, spender)
 
     const balanceSenderBefore = await balanceOfToken(tokenContract, sender)
     const balanceReceiverBefore = await balanceOfToken(tokenContract, spender)
 
-    await tokenContract.connect(spender).transferFrom(sender, spender, value)
+    if (relay) {
+        const { data } = await tokenContract.connect(spender).transferFrom.populateTransaction(sender, spender, value)
+
+        await sponsorRelayCall(await tokenContract.getAddress(), spender, data);
+    } else {
+        await tokenContract.connect(spender).transferFrom(sender, spender, value)
+    }
 
     await approvalToken(tokenContract, sender, spender, approvalBefore - BigInt(value))
 
@@ -188,7 +202,7 @@ export const getIssuerAccount = async (
     tokenContract: BlockRacersToken & {
         deploymentTransaction(): ContractTransactionResponse;
     },
-    expected?: AddressLike,
+    expected?: AddressLike
 ) => {
     const issuerAccount = await tokenContract.issuerAccount();
 

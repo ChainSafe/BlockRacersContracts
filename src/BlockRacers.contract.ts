@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { getAccounts } from "./generalFunctions";
+import { getAccounts, sponsorRelayCall } from "./generalFunctions";
 import { AddressLike, BigNumberish, ContractTransactionResponse, parseUnits } from "ethers";
 import { defaultGameSettings } from "../scripts/defaultSettings";
 import { approvalToken, deployTokenFixture } from "./BlockRacersToken.contract";
@@ -83,21 +83,16 @@ export const renounceOwnership = async (
         deploymentTransaction(): ContractTransactionResponse
     }, 
     admin: HardhatEthersSigner,
-    relay?: boolean
+    relay: boolean = false
 ) => {
     // TODO: Check Event once 
     // Get from latest before then
 
     if (relay) {
         const { data } = await coreContract.connect(admin).renounceOwnership.populateTransaction()
-        const request: CallWithERC2771Request = {
-            target: await coreContract.getAddress(),
-            user: admin.address,
-            data: data,
-            chainId: (await admin.provider.getNetwork()).chainId,
-        };
-      
-        await sponsoredCallERC2771Local(request);
+       
+        await sponsorRelayCall(await coreContract.getAddress(), admin, data);
+
     } else {
         await coreContract.connect(admin).renounceOwnership()
     }
@@ -109,18 +104,13 @@ export const setBlockracersFeeAccount = async (
     },
     admin: HardhatEthersSigner,
     newAccount: AddressLike,
-    relay?: boolean
+    relay: boolean = false
 ) => {
     if (relay) {
         const { data } = await coreContract.connect(admin).setBlockRacersFeeAccount.populateTransaction(newAccount)
-        const request: CallWithERC2771Request = {
-            target: await coreContract.getAddress(),
-            user: admin.address,
-            data: data,
-            chainId: (await admin.provider.getNetwork()).chainId,
-        };
-      
-        await sponsoredCallERC2771Local(request);
+        
+        await sponsorRelayCall(await coreContract.getAddress(), admin, data);
+
     } else {
         await coreContract.connect(admin).setBlockRacersFeeAccount(newAccount)
     }
@@ -132,18 +122,13 @@ export const setNewGameSettings = async (
     },
     admin: HardhatEthersSigner,
     newSettings: BlockRacers.GameSettingsDataStruct,
-    relay?: boolean
+    relay: boolean = false
 ) => {
     if (relay) {
         const { data } = await coreContract.connect(admin).setNewGameSettings.populateTransaction(newSettings)
-        const request: CallWithERC2771Request = {
-            target: await coreContract.getAddress(),
-            user: admin.address,
-            data: data,
-            chainId: (await admin.provider.getNetwork()).chainId,
-        };
-      
-        await sponsoredCallERC2771Local(request);
+       
+        await sponsorRelayCall(await coreContract.getAddress(), admin, data);
+
     } else {
         await coreContract.connect(admin).setNewGameSettings(newSettings)
     }
@@ -155,18 +140,13 @@ export const transferOwnership = async (
     },
     admin: HardhatEthersSigner,
     newAccount: AddressLike,
-    relay?: boolean
+    relay: boolean = false
 ) => {
     if (relay) {
         const { data } = await coreContract.connect(admin).transferOwnership.populateTransaction(newAccount)
-        const request: CallWithERC2771Request = {
-            target: await coreContract.getAddress(),
-            user: admin.address,
-            data: data,
-            chainId: (await admin.provider.getNetwork()).chainId,
-        };
-      
-        await sponsoredCallERC2771Local(request);
+       
+        await sponsorRelayCall(await coreContract.getAddress(), admin, data);
+
     } else {
         await coreContract.connect(admin).transferOwnership(newAccount)
     }
@@ -179,18 +159,13 @@ export const mintCar = async (
     }, 
     carType: CarTypeOption,
     minter: HardhatEthersSigner,
-    relay?: boolean
+    relay: boolean = false
 ) => {
     if (relay) {
         const { data } = await coreContract.connect(minter).mintCar.populateTransaction(carType)
-        const request: CallWithERC2771Request = {
-            target: await coreContract.getAddress(),
-            user: minter.address,
-            data: data,
-            chainId: (await minter.provider.getNetwork()).chainId,
-        };
-      
-        await sponsoredCallERC2771Local(request);
+       
+        await sponsorRelayCall(await coreContract.getAddress(), minter, data);
+
     } else {
         await coreContract.connect(minter).mintCar(carType)
     }
@@ -241,18 +216,13 @@ export const upgradeEngine = async (
     ownerAccount: HardhatEthersSigner,
     carId: BigNumberish,
     expectedLevel?: BigNumberish,
-    relay?: boolean
+    relay: boolean = false
 ) => {
     if (relay) {
         const { data } = await coreContract.connect(ownerAccount).upgradeEngine.populateTransaction(carId)
-        const request: CallWithERC2771Request = {
-            target: await coreContract.getAddress(),
-            user: ownerAccount.address,
-            data: data,
-            chainId: (await ownerAccount.provider.getNetwork()).chainId,
-        };
-      
-        await sponsoredCallERC2771Local(request);
+       
+        await sponsorRelayCall(await coreContract.getAddress(), ownerAccount, data);
+
     } else {
         await coreContract.connect(ownerAccount).upgradeEngine(carId)
     }
@@ -310,18 +280,13 @@ export const upgradeHandling = async (
     ownerAccount: HardhatEthersSigner,
     carId: BigNumberish,
     expectedLevel?: BigNumberish,
-    relay?: boolean
+    relay: boolean = false
 ) => {
     if (relay) {
         const { data } = await coreContract.connect(ownerAccount).upgradeHandling.populateTransaction(carId)
-        const request: CallWithERC2771Request = {
-            target: await coreContract.getAddress(),
-            user: ownerAccount.address,
-            data: data,
-            chainId: (await ownerAccount.provider.getNetwork()).chainId,
-        };
-      
-        await sponsoredCallERC2771Local(request);
+       
+        await sponsorRelayCall(await coreContract.getAddress(), ownerAccount, data);
+
     } else {
         await coreContract.connect(ownerAccount).upgradeHandling(carId)
     }
@@ -379,18 +344,13 @@ export const upgradeNos = async (
     ownerAccount: HardhatEthersSigner,
     carId: BigNumberish,
     expectedLevel?: BigNumberish,
-    relay?: boolean
+    relay: boolean = false
 ) => {
     if (relay) {
         const { data } = await coreContract.connect(ownerAccount).upgradeNos.populateTransaction(carId)
-        const request: CallWithERC2771Request = {
-            target: await coreContract.getAddress(),
-            user: ownerAccount.address,
-            data: data,
-            chainId: (await ownerAccount.provider.getNetwork()).chainId,
-        };
       
-        await sponsoredCallERC2771Local(request);
+        await sponsorRelayCall(await coreContract.getAddress(), ownerAccount, data);
+
     } else {
         await coreContract.connect(ownerAccount).upgradeNos(carId)
     }

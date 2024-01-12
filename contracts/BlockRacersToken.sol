@@ -69,19 +69,6 @@ contract BlockRacersToken is ERC20, ERC2771Context, Ownable, ReentrancyGuard {
         return true;
     }
 
-    /// @dev WARNING Mint function only to be deployed if on testnets 
-    /// @param to The address to mint tokens to
-    /// @param amount The amount of tokens to mint to the address
-    /// @return true if  mint is successful
-    function mint(address to, uint256 amount) 
-        external 
-        nonReentrant() 
-        returns (bool) {
-
-        _mint(to, amount);
-        return true;
-    }
-
     function setNewIssuerAccount(address newIssuer) external onlyOwner() {
         if (newIssuer == address(0) || newIssuer == issuerAccount) 
             revert InvalidIssuer(newIssuer);

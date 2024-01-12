@@ -4,7 +4,7 @@ import {
 import { getAccounts, isTrustedForwarder } from "../src/generalFunctions";
 import { assert } from "chai";
 import { ZeroAddress, parseUnits } from "ethers";
-import { balanceOfToken, deployTokenFixture, getIssuerAccount, mintWithPermit, setAllowanceToken, setNewIssuerAccount, setNewIssuerAccountWithErrors, setNewIssuerAccountWithEvents, testnetMint, transferFromToken } from "../src/BlockRacersToken.contract";
+import { balanceOfToken, deployTokenFixture, getIssuerAccount, mintWithPermit, setAllowanceToken, setNewIssuerAccount, setNewIssuerAccountWithErrors, setNewIssuerAccountWithEvents, transferFromToken } from "../src/BlockRacersToken.contract";
 import { ERC2771Context } from "../typechain-types";
 
 describe("BlockRacersToken", function () {
@@ -43,33 +43,22 @@ describe("BlockRacersToken", function () {
   })
 
   describe("write", function () {
-    describe("testnet-only", () => {
-      it("mint(to,amount)", async () => {
-        const { player1 } = await getAccounts();
-        const tokenContract = await loadFixture(deployTokenFixture())
-        const mintingAmount = parseUnits("100", 18);
-
-        await testnetMint(tokenContract, player1, mintingAmount);
-      })
-    })
-
-    
     it("approve", async () => {
-      const { player1, player2 } = await getAccounts();
+      const { player1, player2, issuerAccount } = await getAccounts();
       const tokenContract = await loadFixture(deployTokenFixture())
 
       const mintingAmount = parseUnits("100", 18);
-      await testnetMint(tokenContract, player1, mintingAmount);
+      await mintWithPermit(tokenContract, issuerAccount, player1.address, mintingAmount)
 
       await setAllowanceToken(tokenContract, player1, player2, mintingAmount)
 
     })
     it("transferFrom", async () => {
-      const { player1, player2 } = await getAccounts();
+      const { player1, player2, issuerAccount } = await getAccounts();
       const tokenContract = await loadFixture(deployTokenFixture())
 
       const mintingAmount = parseUnits("100", 18);
-      await testnetMint(tokenContract, player1, mintingAmount);
+      await mintWithPermit(tokenContract, issuerAccount, player1.address, mintingAmount)
 
       await setAllowanceToken(tokenContract, player1, player2, mintingAmount)
 
@@ -79,12 +68,12 @@ describe("BlockRacersToken", function () {
 
   describe("read", () => {
     it("balanceOf", async () => {
-      const { player1 } = await getAccounts();
+      const { player1, issuerAccount } = await getAccounts();
       const tokenContract = await loadFixture(deployTokenFixture())
       await balanceOfToken(tokenContract, player1, 0);
       const mintingAmount = parseUnits("100", 18);
 
-      await testnetMint(tokenContract, player1, mintingAmount);
+      await mintWithPermit(tokenContract, issuerAccount, player1.address, mintingAmount)
 
       await balanceOfToken(tokenContract, player1, mintingAmount);
 

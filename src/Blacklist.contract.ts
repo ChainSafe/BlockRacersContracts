@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { getAccounts } from "./generalFunctions";
+import { getAccounts, sponsorRelayCall } from "./generalFunctions";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { AddressLike, ContractTransactionResponse } from "ethers";
 import { Blacklist } from "../typechain-types";
@@ -31,20 +31,11 @@ export const addToBlacklist = async (
     },
     admin: HardhatEthersSigner,
     addTo: AddressLike,
-    relay?: boolean
+    relay: boolean = false
 ) => {
     if (relay) {
         const { data } = await blacklistContract.connect(admin).addToBlackList.populateTransaction(addTo);
-    
-        const request: CallWithERC2771Request = {
-            target: await blacklistContract.getAddress(),
-            user: admin.address,
-            data: data,
-            chainId: (await admin.provider.getNetwork()).chainId,
-        };
-      
-        await sponsoredCallERC2771Local(request);
-
+        await sponsorRelayCall(await blacklistContract.getAddress(), admin, data);
     } else {
         await blacklistContract.connect(admin).addToBlackList(addTo);
     }
@@ -56,19 +47,13 @@ export const removeFromBlackList = async (
     },
     admin: HardhatEthersSigner,
     removeFrom: AddressLike,
-    relay?: boolean
+    relay: boolean = false
 ) => {
     if (relay) {
         const { data } = await blacklistContract.connect(admin).removeFromBlackList.populateTransaction(removeFrom);
     
-        const request: CallWithERC2771Request = {
-            target: await blacklistContract.getAddress(),
-            user: admin.address,
-            data: data,
-            chainId: (await admin.provider.getNetwork()).chainId,
-        };
-      
-        await sponsoredCallERC2771Local(request);
+        await sponsorRelayCall(await blacklistContract.getAddress(), admin, data);
+
     } else {
         await blacklistContract.connect(admin).removeFromBlackList(removeFrom);
     }
@@ -145,7 +130,7 @@ export const isBlackListed = async (
         deploymentTransaction(): ContractTransactionResponse;
     },
     account: AddressLike,
-    expected?: boolean
+    expected: boolean = false
 ) => {
     const result = await blacklistContract.isBlackListed(account);
 

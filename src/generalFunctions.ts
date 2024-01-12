@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { deployTokenFixture } from "./BlockRacersToken.contract";
+import { deployTokenFixture, mintWithPermit } from "./BlockRacersToken.contract";
 import { deployAssetsFixture } from "./BlockRacersAssets.contract";
 import { deployWageringFixture } from "./BlockRacersWagering.contract";
 import { deployCoreFixture } from "./BlockRacers.contract";
@@ -7,6 +7,9 @@ import { AddressLike, parseUnits } from "ethers";
 import { ERC2771Context } from "../typechain-types/@openzeppelin/contracts/metatx/ERC2771Context";
 import { assert } from "chai";
 import { GELATO_RELAY_1BALANCE_ERC2771 } from "./constants";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { CallWithERC2771Request } from "@gelatonetwork/relay-sdk";
+import { sponsoredCallERC2771Local } from "./__mock__/relay-sdk";
 
 export const mintingAmount = parseUnits("200", 18);
 
@@ -31,11 +34,10 @@ export const defaultDeployFixture = (withMint: boolean = false) => {
 
 
         if (withMint) {
-            const { player1, player2, player3 } = await getAccounts();
-
-            await tokenContract["mint(address,uint256)"](player1, mintingAmount);
-            await tokenContract["mint(address,uint256)"](player2, mintingAmount);
-            await tokenContract["mint(address,uint256)"](player3, mintingAmount);
+            const { player1, player2, player3, issuerAccount } = await getAccounts();
+            await mintWithPermit(tokenContract, issuerAccount, player1.address, mintingAmount)
+            await mintWithPermit(tokenContract, issuerAccount, player2.address, mintingAmount)
+            await mintWithPermit(tokenContract, issuerAccount, player3.address, mintingAmount)
         }
 
         return {
@@ -45,6 +47,18 @@ export const defaultDeployFixture = (withMint: boolean = false) => {
             coreContract,
         }
     }
+}
+
+export const sponsorRelayCall = async (
+    target: string, sender: HardhatEthersSigner, data: string) => {
+    const request: CallWithERC2771Request = {
+        target,
+        user: sender.address,
+        data: data,
+        chainId: (await sender.provider.getNetwork()).chainId,
+    };
+  
+    await sponsoredCallERC2771Local(request);
 }
 
 export const isTrustedForwarder = async (

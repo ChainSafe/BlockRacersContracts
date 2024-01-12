@@ -5,7 +5,7 @@ import { WagerState, acceptWager, acceptWagerWithError, acceptWagerWithEvent, ad
 import { balanceOfToken, setAllowanceToken } from "../src/BlockRacersToken.contract";
 import { checkTrustedForwarder, defaultDeployFixture, getAccounts, isTrustedForwarder, mintingAmount } from "../src/generalFunctions";
 import { ERC2771Context } from "../typechain-types";
-import { parseUnits, ZeroAddress, getBytes,  solidityPackedKeccak256 } from "ethers";
+import { parseUnits, ZeroAddress, getBytes,  solidityPackedKeccak256, hashMessage } from "ethers";
 import { addToBlacklist } from "../src/Blacklist.contract";
 
 describe("BlockRacersWagering", function () {
@@ -542,8 +542,61 @@ describe("BlockRacersWagering", function () {
         await cancelWagerWithError(wageringContract, player1, 1, "WagerCantBeCancelled", [1, WagerState.NOT_STARTED])
 
     })
-    it("OnlyParticipantsCanCancel")
-    it("OpponentCantBeChallenger")
-    it("PlayerSignatureInvalid")
+    it("OnlyParticipantsCanCancel", async () => {
+        const { player1, player2, player3 } = await getAccounts()
+
+        const { tokenContract, wageringContract } = await loadFixture(defaultDeployFixture(true))
+        await setAllowanceToken(tokenContract, player1, wageringContract, standardPrize)
+        await createWager(wageringContract, player1, standardPrize)
+
+        await setAllowanceToken(tokenContract, player2, wageringContract, standardPrize)
+
+        await acceptWager(wageringContract, player2, 1)
+
+        await cancelWagerWithError(wageringContract, player3, 1, "OnlyParticipantsCanCancel", [1, player3.address])
+    })
+    it("OpponentCantBeChallenger", async () => {
+        const { player1 } = await getAccounts()
+
+        const { tokenContract, wageringContract } = await loadFixture(defaultDeployFixture(true))
+        await setAllowanceToken(tokenContract, player1, wageringContract, standardPrize)
+        await createWager(wageringContract, player1, standardPrize)
+
+        await acceptWagerWithError(wageringContract, player1, 1, "OpponentCantBeChallenger", [1, player1.address])
+    })
+    it("PlayerSignatureInvalid", async () => {
+        const { player1, player2, player3 } = await getAccounts()
+
+        const { tokenContract, wageringContract } = await loadFixture(defaultDeployFixture(true))
+        await setAllowanceToken(tokenContract, player1, wageringContract, standardPrize)
+        await createWager(wageringContract, player1, standardPrize)
+
+        await setAllowanceToken(tokenContract, player2, wageringContract, standardPrize)
+
+        await acceptWager(wageringContract, player2, 1)
+
+        const messageHash = solidityPackedKeccak256([ "uint256", "string", "address" ], [ 1, "-",  player1.address]);
+        const messageHashAsBytes32 = getBytes(messageHash)
+
+        const creatorProof = await player1.signMessage(messageHashAsBytes32)
+        const opponentProof = await player2.signMessage("several cats playing tennis")
+        
+        await completeWagerWithError(
+            wageringContract, 
+            player3, 
+            player1.address, 
+            1, 
+            creatorProof, 
+            opponentProof,
+            "PlayerSignatureInvalid",
+            [
+                1,
+                player1.address,
+                hashMessage(messageHashAsBytes32),
+                creatorProof,
+                opponentProof
+            ]
+        )
+    })
   })
 });
