@@ -32,7 +32,8 @@ export const mintNftWithURI = async (
     receiver: AddressLike,
     id: BigNumberish,
     value: BigNumberish,
-    uri: string
+    uri: string,
+    relay?: boolean
 ) => {
     const { admin, issuerAccount } = await getAccounts();
     const BLOCK_RACERS = await assetsContract.BLOCK_RACERS();
