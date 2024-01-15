@@ -57,10 +57,7 @@ const encodeWithSyncFeeERC2771 = (
 ): Transaction => {
   const context = encodeContext(request);
 
-  const data = solidityPacked(
-    ["bytes", "address"],
-    [context, request.user],
-  );
+  const data = solidityPacked(["bytes", "address"], [context, request.user]);
 
   const tx: Transaction = {
     to: request.target,

@@ -4,138 +4,161 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { AddressLike, ContractTransactionResponse } from "ethers";
 import { Blacklist } from "../typechain-types";
 import { assert, expect } from "chai";
-import { CallWithERC2771Request } from "@gelatonetwork/relay-sdk";
-import { sponsoredCallERC2771Local } from "./__mock__/relay-sdk";
 
-export const deployBlacklistFixture = async (
-) => {
-    const {
-        admin,
-        trustedForwarder
-    } = await getAccounts()
+export const deployBlacklistFixture = async () => {
+  const { admin, trustedForwarder } = await getAccounts();
 
-    const Blacklist = await ethers.getContractFactory("Blacklist", admin);
-    const BlacklistContract = await Blacklist.deploy(
-        admin, 
-        trustedForwarder
-        );
+  const blacklist = await ethers.getContractFactory("Blacklist", admin);
+  const blacklistContract = await blacklist.deploy(admin, trustedForwarder);
 
-    await BlacklistContract.waitForDeployment();
-    
-    return BlacklistContract;
-}
+  await blacklistContract.waitForDeployment();
+
+  return blacklistContract;
+};
 
 export const addToBlacklist = async (
-    blacklistContract: unknown & Blacklist & {
-        deploymentTransaction(): ContractTransactionResponse;
+  blacklistContract: unknown &
+    Blacklist & {
+      deploymentTransaction(): ContractTransactionResponse;
     },
-    admin: HardhatEthersSigner,
-    addTo: AddressLike,
-    relay: boolean = false
+  admin: HardhatEthersSigner,
+  addTo: AddressLike,
+  relay: boolean = false,
 ) => {
-    if (relay) {
-        const { data } = await blacklistContract.connect(admin).addToBlackList.populateTransaction(addTo);
-        await sponsorRelayCall(await blacklistContract.getAddress(), admin, data);
-    } else {
-        await blacklistContract.connect(admin).addToBlackList(addTo);
-    }
-}
+  if (relay) {
+    const { data } = await blacklistContract
+      .connect(admin)
+      .addToBlackList.populateTransaction(addTo);
+    await sponsorRelayCall(await blacklistContract.getAddress(), admin, data);
+  } else {
+    await blacklistContract.connect(admin).addToBlackList(addTo);
+  }
+};
 
 export const removeFromBlackList = async (
-    blacklistContract: unknown & Blacklist & {
-        deploymentTransaction(): ContractTransactionResponse;
+  blacklistContract: unknown &
+    Blacklist & {
+      deploymentTransaction(): ContractTransactionResponse;
     },
-    admin: HardhatEthersSigner,
-    removeFrom: AddressLike,
-    relay: boolean = false
+  admin: HardhatEthersSigner,
+  removeFrom: AddressLike,
+  relay: boolean = false,
 ) => {
-    if (relay) {
-        const { data } = await blacklistContract.connect(admin).removeFromBlackList.populateTransaction(removeFrom);
-    
-        await sponsorRelayCall(await blacklistContract.getAddress(), admin, data);
+  if (relay) {
+    const { data } = await blacklistContract
+      .connect(admin)
+      .removeFromBlackList.populateTransaction(removeFrom);
 
-    } else {
-        await blacklistContract.connect(admin).removeFromBlackList(removeFrom);
-    }
-}
+    await sponsorRelayCall(await blacklistContract.getAddress(), admin, data);
+  } else {
+    await blacklistContract.connect(admin).removeFromBlackList(removeFrom);
+  }
+};
 
 export const addToBlacklistWithEvents = async (
-    blacklistContract: unknown & Blacklist & {
-        deploymentTransaction(): ContractTransactionResponse;
+  blacklistContract: unknown &
+    Blacklist & {
+      deploymentTransaction(): ContractTransactionResponse;
     },
-    admin: HardhatEthersSigner,
-    addTo: AddressLike,
-    eventName: string,
-    eventArgs?: any[]
+  admin: HardhatEthersSigner,
+  addTo: AddressLike,
+  eventName: string,
+  eventArgs?: unknown[],
 ) => {
-    if(eventArgs) {
-        await expect(await blacklistContract.connect(admin).addToBlackList(addTo), `${eventName} Failed`)
-            .to.emit(blacklistContract, eventName)
-            .withArgs(...eventArgs)
-    } else {
-        await expect(await blacklistContract.connect(admin).addToBlackList(addTo), `${eventName} Failed`)
-            .to.emit(blacklistContract, eventName)
-    }
-}
+  if (eventArgs) {
+    await expect(
+      await blacklistContract.connect(admin).addToBlackList(addTo),
+      `${eventName} Failed`,
+    )
+      .to.emit(blacklistContract, eventName)
+      .withArgs(...eventArgs);
+  } else {
+    await expect(
+      await blacklistContract.connect(admin).addToBlackList(addTo),
+      `${eventName} Failed`,
+    ).to.emit(blacklistContract, eventName);
+  }
+};
 
 export const removeFromBlackListWithEvents = async (
-    blacklistContract: unknown & Blacklist & {
-        deploymentTransaction(): ContractTransactionResponse;
+  blacklistContract: unknown &
+    Blacklist & {
+      deploymentTransaction(): ContractTransactionResponse;
     },
-    admin: HardhatEthersSigner,
-    removeFrom: AddressLike,
-    eventName: string,
-    eventArgs?: any[]
+  admin: HardhatEthersSigner,
+  removeFrom: AddressLike,
+  eventName: string,
+  eventArgs?: unknown[],
 ) => {
-    if(eventArgs) {
-        await expect(await blacklistContract.connect(admin).removeFromBlackList(removeFrom), `${eventName} Failed`)
-            .to.emit(blacklistContract, eventName)
-            .withArgs(...eventArgs)
-    } else {
-        await expect(await blacklistContract.connect(admin).removeFromBlackList(removeFrom), `${eventName} Failed`)
-            .to.emit(blacklistContract, eventName)
-    }
-}
+  if (eventArgs) {
+    await expect(
+      await blacklistContract.connect(admin).removeFromBlackList(removeFrom),
+      `${eventName} Failed`,
+    )
+      .to.emit(blacklistContract, eventName)
+      .withArgs(...eventArgs);
+  } else {
+    await expect(
+      await blacklistContract.connect(admin).removeFromBlackList(removeFrom),
+      `${eventName} Failed`,
+    ).to.emit(blacklistContract, eventName);
+  }
+};
 
 export const addToBlacklistWithErrors = async (
-    blacklistContract: unknown & Blacklist & {
-        deploymentTransaction(): ContractTransactionResponse;
+  blacklistContract: unknown &
+    Blacklist & {
+      deploymentTransaction(): ContractTransactionResponse;
     },
-    admin: HardhatEthersSigner,
-    addTo: AddressLike,
-    errorName: string,
-    errorArgs: any[]
+  admin: HardhatEthersSigner,
+  addTo: AddressLike,
+  errorName: string,
+  errorArgs: unknown[],
 ) => {
-    await blacklistContract.connect(admin).addToBlackList(addTo)
-    await expect(blacklistContract.connect(admin).addToBlackList(addTo), `${errorName} Failed`)
-        .to.be.revertedWithCustomError(blacklistContract, errorName).withArgs(...errorArgs)
-}
+  await blacklistContract.connect(admin).addToBlackList(addTo);
+  await expect(
+    blacklistContract.connect(admin).addToBlackList(addTo),
+    `${errorName} Failed`,
+  )
+    .to.be.revertedWithCustomError(blacklistContract, errorName)
+    .withArgs(...errorArgs);
+};
 
 export const removeFromBlackListWithErrors = async (
-    blacklistContract: unknown & Blacklist & {
-        deploymentTransaction(): ContractTransactionResponse;
+  blacklistContract: unknown &
+    Blacklist & {
+      deploymentTransaction(): ContractTransactionResponse;
     },
-    admin: HardhatEthersSigner,
-    removeFrom: AddressLike,
-    errorName: string,
-    errorArgs: any[]
-    ) => {
-    await expect(blacklistContract.connect(admin).removeFromBlackList(removeFrom), `${errorName} Failed`)
-        .to.be.revertedWithCustomError(blacklistContract, errorName).withArgs(...errorArgs)
-}
+  admin: HardhatEthersSigner,
+  removeFrom: AddressLike,
+  errorName: string,
+  errorArgs: unknown[],
+) => {
+  await expect(
+    blacklistContract.connect(admin).removeFromBlackList(removeFrom),
+    `${errorName} Failed`,
+  )
+    .to.be.revertedWithCustomError(blacklistContract, errorName)
+    .withArgs(...errorArgs);
+};
 
 // Read
 export const isBlackListed = async (
-    blacklistContract: unknown & Blacklist & {
-        deploymentTransaction(): ContractTransactionResponse;
+  blacklistContract: unknown &
+    Blacklist & {
+      deploymentTransaction(): ContractTransactionResponse;
     },
-    account: AddressLike,
-    expected: boolean = false
+  account: AddressLike,
+  expected: boolean = false,
 ) => {
-    const result = await blacklistContract.isBlackListed(account);
+  const isBlacklisted = await blacklistContract.isBlackListed(account);
 
-    if(expected !== undefined) {
-        assert(result == expected, `Expected state incorrect. Actual: ${result} | Expected: ${expected}`)
-    }
-}
+  if (expected !== undefined) {
+    assert(
+      isBlacklisted == expected,
+      `Expected state incorrect. Actual: ${isBlacklisted} | Expected: ${expected}`,
+    );
+  }
 
+  return isBlacklisted;
+};
