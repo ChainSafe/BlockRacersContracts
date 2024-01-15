@@ -1,30 +1,38 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/metatx/ERC2771Context.sol";
-import "./utils/Blacklist.sol";
-
-// $$$$$$$\  $$\       $$$$$$\   $$$$$$\  $$\   $$\       $$$$$$$\   $$$$$$\   $$$$$$\  $$$$$$$$\ $$$$$$$\   $$$$$$\  
-// $$  __$$\ $$ |     $$  __$$\ $$  __$$\ $$ | $$  |      $$  __$$\ $$  __$$\ $$  __$$\ $$  _____|$$  __$$\ $$  __$$\ 
-// $$ |  $$ |$$ |     $$ /  $$ |$$ /  \__|$$ |$$  /       $$ |  $$ |$$ /  $$ |$$ /  \__|$$ |      $$ |  $$ |$$ /  \__|
-// $$$$$$$\ |$$ |     $$ |  $$ |$$ |      $$$$$  /        $$$$$$$  |$$$$$$$$ |$$ |      $$$$$\    $$$$$$$  |\$$$$$$\  
-// $$  __$$\ $$ |     $$ |  $$ |$$ |      $$  $$<         $$  __$$< $$  __$$ |$$ |      $$  __|   $$  __$$<  \____$$\ 
-// $$ |  $$ |$$ |     $$ |  $$ |$$ |  $$\ $$ |\$$\        $$ |  $$ |$$ |  $$ |$$ |  $$\ $$ |      $$ |  $$ |$$\   $$ |
-// $$$$$$$  |$$$$$$$$\ $$$$$$  |\$$$$$$  |$$ | \$$\       $$ |  $$ |$$ |  $$ |\$$$$$$  |$$$$$$$$\ $$ |  $$ |\$$$$$$  |
-// \_______/ \________|\______/  \______/ \__|  \__|      \__|  \__|\__|  \__| \______/ \________|\__|  \__| \______/ 
+import {
+    ReentrancyGuard
+} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {
+    SignatureChecker
+} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import {
+    MessageHashUtils
+} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {
+    SafeERC20
+} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {
+    ERC2771Context
+} from "@openzeppelin/contracts/metatx/ERC2771Context.sol";
+import {Blacklist} from "./utils/Blacklist.sol";
 
 /// @title Block Racers Wagering Contract
 /// @author RyRy79261
-/// @notice This escrow contract holds functions used for the Block Racers wagering used in the game at https://github.com/Chainsafe/BlockRacers
+/// @notice This escrow contract holds functions used for the Block Racers
+/// wagering used in the game
 contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
     using SafeERC20 for IERC20;
 
-    enum WagerState { NOT_STARTED, CREATED, ACCEPTED, COMPLETED, CANCELLED }
+    enum WagerState {
+        NOT_STARTED,
+        CREATED,
+        ACCEPTED,
+        COMPLETED,
+        CANCELLED
+    }
 
     struct Wager {
         uint256 prize;
@@ -36,58 +44,75 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
 
     IERC20 public immutable token;
     uint256 public latestWagerId;
-    
+
     /// @dev Pvp wager data
-    mapping(uint256 => Wager) private wagers;
+    mapping(uint256 => Wager) private _wagers;
     /// @dev Used for tracking wagers that a player has engaged in
-    mapping(address => uint256[]) private playerWagers;
-    
+    mapping(address => uint256[]) private _playerWagers;
+
     /// @dev Contract events
-    event WagerCreated(uint256 indexed wagerId, address indexed creator, uint256 prize);
+    event WagerCreated(
+        uint256 indexed wagerId,
+        address indexed creator,
+        uint256 prize
+    );
     event WagerAccepted(uint256 indexed wagerId, address indexed opponent);
     event WagerCancelled(uint256 indexed wagerId, address cancelledBy);
     event WagerCompleted(uint256 indexed wagerId, address indexed winner);
 
-    error WagerStateIncorrect(uint256 wagerId, WagerState currentState, WagerState expected);
+    error WagerStateIncorrect(
+        uint256 wagerId,
+        WagerState currentState,
+        WagerState expected
+    );
     error WagerCantBeCancelled(uint256 wagerId, WagerState currentState);
     error OnlyParticipantsCanCancel(uint256 wagerId, address requestor);
 
     error OpponentCantBeChallenger(uint256 wagerId, address opponent);
     error WinnerMustBeParticipant(uint256 wagerId, address winner);
-    error PlayerSignatureInvalid(uint256 wagerId, address winner, bytes32 message, bytes creatorProof, bytes opponentProof);
+    error PlayerSignatureInvalid(
+        uint256 wagerId,
+        address winner,
+        bytes32 message,
+        bytes creatorProof,
+        bytes opponentProof
+    );
 
     modifier wagerStateMustBe(WagerState state, uint256 wagerId) {
-        Wager memory wager = wagers[wagerId];
-        if (wager.state != state) 
+        Wager memory wager = _wagers[wagerId];
+        if (wager.state != state)
             revert WagerStateIncorrect(wagerId, wager.state, state);
         _;
     }
 
-    /// @dev Constructor sets token to be used and nft info, input the RACE token address here on deployment
+    /// @dev Constructor sets token to be used and nft info
     constructor(
         address trustedForwarder,
         address admin_,
         IERC20 token_
-    ) ERC2771Context(trustedForwarder) Blacklist(admin_){
+    ) Blacklist(admin_, trustedForwarder) {
         token = token_;
     }
 
-    
     /// @notice PVP and wager tokens
     /// @param prize The amount of tokens being wagered
     /// @return true if successful
-    function createWager(uint256 prize) 
-        external 
-        isNotBlacklisted(_msgSender())
-        nonReentrant() 
-        returns (bool) {
+    function createWager(
+        uint256 prize
+    ) external isNotBlacklisted(_msgSender()) nonReentrant returns (bool) {
         address creator = _msgSender();
 
         token.safeTransferFrom(creator, address(this), prize);
 
         ++latestWagerId;
-        wagers[latestWagerId] = Wager(prize, creator, address(0), address(0), WagerState.CREATED);
-        playerWagers[creator].push(latestWagerId);
+        _wagers[latestWagerId] = Wager(
+            prize,
+            creator,
+            address(0),
+            address(0),
+            WagerState.CREATED
+        );
+        _playerWagers[creator].push(latestWagerId);
         emit WagerCreated(latestWagerId, creator, prize);
         return true;
     }
@@ -95,25 +120,28 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
     /// @notice PVP and wager tokens
     /// @param wagerId The ID of the wager being accepted
     /// @return true if successful
-    function acceptWager(uint256 wagerId) 
-        external 
+    function acceptWager(
+        uint256 wagerId
+    )
+        external
         isNotBlacklisted(_msgSender())
         wagerStateMustBe(WagerState.CREATED, wagerId)
-        nonReentrant() 
-        returns (bool) {
+        nonReentrant
+        returns (bool)
+    {
         address opponentAddress = _msgSender();
 
-        Wager storage wager = wagers[wagerId];
+        Wager storage wager = _wagers[wagerId];
 
-        if (wager.creator == opponentAddress) 
+        if (wager.creator == opponentAddress)
             revert OpponentCantBeChallenger(wagerId, opponentAddress);
 
         token.safeTransferFrom(opponentAddress, address(this), wager.prize);
 
         wager.opponent = opponentAddress;
         wager.state = WagerState.ACCEPTED;
-        playerWagers[opponentAddress].push(wagerId);
-       
+        _playerWagers[opponentAddress].push(wagerId);
+
         emit WagerAccepted(wagerId, opponentAddress);
         return true;
     }
@@ -121,43 +149,52 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
     /// @notice Claim PVP Winnings
     /// @param wagerId The id of the wager
     /// @param winner The winner address
-    /// @param creatorProof The signature from creator which should have signed the winner address
-    /// @param opponentProof The signature from challenger which should have signed the winner address
+    /// @param creatorProof The signature from creator with the winner address
+    /// @param opponentProof The signature from challenger with the winner address
     /// @return true if successful
     function completeWager(
-        uint256 wagerId, 
-        address winner, 
-        bytes memory creatorProof, 
+        uint256 wagerId,
+        address winner,
+        bytes memory creatorProof,
         bytes memory opponentProof
-    ) 
-        external 
+    )
+        external
         wagerStateMustBe(WagerState.ACCEPTED, wagerId)
-        nonReentrant() 
-        returns (bool) {
-        Wager storage wager = wagers[wagerId];
+        nonReentrant
+        returns (bool)
+    {
+        Wager storage wager = _wagers[wagerId];
 
-        if(winner != wager.creator && winner != wager.opponent) 
+        if (winner != wager.creator && winner != wager.opponent)
             revert WinnerMustBeParticipant(wagerId, winner);
 
-        bytes32 message = MessageHashUtils.toEthSignedMessageHash(keccak256(abi.encodePacked(wagerId, "-", winner)));
-        
+        bytes32 message = MessageHashUtils.toEthSignedMessageHash(
+            keccak256(abi.encodePacked(wagerId, "-", winner))
+        );
+
         bool creatorProofValid = SignatureChecker.isValidSignatureNow(
             wager.creator,
             message,
-            creatorProof);
+            creatorProof
+        );
 
         bool opponentProofValid = SignatureChecker.isValidSignatureNow(
             wager.opponent,
             message,
-            opponentProof);
+            opponentProof
+        );
 
-        if (!creatorProofValid || !opponentProofValid) 
-            revert PlayerSignatureInvalid(wagerId, winner, message, creatorProof, opponentProof);
-        
+        if (!creatorProofValid || !opponentProofValid)
+            revert PlayerSignatureInvalid(
+                wagerId,
+                winner,
+                message,
+                creatorProof,
+                opponentProof
+            );
+
         wager.winner = winner;
         wager.state = WagerState.COMPLETED;
-        // Both the creator & the opponent transfered the wager tokens to this contract,
-        // so this functionally returns the winner's stake and transfers the losers stake to the winner in one transaction
         token.safeTransfer(winner, wager.prize * 2);
         emit WagerCompleted(wagerId, winner);
         return true;
@@ -166,24 +203,24 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
     /// @notice Cancel Wager
     /// @param wagerId The id of the wager
     /// @return true if successful
-    function cancelWager(uint256 wagerId) 
-        external 
-        isNotBlacklisted(_msgSender())
-        nonReentrant() 
-        returns (bool) {
-        Wager storage wager = wagers[wagerId];
+    function cancelWager(
+        uint256 wagerId
+    ) external isNotBlacklisted(_msgSender()) nonReentrant returns (bool) {
+        Wager storage wager = _wagers[wagerId];
 
-        if (wager.state != WagerState.CREATED && wager.state != WagerState.ACCEPTED) {
-            revert WagerCantBeCancelled(wagerId, wager.state);
-        }
+        if (
+            wager.state != WagerState.CREATED &&
+            wager.state != WagerState.ACCEPTED
+        ) revert WagerCantBeCancelled(wagerId, wager.state);
 
         address requestor = _msgSender();
 
         if (
-            ((wager.state == WagerState.CREATED || wager.state == WagerState.ACCEPTED) && wager.creator == requestor) ||
+            ((wager.state == WagerState.CREATED ||
+                wager.state == WagerState.ACCEPTED) &&
+                wager.creator == requestor) ||
             (wager.state == WagerState.ACCEPTED && wager.opponent == requestor)
         ) {
-
             // changing the wager state before transfers prevents replay attacks if possible
             if (wager.state == WagerState.CREATED) {
                 wager.state = WagerState.CANCELLED;
@@ -193,7 +230,7 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
                 token.safeTransfer(wager.creator, wager.prize);
                 token.safeTransfer(wager.opponent, wager.prize);
             }
-        }  else {
+        } else {
             revert OnlyParticipantsCanCancel(wagerId, requestor);
         }
 
@@ -204,17 +241,14 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
     /// @notice Cancel Wager
     /// @param wagerId The id of the wager
     /// @return true if successful
-    function adminCancelWager(uint256 wagerId) 
-        external 
-        onlyOwner()
-        nonReentrant() 
-        returns (bool) {
-        Wager storage wager = wagers[wagerId];
+    function adminCancelWager(
+        uint256 wagerId
+    ) external onlyOwner nonReentrant returns (bool) {
+        Wager storage wager = _wagers[wagerId];
 
         if (wager.state == WagerState.CREATED) {
             wager.state = WagerState.CANCELLED;
             token.safeTransfer(wager.creator, wager.prize);
-
         } else if (wager.state == WagerState.ACCEPTED) {
             wager.state = WagerState.CANCELLED;
             token.safeTransfer(wager.creator, wager.prize);
@@ -227,25 +261,37 @@ contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
         return true;
     }
 
-    function getWager(uint256 wagerId) external view returns(Wager memory) {
-        return wagers[wagerId];
+    function getWager(uint256 wagerId) external view returns (Wager memory) {
+        return _wagers[wagerId];
     }
 
-    function getPlayersWagers(address player) external view returns(uint256[] memory) {
-        return playerWagers[player];
+    function getPlayersWagers(
+        address player
+    ) external view returns (uint256[] memory) {
+        return _playerWagers[player];
     }
 
     /**
      * @dev Override required as inheritance was indeterminant for which function to use
      */
-    function _msgSender() internal view override(ERC2771Context, Context) returns (address sender) {
+    function _msgSender()
+        internal
+        view
+        override(ERC2771Context, Blacklist)
+        returns (address sender)
+    {
         return ERC2771Context._msgSender();
     }
 
     /**
      * @dev Override required as inheritance was indeterminant for which function to use
      */
-    function _msgData() internal view override(ERC2771Context, Context) returns (bytes calldata) {
+    function _msgData()
+        internal
+        view
+        override(ERC2771Context, Blacklist)
+        returns (bytes calldata)
+    {
         return ERC2771Context._msgData();
     }
 }
