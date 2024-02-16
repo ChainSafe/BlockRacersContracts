@@ -8,7 +8,7 @@
   "scripts": {
     "node": "npx hardhat node",
     "test": "npx hardhat test",
-    "compile": "npx hardhat compile && yarn generateUnityClasses",
+    "compile": "npx hardhat compile && npx yarn generateUnityClasses",
     "generateUnityClasses": "npx ts-node --files ./scripts/generateUnityClasses.ts",
     "format": "prettier --write '*/**/*.*{js,json,md,ts}'",
     "format:check": "prettier --check '*/**/*.*{js,json,md,ts}'",
