@@ -13,6 +13,7 @@
     "deploy-mumbai": "npx hardhat --network mumbai run scripts/deploy.ts",
     "deploy-cronos-testnet": "npx hardhat --network cronos-testnet run scripts/deploy.ts",
     "deploy-helper-cronos-testnet": "npx hardhat --network cronos-testnet run scripts/deployUIHelper.ts",
+    "set-base-uri-cronos-testnet": "npx hardhat --network cronos-testnet run scripts/setBaseUri.ts",
     "generate-metadata": "npx hardhat run scripts/generateMetadata.ts",
     "test": "npx hardhat test",
     "compile": "npx hardhat compile && npx yarn generateUnityClasses",

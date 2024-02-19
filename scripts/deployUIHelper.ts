@@ -8,7 +8,7 @@ const sleep = (msec) => {
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  let blockGameAddress = process.env.BLOCK_GAME;
+  const blockGameAddress = process.env.BLOCK_GAME;
 
   if (!ethers.isAddress(blockGameAddress)) {
     throw new Error("Specify BLOCK_GAME env variable with the address of deployed main contract.");

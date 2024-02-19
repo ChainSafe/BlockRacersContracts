@@ -17,17 +17,17 @@ async function main() {
   if (!ethers.isAddress(gameAddress)) {
     const tokenContract = process.env.PUBLIC_MINT === "true" ? "BlockGameTokenTest" : "BlockGameToken";
     console.log(`Deploying ${tokenContract} token.`);
-    const race = await ethers.deployContract(tokenContract, [
+    const gameToken = await ethers.deployContract(tokenContract, [
       trustedForwarder,
       admin,
       issuer,
       ethers.parseEther("1000"),
     ]);
-    await race.waitForDeployment();
+    await gameToken.waitForDeployment();
     if (tokenContract === "BlockGameToken") {
       console.log(`Minted 1000 to the issuer ${issuer}.`);
     }
-    gameAddress = race.target;
+    gameAddress = gameToken.target;
   }
 
   const prices = [

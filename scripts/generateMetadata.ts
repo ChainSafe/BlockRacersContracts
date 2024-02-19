@@ -1,4 +1,12 @@
 import fs from "node:fs/promises";
+import metadata from "./metadata/index";
+
+const gameId = process.env.GAME_ID;
+const { items, objectSpecs } = metadata[gameId];
+
+if (!items) {
+  throw new Error(`GAME_ID should be set in the env and resolve to a config from scripts/metadata/{GAME_ID}/config.ts`);
+}
 
 const metadataTemplate = {
   "name": "",
@@ -7,37 +15,23 @@ const metadataTemplate = {
   "attributes":
   [
     {
-      "trait_type": "Engine",
+      "trait_type": "item1",
       "value": 0,
     },
     {
-      "trait_type": "Handling",
+      "trait_type": "item2",
       "value": 0,
     },
     {
-      "trait_type": "NOS",
+      "trait_type": "item3",
       "value": 0,
     },
   ]
-}
+};
 
-const objectSpecs = [
-  {
-    name: "Camaro ZL1",
-    description: "Camaro ZL1 car model item from BlockRacers game, by chainsafe.io",
-    image: "ipfs://QmWVy8YraCR1eGuWhshYRydtc6kgKeGAgoxF5mPRANSFzU/0.png",
-  },
-  {
-    name: "GT",
-    description: "GT car model item from BlockRacers game, by chainsafe.io",
-    image: "ipfs://QmWVy8YraCR1eGuWhshYRydtc6kgKeGAgoxF5mPRANSFzU/1.png",
-  },
-  {
-    name: "488 Pista",
-    description: "488 Pista car model item from BlockRacers game, by chainsafe.io",
-    image: "ipfs://QmWVy8YraCR1eGuWhshYRydtc6kgKeGAgoxF5mPRANSFzU/2.png",
-  },
-];
+metadataTemplate.attributes[0].trait_type = items[0];
+metadataTemplate.attributes[1].trait_type = items[1];
+metadataTemplate.attributes[2].trait_type = items[2];
 
 async function main() {
   const levels = [
@@ -59,7 +53,7 @@ async function main() {
           metadataTemplate.attributes[0].value = props[1];
           metadataTemplate.attributes[1].value = props[2];
           metadataTemplate.attributes[2].value = props[3];
-          await fs.writeFile("./scripts/metadata/jsons/" + filename + ".json", JSON.stringify(metadataTemplate));
+          await fs.writeFile(`./scripts/metadata/${gameId}/jsons/${filename}.json`, JSON.stringify(metadataTemplate));
         }
       }
     }
