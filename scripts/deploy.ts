@@ -15,8 +15,9 @@ async function main() {
   const feeAccount = ethers.isAddress(process.env.FEE_ACCOUNT) ? process.env.FEE_ACCOUNT : deployer.address;
 
   if (!ethers.isAddress(raceAddress)) {
+    const tokenContract = process.env.PUBLIC_MINT === "true" ? "BlockRacersTokenTest" : "BlockRacersToken";
     console.log("Deploying RACE token.");
-    const race = await ethers.deployContract("BlockRacersToken", [
+    const race = await ethers.deployContract(tokenContract, [
       trustedForwarder,
       admin,
       issuer,

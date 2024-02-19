@@ -122,3 +122,23 @@ contract BlockRacersToken is ERC20, ERC2771Context, Ownable {
         return ERC2771Context._msgData();
     }
 }
+
+contract BlockRacersTokenTest is BlockRacersToken {
+    uint256 public immutable MINT_AMOUNT;
+
+    constructor(
+        address trustedForwarder,
+        address owner,
+        address issuerAccount_,
+        uint256 mintAmount
+    ) BlockRacersToken(trustedForwarder, owner, issuerAccount_, 0) {
+        require(MINT_AMOUNT > 1 ether, "Amount is too small");
+        MINT_AMOUNT = mintAmount;
+    }
+
+    function mint(
+        address to
+    ) external {
+        _mint(to, MINT_AMOUNT);
+    }
+}
