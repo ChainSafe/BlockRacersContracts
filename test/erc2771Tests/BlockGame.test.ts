@@ -1,32 +1,32 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import {
-  CarTypeOption,
+  ObjectTypeOption,
   GameItem,
   deployCoreFixture,
-  getBlockracersFeeAccount,
-  getCarOption,
-  isCarOwner,
-  getCarStats,
+  getFeeAccount,
+  getObjectOption,
+  isObjectOwner,
+  getObjectStats,
   getOwner,
   getUpgradeData,
-  mintCar,
+  mintObject,
   modifiedGameSettings,
   modifiedGameSettingsUnits,
-  numberOfCarsMinted,
+  numberOfObjectsMinted,
   renounceOwnership,
-  setBlockracersFeeAccount,
+  setFeeAccount,
   setPrices,
   transferOwnership,
-  upgradeEngine,
-  upgradeHandling,
-  upgradeNos,
-} from "../../src/BlockRacers.contract";
+  upgradeItem1,
+  upgradeItem2,
+  upgradeItem3,
+} from "../../src/BlockGame.contract";
 import { defaultDeployFixture, getAccounts } from "../../src/generalFunctions";
-import { setAllowanceToken } from "../../src/BlockRacersToken.contract";
+import { setAllowanceToken } from "../../src/BlockGameToken.contract";
 import { defaultGameSettings, defaultGameSettingsUnits } from "../../scripts/defaultSettings";
 import { ZeroAddress } from "ethers";
 
-describe("BlockRacers - ERC2771", function () {
+describe("BlockGame - ERC2771", function () {
   describe("admin", () => {
     it("renounceOwnership", async () => {
       const { admin } = await getAccounts();
@@ -38,24 +38,24 @@ describe("BlockRacers - ERC2771", function () {
 
       await getOwner(coreContract, ZeroAddress);
     });
-    it("setBlockRacersFeeAccount", async () => {
+    it("setBlockGameFeeAccount", async () => {
       const { admin, feeAccount, player3 } = await getAccounts();
-      const { blockRacersContract: coreContract } = await loadFixture(deployCoreFixture());
+      const { blockGameContract: coreContract } = await loadFixture(deployCoreFixture());
 
-      await getBlockracersFeeAccount(coreContract, feeAccount.address);
+      await getFeeAccount(coreContract, feeAccount.address);
 
-      await setBlockracersFeeAccount(
+      await setFeeAccount(
         coreContract,
         admin,
         player3.address,
         true,
       );
 
-      await getBlockracersFeeAccount(coreContract, player3.address);
+      await getFeeAccount(coreContract, player3.address);
     });
     it("setPrices", async () => {
       const { admin } = await getAccounts();
-      const { blockRacersContract: coreContract } = await loadFixture(deployCoreFixture());
+      const { blockGameContract: coreContract } = await loadFixture(deployCoreFixture());
 
       await getUpgradeData(coreContract, defaultGameSettingsUnits);
 
@@ -65,7 +65,7 @@ describe("BlockRacers - ERC2771", function () {
     });
     it("transferOwnership", async () => {
       const { admin, player3 } = await getAccounts();
-      const { blockRacersContract: coreContract } = await loadFixture(deployCoreFixture());
+      const { blockGameContract: coreContract } = await loadFixture(deployCoreFixture());
 
       await getOwner(coreContract, admin.address);
 
@@ -76,53 +76,53 @@ describe("BlockRacers - ERC2771", function () {
   });
 
   describe("write", function () {
-    it("mintCar", async () => {
+    it("mintObject", async () => {
       const { player1 } = await getAccounts();
 
       const { coreContract, tokenContract } = await loadFixture(
         defaultDeployFixture(true),
       );
 
-      const carType = CarTypeOption.FIRST;
-      const { carCost } = await getCarOption(coreContract, carType);
-      await numberOfCarsMinted(coreContract, 0);
+      const objectType = ObjectTypeOption.FIRST;
+      const { objectCost } = await getObjectOption(coreContract, objectType);
+      await numberOfObjectsMinted(coreContract, 0);
 
       await setAllowanceToken(
         tokenContract,
         player1,
         await coreContract.getAddress(),
-        carCost,
+        objectCost,
         undefined,
         true,
       );
-      await mintCar(coreContract, carType, player1, true);
+      await mintObject(coreContract, objectType, player1, true);
 
-      const carOption = await getCarOption(coreContract, carType);
+      const objectOption = await getObjectOption(coreContract, objectType);
 
-      const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
+      const numberOfObjectsMintedAsID = await numberOfObjectsMinted(coreContract, 1);
 
-      await isCarOwner(coreContract, player1, numberOfCarsMintedAsID, true);
+      await isObjectOwner(coreContract, player1, numberOfObjectsMintedAsID, true);
 
-      await getCarStats(coreContract, numberOfCarsMintedAsID, [carType, 0, 0, 0]);
+      await getObjectStats(coreContract, numberOfObjectsMintedAsID, [objectType, 0, 0, 0]);
     });
-    it("upgradeEngine", async () => {
+    it("upgradeItem1", async () => {
       const { player1 } = await getAccounts();
       const { coreContract, tokenContract } = await loadFixture(
         defaultDeployFixture(true),
       );
 
-      const carType = CarTypeOption.FIRST;
-      const { carCost } = await getCarOption(coreContract, carType);
+      const objectType = ObjectTypeOption.FIRST;
+      const { objectCost } = await getObjectOption(coreContract, objectType);
       await setAllowanceToken(
         tokenContract,
         player1,
         await coreContract.getAddress(),
-        carCost,
+        objectCost,
         undefined,
         true,
       );
-      await mintCar(coreContract, carType, player1, true);
-      const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
+      await mintObject(coreContract, objectType, player1, true);
+      const numberOfObjectsMintedAsID = await numberOfObjectsMinted(coreContract, 1);
 
       const upgradeData = await getUpgradeData(coreContract);
 
@@ -130,37 +130,37 @@ describe("BlockRacers - ERC2771", function () {
         tokenContract,
         player1,
         await coreContract.getAddress(),
-        upgradeData[GameItem.ENGINE][1],
+        upgradeData[GameItem.ITEM1][1],
         undefined,
         true,
       );
 
-      await upgradeEngine(
+      await upgradeItem1(
         coreContract,
         player1,
-        numberOfCarsMintedAsID,
+        numberOfObjectsMintedAsID,
         1,
         true,
       );
     });
-    it("upgradeHandling", async () => {
+    it("upgradeItem2", async () => {
       const { player1 } = await getAccounts();
       const { coreContract, tokenContract } = await loadFixture(
         defaultDeployFixture(true),
       );
 
-      const carType = CarTypeOption.FIRST;
-      const { carCost } = await getCarOption(coreContract, carType);
+      const objectType = ObjectTypeOption.FIRST;
+      const { objectCost } = await getObjectOption(coreContract, objectType);
       await setAllowanceToken(
         tokenContract,
         player1,
         await coreContract.getAddress(),
-        carCost,
+        objectCost,
         undefined,
         true,
       );
-      await mintCar(coreContract, carType, player1, true);
-      const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
+      await mintObject(coreContract, objectType, player1, true);
+      const numberOfObjectsMintedAsID = await numberOfObjectsMinted(coreContract, 1);
 
       const upgradeData = await getUpgradeData(coreContract);
 
@@ -168,37 +168,37 @@ describe("BlockRacers - ERC2771", function () {
         tokenContract,
         player1,
         await coreContract.getAddress(),
-        upgradeData[GameItem.HANDLING][1],
+        upgradeData[GameItem.ITEM2][1],
         undefined,
         true,
       );
 
-      await upgradeHandling(
+      await upgradeItem2(
         coreContract,
         player1,
-        numberOfCarsMintedAsID,
+        numberOfObjectsMintedAsID,
         1,
         true,
       );
     });
-    it("upgradeNos", async () => {
+    it("upgradeItem3", async () => {
       const { player1 } = await getAccounts();
       const { coreContract, tokenContract } = await loadFixture(
         defaultDeployFixture(true),
       );
 
-      const carType = CarTypeOption.FIRST;
-      const { carCost } = await getCarOption(coreContract, carType);
+      const objectType = ObjectTypeOption.FIRST;
+      const { objectCost } = await getObjectOption(coreContract, objectType);
       await setAllowanceToken(
         tokenContract,
         player1,
         await coreContract.getAddress(),
-        carCost,
+        objectCost,
         undefined,
         true,
       );
-      await mintCar(coreContract, carType, player1, true);
-      const numberOfCarsMintedAsID = await numberOfCarsMinted(coreContract, 1);
+      await mintObject(coreContract, objectType, player1, true);
+      const numberOfObjectsMintedAsID = await numberOfObjectsMinted(coreContract, 1);
 
       const upgradeData = await getUpgradeData(coreContract);
 
@@ -206,12 +206,12 @@ describe("BlockRacers - ERC2771", function () {
         tokenContract,
         player1,
         await coreContract.getAddress(),
-        upgradeData[GameItem.NOS][1],
+        upgradeData[GameItem.ITEM3][1],
         undefined,
         true,
       );
 
-      await upgradeNos(coreContract, player1, numberOfCarsMintedAsID, 1, true);
+      await upgradeItem3(coreContract, player1, numberOfObjectsMintedAsID, 1, true);
     });
   });
 });

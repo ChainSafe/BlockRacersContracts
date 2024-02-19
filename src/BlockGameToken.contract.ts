@@ -8,7 +8,7 @@ import {
   solidityPackedKeccak256,
   toBeHex,
 } from "ethers";
-import { BlockRacersToken } from "../typechain-types";
+import { BlockGameToken } from "../typechain-types";
 import { assert, expect } from "chai";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
@@ -16,24 +16,24 @@ export const deployTokenFixture = (initialAdminMint: BigNumberish = 0) => {
   return async function tokenFixture() {
     const { admin, issuerAccount, trustedForwarder } = await getAccounts();
 
-    const blockRacersToken = await ethers.getContractFactory(
-      "BlockRacersToken",
+    const blockGameToken = await ethers.getContractFactory(
+      "BlockGameToken",
       admin,
     );
-    const blockRacersTokenContract = await blockRacersToken.deploy(
+    const blockGameTokenContract = await blockGameToken.deploy(
       trustedForwarder,
       admin,
       issuerAccount,
       initialAdminMint,
     );
-    await blockRacersTokenContract.waitForDeployment();
+    await blockGameTokenContract.waitForDeployment();
 
-    return blockRacersTokenContract;
+    return blockGameTokenContract;
   };
 };
 
 export const setNewIssuerAccount = async (
-  tokenContract: BlockRacersToken & {
+  tokenContract: BlockGameToken & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   owner: HardhatEthersSigner,
@@ -52,7 +52,7 @@ export const setNewIssuerAccount = async (
 };
 
 export const setNewIssuerAccountWithEvents = async (
-  tokenContract: BlockRacersToken & {
+  tokenContract: BlockGameToken & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   owner: HardhatEthersSigner,
@@ -69,7 +69,7 @@ export const setNewIssuerAccountWithEvents = async (
 };
 
 export const setNewIssuerAccountWithErrors = async (
-  tokenContract: BlockRacersToken & {
+  tokenContract: BlockGameToken & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   owner: HardhatEthersSigner,
@@ -86,7 +86,7 @@ export const setNewIssuerAccountWithErrors = async (
 };
 
 export const mintWithPermit = async (
-  tokenContract: BlockRacersToken & {
+  tokenContract: BlockGameToken & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   issuer: HardhatEthersSigner,
@@ -118,7 +118,7 @@ export const mintWithPermit = async (
 };
 
 export const setAllowanceToken = async (
-  tokenContract: BlockRacersToken & {
+  tokenContract: BlockGameToken & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   sender: HardhatEthersSigner,
@@ -143,7 +143,7 @@ export const setAllowanceToken = async (
 };
 
 export const transferFromToken = async (
-  tokenContract: BlockRacersToken & {
+  tokenContract: BlockGameToken & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   sender: AddressLike,
@@ -187,7 +187,7 @@ export const transferFromToken = async (
 
 // Read
 export const balanceOfToken = async (
-  tokenContract: BlockRacersToken & {
+  tokenContract: BlockGameToken & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   account: AddressLike,
@@ -206,7 +206,7 @@ export const balanceOfToken = async (
 };
 
 export const approvalToken = async (
-  tokenContract: BlockRacersToken & {
+  tokenContract: BlockGameToken & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   sender: AddressLike,
@@ -226,7 +226,7 @@ export const approvalToken = async (
 };
 
 export const getPlayerNonce = async (
-  tokenContract: BlockRacersToken & {
+  tokenContract: BlockGameToken & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   player: AddressLike,
@@ -245,7 +245,7 @@ export const getPlayerNonce = async (
 };
 
 export const getIssuerAccount = async (
-  tokenContract: BlockRacersToken & {
+  tokenContract: BlockGameToken & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   expected?: AddressLike,

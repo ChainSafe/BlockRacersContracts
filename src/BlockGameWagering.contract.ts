@@ -9,15 +9,9 @@ import {
   toUtf8Bytes,
 } from "ethers";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { deployTokenFixture } from "./BlockRacersToken.contract";
-import { BlockRacersWagering } from "../typechain-types";
+import { deployTokenFixture } from "./BlockGameToken.contract";
+import { BlockGameWagering } from "../typechain-types";
 import { assert, expect } from "chai";
-
-export enum CarTypeOption {
-  FIRST = 0,
-  SECOND = 1,
-  THIRD = 2,
-}
 
 export enum WagerState {
   // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -36,28 +30,28 @@ export const deployWageringFixture = (erc20TokenAddress?: AddressLike) => {
       erc20TokenAddress = (await deployTokenFixture()()).getAddress();
     }
 
-    const blockRacersWagering = await ethers.getContractFactory(
-      "BlockRacersWagering",
+    const blockGameWagering = await ethers.getContractFactory(
+      "BlockGameWagering",
       admin,
     );
-    const blockRacersWageringContract = await blockRacersWagering.deploy(
+    const blockGameWageringContract = await blockGameWagering.deploy(
       trustedForwarder,
       admin,
       erc20TokenAddress,
     );
 
-    await blockRacersWageringContract.waitForDeployment();
-    return blockRacersWageringContract;
+    await blockGameWageringContract.waitForDeployment();
+    return blockGameWageringContract;
   };
 };
 
 export const createWager = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   creator: HardhatEthersSigner,
   prize: BigNumberish,
-  expectedWagerState?: BlockRacersWagering.WagerStruct,
+  expectedWagerState?: BlockGameWagering.WagerStruct,
 ) => {
   if (expectedWagerState) {
     const latestWagerId = await getLatestWagerId(wageringContract);
@@ -117,7 +111,7 @@ export const createWager = async (
 };
 
 export const createWagerWithEvent = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   creator: HardhatEthersSigner,
@@ -134,7 +128,7 @@ export const createWagerWithEvent = async (
 };
 
 export const createWagerWithError = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   creator: HardhatEthersSigner,
@@ -151,12 +145,12 @@ export const createWagerWithError = async (
 };
 
 export const acceptWager = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   opponent: HardhatEthersSigner,
   wagerId: BigNumberish,
-  expectedWagerState?: BlockRacersWagering.WagerStruct,
+  expectedWagerState?: BlockGameWagering.WagerStruct,
 ) => {
   if (expectedWagerState) {
     const currentState = await getWager(wageringContract, wagerId);
@@ -210,7 +204,7 @@ export const acceptWager = async (
 };
 
 export const acceptWagerWithEvent = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   opponent: HardhatEthersSigner,
@@ -227,7 +221,7 @@ export const acceptWagerWithEvent = async (
 };
 
 export const acceptWagerWithError = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   opponent: HardhatEthersSigner,
@@ -244,12 +238,12 @@ export const acceptWagerWithError = async (
 };
 
 export const cancelWager = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   canceller: HardhatEthersSigner,
   wagerId: BigNumberish,
-  expectedWagerState?: BlockRacersWagering.WagerStruct,
+  expectedWagerState?: BlockGameWagering.WagerStruct,
 ) => {
   const currentState = await getWager(wageringContract, wagerId);
 
@@ -287,7 +281,7 @@ export const cancelWager = async (
 };
 
 export const cancelWagerWithEvent = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   canceller: HardhatEthersSigner,
@@ -304,7 +298,7 @@ export const cancelWagerWithEvent = async (
 };
 
 export const cancelWagerWithError = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   canceller: HardhatEthersSigner,
@@ -321,7 +315,7 @@ export const cancelWagerWithError = async (
 };
 
 export const completeWager = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   submitter: HardhatEthersSigner,
@@ -329,7 +323,7 @@ export const completeWager = async (
   wagerId: BigNumberish,
   creatorProof: string,
   opponentProof: string,
-  expectedWagerState?: BlockRacersWagering.WagerStruct,
+  expectedWagerState?: BlockGameWagering.WagerStruct,
 ) => {
   let currentState = await getWager(wageringContract, wagerId);
 
@@ -379,7 +373,7 @@ export const completeWager = async (
 };
 
 export const completeWagerWithEvent = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   submitter: HardhatEthersSigner,
@@ -401,7 +395,7 @@ export const completeWagerWithEvent = async (
 };
 
 export const completeWagerWithError = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   submitter: HardhatEthersSigner,
@@ -423,12 +417,12 @@ export const completeWagerWithError = async (
 };
 
 export const adminCancelWager = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   admin: HardhatEthersSigner,
   wagerId: BigNumberish,
-  expectedWagerState?: BlockRacersWagering.WagerStruct,
+  expectedWagerState?: BlockGameWagering.WagerStruct,
 ) => {
   await wageringContract.connect(admin).adminCancelWager(wagerId);
 
@@ -459,11 +453,11 @@ export const adminCancelWager = async (
 
 // Read functions
 export const getWager = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   wagerId: BigNumberish,
-  expectedWagerState?: BlockRacersWagering.WagerStruct,
+  expectedWagerState?: BlockGameWagering.WagerStruct,
 ) => {
   const wager = await wageringContract.getWager(wagerId);
 
@@ -493,7 +487,7 @@ export const getWager = async (
 };
 
 export const getTokenAddressWagering = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   expected?: AddressLike,
@@ -510,7 +504,7 @@ export const getTokenAddressWagering = async (
 };
 
 export const getPlayersWagers = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   player: AddressLike,
@@ -527,7 +521,7 @@ export const getPlayersWagers = async (
 };
 
 export const getLatestWagerId = async (
-  wageringContract: BlockRacersWagering & {
+  wageringContract: BlockGameWagering & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   expected?: BigNumberish,

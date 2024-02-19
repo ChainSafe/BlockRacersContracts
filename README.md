@@ -1,6 +1,6 @@
-# Block Racers 
+# Block Game 
 
-Block Racers is a game demonstrating the features of the ChainSafe Gaming SDK
+Block Game is a game demonstrating the features of the ChainSafe Gaming SDK
 
 ### Installation
 
@@ -30,53 +30,53 @@ Or
 
 ## Features
 
-- Minting Cars as an ERC1155
-- A token for minting cars, purchasing upgrades & wagering in PvP races
+- Minting Objects as an ERC1155
+- A token for minting objects, purchasing upgrades & wagering in PvP races
 - An escrow contract for facilitating wagers in PvP races
 
-### BlockRacers ERC20
+### BlockGame ERC20
 
 This token is pretty simple for now, it allows for ERC2771 relayed transactions, but there are 2 minting functions, one which should only ever be included in deployment for Testnets, and another which requires a signature from an authorized developer signing wallet.
 
-### BlockRacers ERC1155
+### BlockGame ERC1155
 
-This token is pretty simple, it allows for minting by approved BlockRacer contracts, the minting presently is to represent cars in the game, it has AccessControl to manage BlockRacer core contracts, this would allow a new version of the core contract to be deployed without affecting the assets. 
+This token is pretty simple, it allows for minting by approved BlockGame contracts, the minting presently is to represent objects in the game, it has AccessControl to manage BlockGame core contracts, this would allow a new version of the core contract to be deployed without affecting the assets. 
 
 There are URI features for setting explicit URI strings for assets instead of implied, ID based, this allows for futureproofing.
 
-### BlockRacers Core 
+### BlockGame Core 
 
 This is the core game asset management logic and facilitates all NFT related activities.
 
 There are 4 items, represented by an enum, this means that the values of each one is an index starting at zero:
 ```solidity
-    enum GameItem{ CAR, ENGINE, HANDLING, NOS }
+    enum GameItem{ OBJECT, ITEM1, ITEM2, ITEM3 }
 ```
 
-- 0 = `GameItem.CAR`
-- 1 = `GameItem.ENGINE`
-- 2 = `GameItem.HANDLING`
-- 3 = `GameItem.NOS`
+- 0 = `GameItem.OBJECT`
+- 1 = `GameItem.ITEM1`
+- 2 = `GameItem.ITEM2`
+- 3 = `GameItem.ITEM3`
 
-Minting and upgrades require payments in RACE token. Different cars and upgrade levels could have varying prices. To get pricelist call: BlockRacers.getItemsData() which will return a list of lists of prices for each item/level.
+Minting and upgrades require payments in GAME token. Different objects and upgrade levels could have varying prices. To get pricelist call: BlockGame.getItemsData() which will return a list of lists of prices for each item/level.
 
 #### Types
 
-There is a struct representing game settings, this is published to a mapping to allow look up of previous settings for potentially valuing cars accurately if they have been upgraded prior to price changes.
+There is a struct representing game settings, this is published to a mapping to allow look up of previous settings for potentially valuing objects accurately if they have been upgraded prior to price changes.
 
 Costs are denoted in `uint256` to be consistent with ERC20, but the levels have been limited to 255 elements.
 
-Each minted car has an associated `CarStats` mapping which is just a list of 4 values relevant to the GameItem enum.
+Each minted object has an associated `CarStats` mapping which is just a list of 4 values relevant to the GameItem enum.
 
 ### Player actions
 
-The players are able to mint a new car, upgrade it's engine, handling & NOS.
+The players are able to mint a new object, upgrade it's item1, item2 & item3.
 
-All of these actions require sending an `approve` transaction to the BlockRacers ERC20, to the `blockRacersFeeAccount`
+All of these actions require sending an `approve` transaction to the BlockGame ERC20, to the `feeAccount`
 
-### BlockRacers Wager
+### BlockGame Wager
 
-The wager contract allows for players to stake tokens from the Block Racers ERC20 to then race each other, the winner would then receive their staked tokens back as well as be transferred the tokens staked by their defeated opponent.
+The wager contract allows for players to stake tokens from the Block Game ERC20 to then race each other, the winner would then receive their staked tokens back as well as be transferred the tokens staked by their defeated opponent.
 
 This contract also has ERC2771 for relaying transactions
 

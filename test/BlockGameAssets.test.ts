@@ -9,7 +9,7 @@ import {
   mintNftWithError,
   safeTransferFrom,
   setApprovalForAll,
-} from "../src/BlockRacersAssets.contract";
+} from "../src/BlockGameAssets.contract";
 import {
   checkTrustedForwarder,
   getAccounts,
@@ -20,14 +20,14 @@ import { generalSettings } from "../scripts/defaultSettings";
 import { ERC2771Context } from "../typechain-types";
 import { keccak256, toUtf8Bytes } from "ethers";
 
-describe("BlockRacersNfts", function () {
+describe("BlockGameNfts", function () {
   describe("Deployment", function () {
     it("deploys as expected", async () => {
       const { admin } = await getAccounts();
-      const { blockRacersAssetsContract: assetsContract, blockRacersContract } = await loadFixture(deployAssetsFixture);
+      const { blockGameAssetsContract: assetsContract, blockGameContract } = await loadFixture(deployAssetsFixture);
 
       assert(
-        await assetsContract.BLOCK_RACERS() == await blockRacersContract.getAddress(),
+        await assetsContract.BLOCK_GAME() == await blockGameContract.getAddress(),
       );
     });
   });
@@ -35,7 +35,7 @@ describe("BlockRacersNfts", function () {
   describe("Read functions", function () {
     it("balanceOf", async () => {
       const { player1 } = await getAccounts();
-      const { blockRacersAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
+      const { blockGameAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
       await balanceOfNft(assetsContract, player1.address, 1, 0);
       await mintNft(
         assetsContract,
@@ -46,7 +46,7 @@ describe("BlockRacersNfts", function () {
     });
     it("isTrustedForwarder", async () => {
       const { trustedForwarder } = await getAccounts();
-      const { blockRacersAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
+      const { blockGameAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
 
       await isTrustedForwarder(
         assetsContract as ERC2771Context,
@@ -56,7 +56,7 @@ describe("BlockRacersNfts", function () {
     });
     it("trustedForwarder", async () => {
       const { trustedForwarder } = await getAccounts();
-      const { blockRacersAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
+      const { blockGameAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
       await checkTrustedForwarder(
         assetsContract as ERC2771Context,
         trustedForwarder.address,
@@ -64,7 +64,7 @@ describe("BlockRacersNfts", function () {
     });
     it("uri", async () => {
       const { player1 } = await getAccounts();
-      const { blockRacersAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
+      const { blockGameAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
 
       await mintNft(
         assetsContract,
@@ -79,7 +79,7 @@ describe("BlockRacersNfts", function () {
   describe("Write functions", function () {
     it("mint(address)", async () => {
       const { player1 } = await getAccounts();
-      const { blockRacersAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
+      const { blockGameAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
 
       await mintNft(
         assetsContract,
@@ -88,7 +88,7 @@ describe("BlockRacersNfts", function () {
       );
     });
     it("setApprovalForAll", async () => {
-      const { blockRacersAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
+      const { blockGameAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
 
       const { player1, player2 } = await getAccounts();
 
@@ -106,7 +106,7 @@ describe("BlockRacersNfts", function () {
       await setApprovalForAll(assetsContract, player1, player2, true);
     });
     it("safeTransferFrom", async () => {
-      const { blockRacersAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
+      const { blockGameAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
       const { player1, player2 } = await getAccounts();
       const nftId = 1;
       const value = 1;
@@ -124,7 +124,7 @@ describe("BlockRacersNfts", function () {
   describe("errors", () => {
     it("NotAuthorizedGameContract", async () => {
       const { player1 } = await getAccounts();
-      const { blockRacersAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
+      const { blockGameAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
       const nftId = 1;
       const value = 1;
 

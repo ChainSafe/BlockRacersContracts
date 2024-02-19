@@ -8,14 +8,14 @@ const sleep = (msec) => {
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  let racersAddress = process.env.BLOCK_RACERS;
+  let blockGameAddress = process.env.BLOCK_GAME;
 
-  if (!ethers.isAddress(racersAddress)) {
-    throw new Error("Specify BLOCK_RACERS env variable with the address of deployed main contract.");
+  if (!ethers.isAddress(blockGameAddress)) {
+    throw new Error("Specify BLOCK_GAME env variable with the address of deployed main contract.");
   }
 
   console.log("Deploying UIHelper.");
-  const uiHelper = await ethers.deployContract("UIHelper", [racersAddress]);
+  const uiHelper = await ethers.deployContract("UIHelper", [blockGameAddress]);
   await uiHelper.waitForDeployment();
 
   console.log(`UIHelper: ${uiHelper.target}`);
@@ -25,7 +25,7 @@ async function main() {
     await sleep(30000);
     await hre.run("verify:verify", {
       address: uiHelper.target,
-      constructorArguments: [racersAddress],
+      constructorArguments: [blockGameAddress],
     });
   }
 }

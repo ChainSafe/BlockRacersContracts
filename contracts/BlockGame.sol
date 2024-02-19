@@ -17,57 +17,50 @@ import {
     ERC2771Context,
     Context
 } from "@openzeppelin/contracts/metatx/ERC2771Context.sol";
-import {BlockRacersAssets} from "./BlockRacersAssets.sol";
-import {IBlockRacers} from "./IBlockRacers.sol";
+import {BlockGameAssets} from "./BlockGameAssets.sol";
+import {IBlockGame} from "./IBlockGame.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-/// @title Block Racers core game Contract
+/// @title Block Game core game Contract
 /// @author ChainSafe Systems, RyRy79261, Sneakz, Oleksii Matiiasevych
-/// @notice This contract holds functions used for the Block Racers core game mechanices
-contract BlockRacers is IBlockRacers, ERC2771Context, Ownable {
+/// @notice This contract holds functions used for the core game mechanices
+contract BlockGame is IBlockGame, ERC2771Context, Ownable {
     using SafeERC20 for IERC20;
 
-    enum GameItem {
-        CAR,
-        ENGINE,
-        HANDLING,
-        NOS
-    }
-
-    /// @dev BlockRacers ERC20 address
+    /// @dev BlockGame ERC20 address
     IERC20 public immutable TOKEN;
     uint256 public immutable TOKEN_UNIT;
 
-    /// @dev BlockRacers ERC1155 address
-    BlockRacersAssets public immutable ASSETS;
+    /// @dev BlockGame ERC1155 address
+    BlockGameAssets public immutable ASSETS;
 
     /// @dev Wallet that tokens go to on purchases
-    address public blockRacersFeeAccount;
+    address public feeAccount;
 
     /// @dev Prices for each subsequent game item level
-    mapping(GameItem item => uint16[] price) private prices;
+    uint16[][4] private prices;
 
-    /// @dev Mapping of car stats per NFT
-    mapping(uint256 carId => uint8[4] stats) private carStats;
+    /// @dev Mapping of object stats per NFT
+    mapping(uint256 objectId => uint8[4] stats) private objectStats;
 
     /// @dev Contract events
-    event Purchase(address indexed wallet, uint256 carId, GameItem item, uint8 level);
+    event Purchase(address indexed wallet, uint256 objectId, uint8 item, uint8 level);
     event UpdateSettings();
 
-    error InvalidCar(uint256 carId);
-    error NotCarOwner(uint256 carId);
+    error InvalidObject(uint256 objectId);
+    error NotObjectOwner(uint256 objectId);
     error InvalidItemType();
-    error InvalidItemLevel(GameItem item, uint8 level);
+    error InvalidItemLevel(uint8 item, uint8 level);
 
-    modifier onlyCarOwner(uint256 carId) {
-        if (!isCarOwner(carId, _msgSender())) {
-            revert NotCarOwner(carId);
+    modifier onlyObjectOwner(uint256 objectId) {
+        if (!isObjectOwner(objectId, _msgSender())) {
+            revert NotObjectOwner(objectId);
         }
         _;
     }
 
-    modifier onlyMinted(uint256 carId) {
-        if (!ASSETS.exists(carId)) revert InvalidCar(carId);
+    modifier onlyMinted(uint256 objectId) {
+        if (!ASSETS.exists(objectId)) revert InvalidObject(objectId);
         _;
     }
 
@@ -76,38 +69,35 @@ contract BlockRacers is IBlockRacers, ERC2771Context, Ownable {
     /// @param trustedForwarder ERC2771 context forwarder for sponsored transactions
     /// @param admin_ Admin account for updating game settings
     /// @param token_ ERC20 token address
-    /// @param blockRacersFeeAccount_ fees collection account
+    /// @param feeAccount_ fees collection account
     /// @param baseUri_ URI base string for the Assets contract
     /// @param prices_ Settings for the max levels & upgrade costs
     constructor(
         address trustedForwarder,
         address admin_,
         address token_,
-        address blockRacersFeeAccount_,
+        address feeAccount_,
         string memory baseUri_,
         uint16[][4] memory prices_
     ) ERC2771Context(trustedForwarder) Ownable(admin_) {
         TOKEN = IERC20(token_);
         TOKEN_UNIT = uint256(10) ** IERC20Metadata(token_).decimals();
-        ASSETS = new BlockRacersAssets(trustedForwarder, baseUri_);
-        blockRacersFeeAccount = blockRacersFeeAccount_;
+        ASSETS = new BlockGameAssets(trustedForwarder, baseUri_);
+        feeAccount = feeAccount_;
         setPrices(prices_);
     }
 
-    function setBlockRacersFeeAccount(
-        address newBlockRacersFeeAccount
+    function setFeeAccount(
+        address newFeeAccount
     ) external onlyOwner {
-        blockRacersFeeAccount = newBlockRacersFeeAccount;
+        feeAccount = newFeeAccount;
         emit UpdateSettings();
     }
 
     function setPrices(
         uint16[][4] memory prices_
     ) public onlyOwner {
-        prices[GameItem.CAR] = prices_[0];
-        prices[GameItem.ENGINE] = prices_[1];
-        prices[GameItem.HANDLING] = prices_[2];
-        prices[GameItem.NOS] = prices_[3];
+        prices = prices_;
         emit UpdateSettings();
     }
 
@@ -118,60 +108,60 @@ contract BlockRacers is IBlockRacers, ERC2771Context, Ownable {
 
     /// @dev Contract functions
     /// @notice Mints an Nft to a users wallet
-    function mintCar(uint8 carLevel) external {
-        uint256 price = getPrice(GameItem.CAR, carLevel);
+    function mintObject(uint8 objectLevel) external {
+        uint256 price = getPrice(0, objectLevel);
         address player = _msgSender();
 
         // Attempt payment
-        TOKEN.safeTransferFrom(player, blockRacersFeeAccount, price);
-        uint256 carId = ASSETS.mint(player);
+        TOKEN.safeTransferFrom(player, feeAccount, price);
+        uint256 objectId = ASSETS.mint(player);
 
-        carStats[carId][uint256(GameItem.CAR)] = carLevel;
-        emit Purchase(player, carId, GameItem.CAR, carLevel);
+        objectStats[objectId][0] = objectLevel;
+        emit Purchase(player, objectId, 0, objectLevel);
     }
 
-    /// @notice Upgrades the car's engine level
-    /// @param carId The id of the car being upgraded
-    function upgrade(uint256 carId, GameItem item)
+    /// @notice Upgrades the object's engine level
+    /// @param objectId The id of the object being upgraded
+    function upgrade(uint256 objectId, uint8 item)
         external
-        onlyCarOwner(carId)
+        onlyObjectOwner(objectId)
     {
-        if (item == GameItem.CAR) revert InvalidItemType();
-        uint8 nextLevel = carStats[carId][uint256(item)] + 1;
+        if (item == 0) revert InvalidItemType();
+        uint8 nextLevel = objectStats[objectId][uint256(item)] + 1;
         uint256 price = getPrice(item, nextLevel);
         address player = _msgSender();
 
-        TOKEN.safeTransferFrom(player, blockRacersFeeAccount, price);
-        carStats[carId][uint256(item)] = nextLevel;
+        TOKEN.safeTransferFrom(player, feeAccount, price);
+        objectStats[objectId][uint256(item)] = nextLevel;
 
-        emit Purchase(player, carId, item, nextLevel);
+        emit Purchase(player, objectId, item, nextLevel);
     }
 
-    /// @notice Gets an array of cars owned by an address
-    /// @return uint256[] The NFT ID array of cars owned by a given account
-    function getUserCars(address account) public view returns (uint256[] memory) {
+    /// @notice Gets an array of objects owned by an address
+    /// @return uint256[] The NFT ID array of objects owned by a given account
+    function getUserObjects(address account) public view returns (uint256[] memory) {
         return ASSETS.getInventory(account);
     }
 
-    function getNumberOfCarsMinted() external view returns (uint256) {
+    function getNumberOfObjectsMinted() external view returns (uint256) {
         return ASSETS.totalSupply();
     }
 
-    function getCarStats(
-        uint256 carId
-    ) external view onlyMinted(carId) returns (uint8[4] memory) {
-        return carStats[carId];
+    function getObjectStats(
+        uint256 objectId
+    ) external view onlyMinted(objectId) returns (uint8[4] memory) {
+        return objectStats[objectId];
     }
 
-    function isCarOwner(
-        uint256 carId,
+    function isObjectOwner(
+        uint256 objectId,
         address account
-    ) public view onlyMinted(carId) returns (bool) {
-        return ASSETS.balanceOf(account, carId) == 1;
+    ) public view onlyMinted(objectId) returns (bool) {
+        return ASSETS.balanceOf(account, objectId) == 1;
     }
 
     function getItemData(
-        GameItem itemType
+        uint8 itemType
     ) public view returns (uint256[] memory itemPrices) {
         uint16[] memory localPrices = prices[itemType];
         itemPrices = new uint256[](localPrices.length);
@@ -184,16 +174,16 @@ contract BlockRacers is IBlockRacers, ERC2771Context, Ownable {
     }
 
     function getItemsData() external view returns (uint256[][4] memory itemPrices) {
-        itemPrices[0] = getItemData(GameItem.CAR);
-        itemPrices[1] = getItemData(GameItem.ENGINE);
-        itemPrices[2] = getItemData(GameItem.HANDLING);
-        itemPrices[3] = getItemData(GameItem.NOS);
+        itemPrices[0] = getItemData(0);
+        itemPrices[1] = getItemData(1);
+        itemPrices[2] = getItemData(2);
+        itemPrices[3] = getItemData(3);
 
         return itemPrices;
     }
 
     function getPrice(
-        GameItem item,
+        uint8 item,
         uint8 level
     ) public view returns (uint256) {
         if (level >= prices[item].length) revert InvalidItemLevel(item, level);
@@ -202,10 +192,10 @@ contract BlockRacers is IBlockRacers, ERC2771Context, Ownable {
     }
 
     function serializeProperties(
-        uint256 carId
-    ) external view override onlyMinted(carId) returns (string memory) {
+        uint256 objectId
+    ) external view override onlyMinted(objectId) returns (string memory) {
         return Strings.toHexString(
-            uint32(bytes4(abi.encodePacked(carStats[carId]))),
+            uint32(bytes4(abi.encodePacked(objectStats[objectId]))),
             4
         );
     }

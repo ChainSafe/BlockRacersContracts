@@ -8,9 +8,9 @@ import {
   setAllowanceToken,
   setNewIssuerAccount,
   transferFromToken,
-} from "../../src/BlockRacersToken.contract";
+} from "../../src/BlockGameToken.contract";
 
-describe("BlockRacersToken - ERC2771", function () {
+describe("BlockGameToken - ERC2771", function () {
   describe("restricted", () => {
     it("mint(to,amount,permit)", async () => {
       const { player1, issuerAccount } = await getAccounts();

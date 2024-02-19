@@ -4,16 +4,16 @@ import {
   mintNft,
   safeTransferFrom,
   setApprovalForAll,
-} from "../../src/BlockRacersAssets.contract";
+} from "../../src/BlockGameAssets.contract";
 import { getAccounts } from "../../src/generalFunctions";
 import { assert } from "chai";
 import { defaultGameSettings } from "../../scripts/defaultSettings";
 
-describe("BlockRacersNfts - ERC2771", function () {
+describe("BlockGameNfts - ERC2771", function () {
   describe("Write functions", function () {
     it("mint(address)", async () => {
       const { player1 } = await getAccounts();
-      const { blockRacersAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
+      const { blockGameAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
 
       await mintNft(
         assetsContract,
@@ -23,7 +23,7 @@ describe("BlockRacersNfts - ERC2771", function () {
       );
     });
     it("setApprovalForAll", async () => {
-      const { blockRacersAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
+      const { blockGameAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
 
       const { player1, player2 } = await getAccounts();
 
@@ -41,7 +41,7 @@ describe("BlockRacersNfts - ERC2771", function () {
       await setApprovalForAll(assetsContract, player1, player2, true, true);
     });
     it("safeTransferFrom", async () => {
-      const { blockRacersAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
+      const { blockGameAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
       const { player1, player2 } = await getAccounts();
       const nftId = 1;
       const value = 1;

@@ -12,16 +12,16 @@ import {
   setNewIssuerAccountWithErrors,
   setNewIssuerAccountWithEvents,
   transferFromToken,
-} from "../src/BlockRacersToken.contract";
+} from "../src/BlockGameToken.contract";
 import { ERC2771Context } from "../typechain-types";
 
-describe("BlockRacersToken", function () {
+describe("BlockGameToken", function () {
   describe("deployment", () => {
     it("deploys as expected", async () => {
       const tokenContract = await loadFixture(deployTokenFixture());
       const symbol = await tokenContract.symbol();
 
-      assert(symbol == "RACE", "Symbol not set");
+      assert(symbol == "GAME", "Symbol not set");
     });
   });
 

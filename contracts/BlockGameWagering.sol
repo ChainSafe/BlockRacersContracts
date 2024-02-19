@@ -23,7 +23,7 @@ import {Blacklist} from "./utils/Blacklist.sol";
 /// @author RyRy79261
 /// @notice This escrow contract holds functions used for the Block Racers
 /// wagering used in the game
-contract BlockRacersWagering is ERC2771Context, ReentrancyGuard, Blacklist {
+contract BlockGameWagering is ERC2771Context, ReentrancyGuard, Blacklist {
     using SafeERC20 for IERC20;
 
     enum WagerState {

@@ -1,5 +1,5 @@
 import { parseEther } from "ethers";
-import { BlockRacers } from "../typechain-types/contracts/BlockRacers";
+import { BlockGame } from "../typechain-types/contracts/BlockGame";
 
 export const generalSettings = {
   NFT: {

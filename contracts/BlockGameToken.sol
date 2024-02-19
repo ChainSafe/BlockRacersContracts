@@ -17,10 +17,10 @@ import {
     MessageHashUtils
 } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-/// @title Block Racers Token Contract
+/// @title Block Game Token Contract
 /// @author ChainSafe Systems, RyRy79261, Sneakz, Oleksii Matiiasevych
-/// @notice This contract manages the ERC20 token used within the Block Racers game
-contract BlockRacersToken is ERC20, ERC2771Context, Ownable {
+/// @notice This contract manages the ERC20 token used within the Block Game
+contract BlockGameToken is ERC20, ERC2771Context, Ownable {
     using BitMaps for BitMaps.BitMap;
 
     /// @dev Wallet that auth signatures come from
@@ -63,7 +63,7 @@ contract BlockRacersToken is ERC20, ERC2771Context, Ownable {
         address issuerAccount_,
         uint256 initialMint_
     )
-        ERC20("BlockRacersToken", "RACE")
+        ERC20("BlockGameToken", "GAME")
         ERC2771Context(trustedForwarder)
         Ownable(owner)
     {
@@ -123,7 +123,7 @@ contract BlockRacersToken is ERC20, ERC2771Context, Ownable {
     }
 }
 
-contract BlockRacersTokenTest is BlockRacersToken {
+contract BlockGameTokenTest is BlockGameToken {
     uint256 public immutable MINT_AMOUNT;
 
     constructor(
@@ -131,7 +131,7 @@ contract BlockRacersTokenTest is BlockRacersToken {
         address owner,
         address issuerAccount_,
         uint256 mintAmount
-    ) BlockRacersToken(trustedForwarder, owner, issuerAccount_, 0) {
+    ) BlockGameToken(trustedForwarder, owner, issuerAccount_, 0) {
         require(mintAmount > 1 ether, "Amount is too small");
         MINT_AMOUNT = mintAmount;
     }

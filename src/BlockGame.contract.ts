@@ -7,30 +7,30 @@ import {
   parseEther,
 } from "ethers";
 import { defaultGameSettings, generalSettings } from "../scripts/defaultSettings";
-import { approvalToken, deployTokenFixture } from "./BlockRacersToken.contract";
-import { deployAssetsFixture } from "./BlockRacersAssets.contract";
-import { BlockRacers, BlockRacersToken, UIHelper } from "../typechain-types";
+import { approvalToken, deployTokenFixture } from "./BlockGameToken.contract";
+import { deployAssetsFixture } from "./BlockGameAssets.contract";
+import { BlockGame, BlockGameToken, UIHelper } from "../typechain-types";
 import { assert, expect } from "chai";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-export enum CarTypeOption {
+export enum ObjectTypeOption {
   FIRST = 0,
   SECOND = 1,
   THIRD = 2,
 }
 
 export enum GameItem {
-  CAR = 0,
-  ENGINE = 1,
-  HANDLING = 2,
-  NOS = 3,
+  OBJECT = 0,
+  ITEM1 = 1,
+  ITEM2 = 2,
+  ITEM3 = 3,
 }
 
 export const modifiedGameSettings = [
-  [55, 45, 30], // car levels/prices
-  [15, 15, 15, 15, 15, 15, 15, 15, 15, 15], // engine
-  [12, 12, 12, 12, 12, 12, 12, 12, 12, 12], // handling
-  [40, 40, 40, 40, 40, 40], // nos
+  [55, 45, 30], // object levels/prices
+  [15, 15, 15, 15, 15, 15, 15, 15, 15, 15], // item 1
+  [12, 12, 12, 12, 12, 12, 12, 12, 12, 12], // item 2
+  [40, 40, 40, 40, 40, 40], // item 3
 ];
 
 export const modifiedGameSettingsUnits = modifiedGameSettings
@@ -46,8 +46,8 @@ export const deployCoreFixture = (
       erc20TokenAddress = (await deployTokenFixture()()).getAddress();
     }
 
-    const blockRacers = await ethers.getContractFactory("BlockRacers", admin);
-    const blockRacersContract = await blockRacers.deploy(
+    const blockGame = await ethers.getContractFactory("BlockGame", admin);
+    const blockGameContract = await blockGame.deploy(
       trustedForwarder,
       admin,
       erc20TokenAddress,
@@ -56,22 +56,22 @@ export const deployCoreFixture = (
       defaultGameSettings,
     );
 
-    await blockRacersContract.waitForDeployment();
+    await blockGameContract.waitForDeployment();
 
-    const blockRacersAssetsContract = await ethers.getContractAt("BlockRacersAssets", await blockRacersContract.ASSETS());
+    const blockGameAssetsContract = await ethers.getContractAt("BlockGameAssets", await blockGameContract.ASSETS());
 
     const uiHelper = await ethers.getContractFactory("UIHelper", admin);
-    const uiHelperContract = await uiHelper.deploy(blockRacersContract.getAddress());
+    const uiHelperContract = await uiHelper.deploy(blockGameContract.getAddress());
 
     await uiHelperContract.waitForDeployment();
 
-    return { blockRacersAssetsContract, blockRacersContract, uiHelperContract };
+    return { blockGameAssetsContract, blockGameContract, uiHelperContract };
   };
 };
 
 // Admin
 export const renounceOwnership = async (
-  coreContract: BlockRacers & {
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   admin: HardhatEthersSigner,
@@ -91,8 +91,8 @@ export const renounceOwnership = async (
   }
 };
 
-export const setBlockracersFeeAccount = async (
-  coreContract: BlockRacers & {
+export const setFeeAccount = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   admin: HardhatEthersSigner,
@@ -102,16 +102,16 @@ export const setBlockracersFeeAccount = async (
   if (relay) {
     const { data } = await coreContract
       .connect(admin)
-      .setBlockRacersFeeAccount.populateTransaction(newAccount);
+      .setFeeAccount.populateTransaction(newAccount);
 
     await sponsorRelayCall(await coreContract.getAddress(), admin, data);
   } else {
-    await coreContract.connect(admin).setBlockRacersFeeAccount(newAccount);
+    await coreContract.connect(admin).setFeeAccount(newAccount);
   }
 };
 
 export const setPrices = async (
-  coreContract: BlockRacers & {
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   admin: HardhatEthersSigner,
@@ -130,7 +130,7 @@ export const setPrices = async (
 };
 
 export const transferOwnership = async (
-  coreContract: BlockRacers & {
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   admin: HardhatEthersSigner,
@@ -149,151 +149,151 @@ export const transferOwnership = async (
 };
 
 // Write
-export const mintCar = async (
-  coreContract: BlockRacers & {
+export const mintObject = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
-  carType: CarTypeOption,
+  objectType: ObjectTypeOption,
   minter: HardhatEthersSigner,
   relay: boolean = false,
 ) => {
   if (relay) {
     const { data } = await coreContract
       .connect(minter)
-      .mintCar.populateTransaction(carType);
+      .mintObject.populateTransaction(objectType);
 
     await sponsorRelayCall(await coreContract.getAddress(), minter, data);
   } else {
-    await coreContract.connect(minter).mintCar(carType);
+    await coreContract.connect(minter).mintObject(objectType);
   }
 };
 
-export const mintCarWithEvent = async (
-  coreContract: BlockRacers & {
+export const mintObjectWithEvent = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
-  tokenContract: BlockRacersToken & {
+  tokenContract: BlockGameToken & {
     deploymentTransaction(): ContractTransactionResponse;
   },
-  carType: CarTypeOption,
+  objectType: ObjectTypeOption,
   minter: HardhatEthersSigner,
   eventName: string,
   eventArgs?: unknown[],
 ) => {
-  const { carCost } = await getCarOption(coreContract, carType);
+  const { objectCost } = await getObjectOption(coreContract, objectType);
 
   await approvalToken(
     tokenContract,
     minter,
     await coreContract.getAddress(),
-    carCost,
+    objectCost,
   );
   if (eventArgs) {
     await expect(
-      await coreContract.connect(minter).mintCar(carType),
+      await coreContract.connect(minter).mintObject(objectType),
       `${eventName} Failed`,
     )
       .to.emit(coreContract, eventName)
       .withArgs(...eventArgs);
   } else {
     await expect(
-      await coreContract.connect(minter).mintCar(carType),
+      await coreContract.connect(minter).mintObject(objectType),
       `${eventName} Failed`,
     ).to.emit(coreContract, eventName);
   }
 };
 
-export const mintCarWithErrors = async (
-  coreContract: BlockRacers & {
+export const mintObjectWithErrors = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
-  carType: CarTypeOption,
+  objectType: ObjectTypeOption,
   minter: HardhatEthersSigner,
   errorName: string,
   errorArgs: unknown[],
 ) => {
   await expect(
-    coreContract.connect(minter).mintCar(carType),
+    coreContract.connect(minter).mintObject(objectType),
     `${errorName} Failed`,
   )
     .to.be.revertedWithCustomError(coreContract, errorName)
     .withArgs(...errorArgs);
 };
 
-export const upgradeEngine = async (
-  coreContract: BlockRacers & {
+export const upgradeItem1 = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   ownerAccount: HardhatEthersSigner,
-  carId: BigNumberish,
+  objectId: BigNumberish,
   expectedLevel?: BigNumberish,
   relay: boolean = false,
 ) => {
   if (relay) {
     const { data } = await coreContract
       .connect(ownerAccount)
-      .upgrade.populateTransaction(carId, GameItem.ENGINE);
+      .upgrade.populateTransaction(objectId, GameItem.ITEM1);
 
     await sponsorRelayCall(await coreContract.getAddress(), ownerAccount, data);
   } else {
-    await coreContract.connect(ownerAccount).upgrade(carId, GameItem.ENGINE);
+    await coreContract.connect(ownerAccount).upgrade(objectId, GameItem.ITEM1);
   }
 
   if (expectedLevel) {
-    const stats = await getCarStats(coreContract, carId);
+    const stats = await getObjectStats(coreContract, objectId);
 
     assert(
-      stats[GameItem.ENGINE] == expectedLevel,
-      `Engine level was not increased incorrect. Actual: ${stats[GameItem.ENGINE]} | Expected: ${expectedLevel}`,
+      stats[GameItem.ITEM1] == expectedLevel,
+      `Item1 level was not increased incorrect. Actual: ${stats[GameItem.ITEM1]} | Expected: ${expectedLevel}`,
     );
   }
 };
 
-export const upgradeEngineWithEvent = async (
-  coreContract: BlockRacers & {
+export const upgradeItem1WithEvent = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   ownerAccount: HardhatEthersSigner,
-  carId: BigNumberish,
+  objectId: BigNumberish,
   eventName: string,
   eventArgs?: unknown[],
   expectedLevel?: BigNumberish,
 ) => {
   if (eventArgs) {
     await expect(
-      await coreContract.connect(ownerAccount).upgrade(carId, GameItem.ENGINE),
+      await coreContract.connect(ownerAccount).upgrade(objectId, GameItem.ITEM1),
       `${eventName} Failed`,
     )
       .to.emit(coreContract, eventName)
       .withArgs(...eventArgs);
   } else {
     await expect(
-      await coreContract.connect(ownerAccount).upgrade(carId, GameItem.ENGINE),
+      await coreContract.connect(ownerAccount).upgrade(objectId, GameItem.ITEM1),
       `${eventName} Failed`,
     ).to.emit(coreContract, eventName);
   }
 
   if (expectedLevel) {
-    const stats = await getCarStats(coreContract, carId);
+    const stats = await getObjectStats(coreContract, objectId);
 
     assert(
-      stats[GameItem.ENGINE] == expectedLevel,
-      `Engine level was not increased incorrect. Actual: ${stats[GameItem.ENGINE]} | Expected: ${expectedLevel}`,
+      stats[GameItem.ITEM1] == expectedLevel,
+      `Item1 level was not increased incorrect. Actual: ${stats[GameItem.ITEM1]} | Expected: ${expectedLevel}`,
     );
   }
 };
 
-export const upgradeEngineWithErrors = async (
-  coreContract: BlockRacers & {
+export const upgradeItem1WithErrors = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   ownerAccount: HardhatEthersSigner,
-  carId: BigNumberish,
+  objectId: BigNumberish,
   errorName: string,
   errorArgs: unknown[],
 ) => {
   await expect(
-    coreContract.connect(ownerAccount).upgrade(carId, GameItem.ENGINE),
+    coreContract.connect(ownerAccount).upgrade(objectId, GameItem.ITEM1),
     `${errorName} Failed`,
   )
     .to.be.revertedWithCustomError(coreContract, errorName)
@@ -301,205 +301,190 @@ export const upgradeEngineWithErrors = async (
 };
 
 export const upgradeWithErrors = async (
-  coreContract: BlockRacers & {
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   ownerAccount: HardhatEthersSigner,
-  carId: BigNumberish,
+  objectId: BigNumberish,
   item: GameItem,
   errorName: string,
   errorArgs: unknown[],
 ) => {
   await expect(
-    coreContract.connect(ownerAccount).upgrade(carId, item),
+    coreContract.connect(ownerAccount).upgrade(objectId, item),
     `${errorName} Failed`,
   )
     .to.be.revertedWithCustomError(coreContract, errorName)
     .withArgs(...errorArgs);
 };
 
-export const upgradeHandling = async (
-  coreContract: BlockRacers & {
+export const upgradeItem2 = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   ownerAccount: HardhatEthersSigner,
-  carId: BigNumberish,
+  objectId: BigNumberish,
   expectedLevel?: BigNumberish,
   relay: boolean = false,
 ) => {
   if (relay) {
     const { data } = await coreContract
       .connect(ownerAccount)
-      .upgrade.populateTransaction(carId, GameItem.HANDLING);
+      .upgrade.populateTransaction(objectId, GameItem.ITEM2);
 
     await sponsorRelayCall(await coreContract.getAddress(), ownerAccount, data);
   } else {
-    await coreContract.connect(ownerAccount).upgrade(carId, GameItem.HANDLING);
+    await coreContract.connect(ownerAccount).upgrade(objectId, GameItem.ITEM2);
   }
 
   if (expectedLevel) {
-    const stats = await getCarStats(coreContract, carId);
+    const stats = await getObjectStats(coreContract, objectId);
 
     assert(
-      stats[GameItem.HANDLING] == expectedLevel,
-      `Handling level was not increased incorrect. Actual: ${stats[GameItem.HANDLING]} | Expected: ${expectedLevel}`,
+      stats[GameItem.ITEM2] == expectedLevel,
+      `Item2 level was not increased incorrect. Actual: ${stats[GameItem.ITEM2]} | Expected: ${expectedLevel}`,
     );
   }
 };
 
-export const upgradeHandlingWithEvent = async (
-  coreContract: BlockRacers & {
+export const upgradeItem2WithEvent = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   ownerAccount: HardhatEthersSigner,
-  carId: BigNumberish,
+  objectId: BigNumberish,
   eventName: string,
   eventArgs?: unknown[],
   expectedLevel?: BigNumberish,
 ) => {
   if (eventArgs) {
     await expect(
-      await coreContract.connect(ownerAccount).upgrade(carId, GameItem.HANDLING),
+      await coreContract.connect(ownerAccount).upgrade(objectId, GameItem.ITEM2),
       `${eventName} Failed`,
     )
       .to.emit(coreContract, eventName)
       .withArgs(...eventArgs);
   } else {
     await expect(
-      await coreContract.connect(ownerAccount).upgrade(carId, GameItem.HANDLING),
+      await coreContract.connect(ownerAccount).upgrade(objectId, GameItem.ITEM2),
       `${eventName} Failed`,
     ).to.emit(coreContract, eventName);
   }
 
   if (expectedLevel) {
-    const stats = await getCarStats(coreContract, carId);
+    const stats = await getObjectStats(coreContract, objectId);
 
     assert(
-      stats[GameItem.HANDLING] == expectedLevel,
-      `Handling level was not increased incorrect. Actual: ${stats[GameItem.HANDLING]} | Expected: ${expectedLevel}`,
+      stats[GameItem.ITEM2] == expectedLevel,
+      `Item2 level was not increased incorrect. Actual: ${stats[GameItem.ITEM2]} | Expected: ${expectedLevel}`,
     );
   }
 };
 
-export const upgradeHandlingWithErrors = async (
-  coreContract: BlockRacers & {
+export const upgradeItem2WithErrors = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   ownerAccount: HardhatEthersSigner,
-  carId: BigNumberish,
+  objectId: BigNumberish,
   errorName: string,
   errorArgs: unknown[],
 ) => {
   await expect(
-    coreContract.connect(ownerAccount).upgrade(carId, GameItem.HANDLING),
+    coreContract.connect(ownerAccount).upgrade(objectId, GameItem.ITEM2),
     `${errorName} Failed`,
   )
     .to.be.revertedWithCustomError(coreContract, errorName)
     .withArgs(...errorArgs);
 };
 
-export const upgradeNos = async (
-  coreContract: BlockRacers & {
+export const upgradeItem3 = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   ownerAccount: HardhatEthersSigner,
-  carId: BigNumberish,
+  objectId: BigNumberish,
   expectedLevel?: BigNumberish,
   relay: boolean = false,
 ) => {
   if (relay) {
     const { data } = await coreContract
       .connect(ownerAccount)
-      .upgrade.populateTransaction(carId, GameItem.NOS);
+      .upgrade.populateTransaction(objectId, GameItem.ITEM3);
 
     await sponsorRelayCall(await coreContract.getAddress(), ownerAccount, data);
   } else {
-    await coreContract.connect(ownerAccount).upgrade(carId, GameItem.NOS);
+    await coreContract.connect(ownerAccount).upgrade(objectId, GameItem.ITEM3);
   }
 
   if (expectedLevel) {
-    const stats = await getCarStats(coreContract, carId);
+    const stats = await getObjectStats(coreContract, objectId);
 
     assert(
-      stats[GameItem.NOS] == expectedLevel,
-      `Nos level was not increased incorrect. Actual: ${stats[GameItem.NOS]} | Expected: ${expectedLevel}`,
+      stats[GameItem.ITEM3] == expectedLevel,
+      `Item3 level was not increased incorrect. Actual: ${stats[GameItem.ITEM3]} | Expected: ${expectedLevel}`,
     );
   }
 };
 
-export const upgradeNosWithErrors = async (
-  coreContract: BlockRacers & {
+export const upgradeItem3WithErrors = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   ownerAccount: HardhatEthersSigner,
-  carId: BigNumberish,
+  objectId: BigNumberish,
   errorName: string,
   errorArgs: unknown[],
 ) => {
   await expect(
-    coreContract.connect(ownerAccount).upgrade(carId, GameItem.NOS),
+    coreContract.connect(ownerAccount).upgrade(objectId, GameItem.ITEM3),
     `${errorName} Failed`,
   )
     .to.be.revertedWithCustomError(coreContract, errorName)
     .withArgs(...errorArgs);
 };
 
-export const upgradeNosWithEvent = async (
-  coreContract: BlockRacers & {
+export const upgradeItem3WithEvent = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   ownerAccount: HardhatEthersSigner,
-  carId: BigNumberish,
+  objectId: BigNumberish,
   eventName: string,
   eventArgs?: unknown[],
   expectedLevel?: BigNumberish,
 ) => {
   if (eventArgs) {
     await expect(
-      await coreContract.connect(ownerAccount).upgrade(carId, GameItem.NOS),
+      await coreContract.connect(ownerAccount).upgrade(objectId, GameItem.ITEM3),
       `${eventName} Failed`,
     )
       .to.emit(coreContract, eventName)
       .withArgs(...eventArgs);
   } else {
     await expect(
-      await coreContract.connect(ownerAccount).upgrade(carId, GameItem.NOS),
+      await coreContract.connect(ownerAccount).upgrade(objectId, GameItem.ITEM3),
       `${eventName} Failed`,
     ).to.emit(coreContract, eventName);
   }
 
   if (expectedLevel) {
-    const stats = await getCarStats(coreContract, carId);
+    const stats = await getObjectStats(coreContract, objectId);
 
     assert(
-      stats[GameItem.NOS] == expectedLevel,
-      `Nos level was not increased incorrect. Actual: ${stats[GameItem.NOS]} | Expected: ${expectedLevel}`,
+      stats[GameItem.ITEM3] == expectedLevel,
+      `Item3 level was not increased incorrect. Actual: ${stats[GameItem.ITEM3]} | Expected: ${expectedLevel}`,
     );
   }
 };
 
-// Read
-export const blockRacersFeeAccount = async (
-  coreContract: BlockRacers & {
-    deploymentTransaction(): ContractTransactionResponse;
-  },
-  expectedAddress: AddressLike,
-) => {
-  const feeAccountFetched = await coreContract.blockRacersFeeAccount();
-
-  assert(
-    expectedAddress == feeAccountFetched,
-    `Fee account incorrect. Actual: ${feeAccountFetched} | Expected: ${expectedAddress}`,
-  );
-};
-
-export const numberOfCarsMinted = async (
-  coreContract: BlockRacers & {
+export const numberOfObjectsMinted = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   expectedValue?: BigNumberish,
 ) => {
-  const minted = await coreContract.getNumberOfCarsMinted();
+  const minted = await coreContract.getNumberOfObjectsMinted();
 
   if (expectedValue) {
     assert(
@@ -512,7 +497,7 @@ export const numberOfCarsMinted = async (
 };
 
 export const checkOwner = async (
-  coreContract: BlockRacers & {
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   expectedOwner: AddressLike,
@@ -525,7 +510,7 @@ export const checkOwner = async (
 };
 
 export const checkToken = async (
-  coreContract: BlockRacers & {
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   expectedToken: AddressLike,
@@ -538,7 +523,7 @@ export const checkToken = async (
 };
 
 export const checkAssets = async (
-  coreContract: BlockRacers & {
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   expectedAssets: AddressLike,
@@ -550,15 +535,15 @@ export const checkAssets = async (
   );
 };
 
-export const isCarOwner = async (
-  coreContract: BlockRacers & {
+export const isObjectOwner = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   owner: AddressLike,
   id: BigNumberish,
   expectedValue?: boolean,
 ) => {
-  const isOwner = await coreContract.isCarOwner(id, owner);
+  const isOwner = await coreContract.isObjectOwner(id, owner);
 
   if (expectedValue) {
     assert(
@@ -570,36 +555,36 @@ export const isCarOwner = async (
   return isOwner;
 };
 
-export const getCarOption = async (
-  coreContract: BlockRacers & {
+export const getObjectOption = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
-  carType: CarTypeOption,
+  objectType: ObjectTypeOption,
   expectedCost?: BigNumberish,
   expectedUri?: string,
 ) => {
-  const option = await coreContract.getItemData(GameItem.CAR);
+  const option = await coreContract.getItemData(GameItem.OBJECT);
 
   if (expectedCost) {
     assert(
-      option[carType] == expectedCost,
-      `Option cost incorrect. Actual: ${option[carType]} | Expected: ${expectedCost}`,
+      option[objectType] == expectedCost,
+      `Option cost incorrect. Actual: ${option[objectType]} | Expected: ${expectedCost}`,
     );
   }
 
   return {
-    carCost: option[carType],
+    objectCost: option[objectType],
   };
 };
 
-export const getCarStats = async (
-  coreContract: BlockRacers & {
+export const getObjectStats = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
-  carId: BigNumberish,
+  objectId: BigNumberish,
   expectedStats?: BigNumberish[],
 ) => {
-  const stats = await coreContract.getCarStats(carId);
+  const stats = await coreContract.getObjectStats(objectId);
 
   if (expectedStats) {
     assert.deepEqual(stats, expectedStats.map(el => BigInt(el)));
@@ -609,10 +594,10 @@ export const getCarStats = async (
 };
 
 export const getUpgradeData = async (
-  coreContract: BlockRacers & {
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
-  expected?: BlockRacers.GameSettingsDataStruct,
+  expected?: BlockGame.GameSettingsDataStruct,
 ) => {
   const data = await coreContract.getItemsData();
 
@@ -623,7 +608,7 @@ export const getUpgradeData = async (
 };
 
 export const getItemData = async (
-  coreContract: BlockRacers & {
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   gameItem: GameItem,
@@ -638,7 +623,7 @@ export const getItemData = async (
 };
 
 export const getItemDataWithError = async (
-  coreContract: BlockRacers & {
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   gameItem: GameItem,
@@ -651,7 +636,7 @@ export const getItemDataWithError = async (
 };
 
 export const getOwner = async (
-  coreContract: BlockRacers & {
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   expected?: AddressLike,
@@ -668,13 +653,13 @@ export const getOwner = async (
   return owner;
 };
 
-export const getBlockracersFeeAccount = async (
-  coreContract: BlockRacers & {
+export const getFeeAccount = async (
+  coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   expected?: AddressLike,
 ) => {
-  const feeAccount = await coreContract.blockRacersFeeAccount();
+  const feeAccount = await coreContract.feeAccount();
 
   if (expected) {
     assert(
@@ -697,13 +682,13 @@ export const getUserMintedTypes = async (
   assert.deepEqual(types, expectedTypes);
 };
 
-export const getUserCarsByTypeWithStats = async (
+export const getUserObjectsByTypeWithStats = async (
   coreContract: UIHelper & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   owner: AddressLike,
   expectedTypes: BigNumberish[][],
 ) => {
-  const types = await coreContract.getUserCarsByTypeWithStats(owner);
+  const types = await coreContract.getUserObjectsByTypeWithStats(owner);
   assert.deepEqual(types, expectedTypes);
 };

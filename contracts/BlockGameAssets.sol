@@ -2,26 +2,26 @@
 pragma solidity 0.8.22;
 
 import {ERC1155NFT, ERC1155} from "./ERC1155NFT.sol";
-import {IBlockRacers} from "./IBlockRacers.sol";
+import {IBlockGame} from "./IBlockGame.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {
     ERC2771Context,
     Context
 } from "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 
-/// @title Block Racers ERC1155 contract
+/// @title Block Game ERC1155 contract
 /// @author ChainSafe Systems, RyRy79261, Oleksii Matiiasevych
-/// @notice This contract facilitates NFT asset management in Block Racers
-contract BlockRacersAssets is
+/// @notice This contract facilitates NFT asset management in Block Game
+contract BlockGameAssets is
     ERC2771Context,
     ERC1155NFT
 {
-    IBlockRacers public immutable BLOCK_RACERS;
+    IBlockGame public immutable BLOCK_GAME;
 
     error NotAuthorizedGameContract();
 
     modifier onlyBlockracers() {
-        if (_msgSender() != address(BLOCK_RACERS)) {
+        if (_msgSender() != address(BLOCK_GAME)) {
             revert NotAuthorizedGameContract();
         }
         _;
@@ -34,7 +34,7 @@ contract BlockRacersAssets is
         address trustedForwarder,
         string memory baseUri_
     ) ERC2771Context(trustedForwarder) ERC1155(baseUri_) {
-        BLOCK_RACERS = IBlockRacers(_msgSender());
+        BLOCK_GAME = IBlockGame(_msgSender());
     }
 
     /// @dev Minting functions
@@ -58,7 +58,7 @@ contract BlockRacersAssets is
     ) public view override returns (string memory) {
         return string(abi.encodePacked(
             super.uri(tokenId),
-            BLOCK_RACERS.serializeProperties(tokenId),
+            BLOCK_GAME.serializeProperties(tokenId),
             '.json'
         ));
     }

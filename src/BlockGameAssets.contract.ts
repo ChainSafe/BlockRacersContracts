@@ -2,7 +2,7 @@ import { setBalance } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { ethers } from "hardhat";
 import { getAccounts, sponsorRelayCall } from "./generalFunctions";
 import { generalSettings } from "../scripts/defaultSettings";
-import { deployTokenFixture } from "./BlockRacersToken.contract";
+import { deployTokenFixture } from "./BlockGameToken.contract";
 import { assert, expect } from "chai";
 import {
   AddressLike,
@@ -10,19 +10,19 @@ import {
   ContractTransactionResponse,
   ZeroHash,
 } from "ethers";
-import { BlockRacersAssets } from "../typechain-types";
+import { BlockGameAssets } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
 export const deployAssetsFixture = async () => {
   const { admin, trustedForwarder, feeAccount } = await getAccounts();
 
-  const blockRacers = await ethers.getContractFactory(
-    "BlockRacers",
+  const blockGame = await ethers.getContractFactory(
+    "BlockGame",
     admin,
   );
 
   const erc20TokenAddress = (await deployTokenFixture()()).getAddress();
-  const blockRacersContract = await blockRacers.deploy(
+  const blockGameContract = await blockGame.deploy(
     trustedForwarder,
     admin,
     erc20TokenAddress,
@@ -30,16 +30,16 @@ export const deployAssetsFixture = async () => {
     generalSettings.NFT.baseUri,
     [[55, 45, 30], [0], [0], [0]],
   );
-  await blockRacersContract.waitForDeployment();
-  await setBalance(await blockRacersContract.getAddress(), ethers.parseEther('100'));
+  await blockGameContract.waitForDeployment();
+  await setBalance(await blockGameContract.getAddress(), ethers.parseEther('100'));
 
-  const blockRacersAssetsContract = await ethers.getContractAt("BlockRacersAssets", await blockRacersContract.ASSETS());
+  const blockGameAssetsContract = await ethers.getContractAt("BlockGameAssets", await blockGameContract.ASSETS());
 
-  return { blockRacersAssetsContract, blockRacersContract };
+  return { blockGameAssetsContract, blockGameContract };
 };
 
 export const mintNft = async (
-  assetsContract: BlockRacersAssets & {
+  assetsContract: BlockGameAssets & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   receiver: AddressLike,
@@ -47,11 +47,11 @@ export const mintNft = async (
   relay: boolean = false,
 ) => {
   const { admin, issuerAccount } = await getAccounts();
-  const BLOCK_RACERS = await assetsContract.BLOCK_RACERS();
+  const BLOCK_GAME = await assetsContract.BLOCK_GAME();
 
   const before = await balanceOfNft(assetsContract, receiver, id);
 
-  const mockRacers = await ethers.getImpersonatedSigner(BLOCK_RACERS);
+  const mockGame = await ethers.getImpersonatedSigner(BLOCK_GAME);
 
   if (relay) {
     const { data } = await assetsContract
@@ -59,18 +59,18 @@ export const mintNft = async (
 
     await sponsorRelayCall(
       await assetsContract.getAddress(),
-      mockRacers,
+      mockGame,
       data,
     );
   } else {
-    await assetsContract.connect(mockRacers).mint(receiver);
+    await assetsContract.connect(mockGame).mint(receiver);
   }
 
   await balanceOfNft(assetsContract, receiver, id, 1n + before);
 };
 
 export const mintNftWithError = async (
-  assetsContract: BlockRacersAssets & {
+  assetsContract: BlockGameAssets & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   receiver: AddressLike,
@@ -89,7 +89,7 @@ export const mintNftWithError = async (
 };
 
 export const setApprovalForAll = async (
-  assetsContract: BlockRacersAssets & {
+  assetsContract: BlockGameAssets & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   from: HardhatEthersSigner,
@@ -113,7 +113,7 @@ export const setApprovalForAll = async (
 };
 
 export const safeTransferFrom = async (
-  assetsContract: BlockRacersAssets & {
+  assetsContract: BlockGameAssets & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   from: HardhatEthersSigner,
@@ -144,7 +144,7 @@ export const safeTransferFrom = async (
 
 // Read
 export const balanceOfNft = async (
-  assetsContract: BlockRacersAssets & {
+  assetsContract: BlockGameAssets & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   account: AddressLike,
@@ -164,7 +164,7 @@ export const balanceOfNft = async (
 };
 
 export const isApprovedForAll = async (
-  assetsContract: BlockRacersAssets & {
+  assetsContract: BlockGameAssets & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   sender: AddressLike,
@@ -182,7 +182,7 @@ export const isApprovedForAll = async (
 };
 
 export const getUri = async (
-  assetsContract: BlockRacersAssets & {
+  assetsContract: BlockGameAssets & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   nftId: BigNumberish,

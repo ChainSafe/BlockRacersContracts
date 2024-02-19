@@ -7,11 +7,11 @@ import {
   completeWager,
   createWager,
   getPlayersWagers,
-} from "../../src/BlockRacersWagering.contract";
+} from "../../src/BlockGameWagering.contract";
 import {
   balanceOfToken,
   setAllowanceToken,
-} from "../../src/BlockRacersToken.contract";
+} from "../../src/BlockGameToken.contract";
 import {
   defaultDeployFixture,
   getAccounts,
@@ -25,7 +25,7 @@ import {
 } from "ethers";
 import { addToBlacklist } from "../../src/Blacklist.contract";
 
-describe("BlockRacersWagering - ERC2771", function () {
+describe("BlockGameWagering - ERC2771", function () {
   const standardPrize = parseUnits("4", 18);
 
   describe("write", function () {

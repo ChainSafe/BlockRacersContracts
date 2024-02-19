@@ -1,6 +1,6 @@
 {
-  "name": "BlockRacersContracts",
-  "version": "1.0.0",
+  "name": "BlockGameContracts",
+  "version": "2.0.0",
   "main": "index.js",
   "repository": "git@github.com:ChainSafe/BlockRacersContracts.git",
   "author": "ChainSafe Systems, RyRy79261 <ryanjnoble@gmail.com>, Oleksii Matiiasevych <oleksii@chainsafe.io>",

@@ -12,7 +12,7 @@ import {
 import { defaultDeployFixture, getAccounts } from "../src/generalFunctions";
 import { assert } from "chai";
 import { parseUnits } from "ethers";
-import { createWagerWithError } from "../src/BlockRacersWagering.contract";
+import { createWagerWithError } from "../src/BlockGameWagering.contract";
 
 describe("Blacklist", function () {
   describe("deployment", () => {

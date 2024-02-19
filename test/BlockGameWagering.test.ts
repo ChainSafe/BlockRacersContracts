@@ -17,11 +17,11 @@ import {
   getLatestWagerId,
   getPlayersWagers,
   getTokenAddressWagering,
-} from "../src/BlockRacersWagering.contract";
+} from "../src/BlockGameWagering.contract";
 import {
   balanceOfToken,
   setAllowanceToken,
-} from "../src/BlockRacersToken.contract";
+} from "../src/BlockGameToken.contract";
 import {
   checkTrustedForwarder,
   defaultDeployFixture,
@@ -39,7 +39,7 @@ import {
 } from "ethers";
 import { addToBlacklist } from "../src/Blacklist.contract";
 
-describe("BlockRacersWagering", function () {
+describe("BlockGameWagering", function () {
   const standardPrize = parseUnits("4", 18);
 
   describe("deployment", () => {
