@@ -59,7 +59,7 @@ async function main() {
           metadataTemplate.attributes[0].value = props[1];
           metadataTemplate.attributes[1].value = props[2];
           metadataTemplate.attributes[2].value = props[3];
-          await fs.writeFile("./scripts/metadata/" + filename + ".json", JSON.stringify(metadataTemplate));
+          await fs.writeFile("./scripts/metadata/jsons/" + filename + ".json", JSON.stringify(metadataTemplate));
         }
       }
     }
