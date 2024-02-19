@@ -1,56 +1,18 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import {
   CarTypeOption,
-  GameItem,
-  blockRacersFeeAccount,
-  checkAssets,
-  checkOwner,
-  checkToken,
   deployCoreFixture,
-  getBlockracersFeeAccount,
   getCarOption,
-  isCarOwner,
-  getCarStats,
-  getItemData,
-  getItemDataWithError,
-  getOwner,
-  getUpgradeData,
   mintCar,
-  mintCarWithErrors,
-  mintCarWithEvent,
-  modifiedGameSettings,
-  modifiedGameSettingsUnits,
-  numberOfCarsMinted,
-  renounceOwnership,
-  setBlockracersFeeAccount,
-  setPrices,
-  transferOwnership,
-  upgradeEngine,
-  upgradeEngineWithErrors,
-  upgradeEngineWithEvent,
-  upgradeHandling,
-  upgradeHandlingWithErrors,
-  upgradeHandlingWithEvent,
-  upgradeNos,
-  upgradeNosWithErrors,
-  upgradeNosWithEvent,
-  upgradeWithErrors,
   getUserMintedTypes,
 } from "../src/BlockRacers.contract";
 import {
-  checkTrustedForwarder,
   defaultDeployFixture,
   getAccounts,
-  isTrustedForwarder,
 } from "../src/generalFunctions";
 import {
-  deployTokenFixture,
   setAllowanceToken,
 } from "../src/BlockRacersToken.contract";
-import { deployAssetsFixture } from "../src/BlockRacersAssets.contract";
-import { ERC2771Context } from "../typechain-types";
-import { defaultGameSettings, defaultGameSettingsUnits } from "../scripts/defaultSettings";
-import { ZeroAddress } from "ethers";
 
 describe("UIHelper", function () {
   describe("read", function () {
