@@ -43,6 +43,12 @@ abstract contract ERC1155NFT is ERC1155 {
         return _inventory[holder].values();
     }
 
+    function _mint(address to) internal returns (uint256) {
+        uint256 tokenId = _totalSupply + 1;
+        _mint(to, tokenId, 1, new bytes(0));
+        return tokenId;
+    }
+
     /**
      * @dev See {ERC1155-_update}.
      */

@@ -44,9 +44,7 @@ contract BlockRacersAssets is
     function mint(
         address to
     ) external onlyBlockracers returns(uint256) {
-        uint256 tokenId = totalSupply() + 1;
-        _mint(to, tokenId, 1, new bytes(0));
-        return tokenId;
+        return _mint(to);
     }
 
     function supportsInterface(
