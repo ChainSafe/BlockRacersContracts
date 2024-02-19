@@ -9,7 +9,7 @@ import {
 import { defaultGameSettings, generalSettings } from "../scripts/defaultSettings";
 import { approvalToken, deployTokenFixture } from "./BlockRacersToken.contract";
 import { deployAssetsFixture } from "./BlockRacersAssets.contract";
-import { BlockRacers, BlockRacersToken } from "../typechain-types";
+import { BlockRacers, BlockRacersToken, UIHelper } from "../typechain-types";
 import { assert, expect } from "chai";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
@@ -60,7 +60,12 @@ export const deployCoreFixture = (
 
     const blockRacersAssetsContract = await ethers.getContractAt("BlockRacersAssets", await blockRacersContract.ASSETS());
 
-    return { blockRacersAssetsContract, blockRacersContract };
+    const uiHelper = await ethers.getContractFactory("UIHelper", admin);
+    const uiHelperContract = await uiHelper.deploy(blockRacersContract.getAddress());
+
+    await uiHelperContract.waitForDeployment();
+
+    return { blockRacersAssetsContract, blockRacersContract, uiHelperContract };
   };
 };
 
@@ -679,4 +684,15 @@ export const getBlockracersFeeAccount = async (
   }
 
   return feeAccount;
+};
+
+export const getUserMintedTypes = async (
+  coreContract: UIHelper & {
+    deploymentTransaction(): ContractTransactionResponse;
+  },
+  owner: AddressLike,
+  expectedTypes: bool[],
+) => {
+  const types = await coreContract.getUserMintedTypes(owner);
+  assert.deepEqual(types, expectedTypes);
 };

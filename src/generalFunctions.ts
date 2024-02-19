@@ -39,7 +39,7 @@ export const defaultDeployFixture = (withMint: boolean = false) => {
     const wageringContract = await deployWageringFixture(
       await tokenContract.getAddress(),
     )();
-    const { blockRacersContract: coreContract, blockRacersAssetsContract: assetsContract } = await deployCoreFixture(
+    const { blockRacersContract: coreContract, blockRacersAssetsContract: assetsContract, uiHelperContract } = await deployCoreFixture(
       await tokenContract.getAddress(),
     )();
 
@@ -70,6 +70,7 @@ export const defaultDeployFixture = (withMint: boolean = false) => {
       assetsContract,
       wageringContract,
       coreContract,
+      uiHelperContract,
     };
   };
 };
