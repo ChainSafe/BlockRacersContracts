@@ -95,19 +95,23 @@ export const mintWithPermit = async (
   relay: boolean = false,
 ) => {
   const beforeMint = await balanceOfToken(tokenContract, account);
-  const nonce = await getPlayerNonce(tokenContract, account, 0);
+  const nonce = Date.now();
+  const chainId = (await ethers.provider.getNetwork()).chainId;
 
-  const permit = await createMintPermit(issuer, nonce, account, value);
+  const permit = await createMintPermit(
+    issuer, nonce, account, value, await tokenContract.getAddress(), chainId
+  );
   if (relay) {
-    const { data } = await tokenContract.mint.populateTransaction(
+    const { data } = await tokenContract.mintPermit.populateTransaction(
       account,
       value,
+      nonce,
       permit,
     );
 
     await sponsorRelayCall(await tokenContract.getAddress(), issuer, data);
   } else {
-    await tokenContract.mint(account, value, permit);
+    await tokenContract.mintPermit(account, value, nonce, permit);
   }
 
   await balanceOfToken(tokenContract, account, beforeMint + BigInt(value));
@@ -263,11 +267,13 @@ export const createMintPermit = async (
   nonce: BigNumberish,
   account: AddressLike,
   value: BigNumberish,
+  token: AddressLike,
+  chainId: BigNumberish,
 ) => {
   const message = getBytes(
     solidityPackedKeccak256(
-      ["uint256", "address", "uint256"],
-      [nonce, account, toBeHex(value)],
+      ["address", "uint256", "uint256", "address", "uint256"],
+      [account, toBeHex(value), nonce, token, chainId],
     ),
   );
 

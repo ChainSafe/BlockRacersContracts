@@ -116,20 +116,6 @@ namespace BlockRacersToken.BlockRacersToken
             return ContractHandler.QueryAsync<DecimalsFunction, byte>(null, blockParameter);
         }
 
-        public Task<BigInteger> GetPlayerNonceQueryAsync(GetPlayerNonceFunction getPlayerNonceFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<GetPlayerNonceFunction, BigInteger>(getPlayerNonceFunction, blockParameter);
-        }
-
-        
-        public Task<BigInteger> GetPlayerNonceQueryAsync(string player, BlockParameter blockParameter = null)
-        {
-            var getPlayerNonceFunction = new GetPlayerNonceFunction();
-                getPlayerNonceFunction.Player = player;
-            
-            return ContractHandler.QueryAsync<GetPlayerNonceFunction, BigInteger>(getPlayerNonceFunction, blockParameter);
-        }
-
         public Task<bool> IsTrustedForwarderQueryAsync(IsTrustedForwarderFunction isTrustedForwarderFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<IsTrustedForwarderFunction, bool>(isTrustedForwarderFunction, blockParameter);
@@ -165,52 +151,26 @@ namespace BlockRacersToken.BlockRacersToken
              return ContractHandler.SendRequestAndWaitForReceiptAsync(mintFunction, cancellationToken);
         }
 
-        public Task<string> MintRequestAsync(string to, BigInteger amount)
+        public Task<string> MintRequestAsync(string to, BigInteger amount, BigInteger nonce, byte[] permit)
         {
             var mintFunction = new MintFunction();
                 mintFunction.To = to;
                 mintFunction.Amount = amount;
+                mintFunction.Nonce = nonce;
+                mintFunction.Permit = permit;
             
              return ContractHandler.SendRequestAsync(mintFunction);
         }
 
-        public Task<TransactionReceipt> MintRequestAndWaitForReceiptAsync(string to, BigInteger amount, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> MintRequestAndWaitForReceiptAsync(string to, BigInteger amount, BigInteger nonce, byte[] permit, CancellationTokenSource cancellationToken = null)
         {
             var mintFunction = new MintFunction();
                 mintFunction.To = to;
                 mintFunction.Amount = amount;
+                mintFunction.Nonce = nonce;
+                mintFunction.Permit = permit;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(mintFunction, cancellationToken);
-        }
-
-        public Task<string> MintRequestAsync(Mint1Function mint1Function)
-        {
-             return ContractHandler.SendRequestAsync(mint1Function);
-        }
-
-        public Task<TransactionReceipt> MintRequestAndWaitForReceiptAsync(Mint1Function mint1Function, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(mint1Function, cancellationToken);
-        }
-
-        public Task<string> MintRequestAsync(string to, BigInteger amount, byte[] permit)
-        {
-            var mint1Function = new Mint1Function();
-                mint1Function.To = to;
-                mint1Function.Amount = amount;
-                mint1Function.Permit = permit;
-            
-             return ContractHandler.SendRequestAsync(mint1Function);
-        }
-
-        public Task<TransactionReceipt> MintRequestAndWaitForReceiptAsync(string to, BigInteger amount, byte[] permit, CancellationTokenSource cancellationToken = null)
-        {
-            var mint1Function = new Mint1Function();
-                mint1Function.To = to;
-                mint1Function.Amount = amount;
-                mint1Function.Permit = permit;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(mint1Function, cancellationToken);
         }
 
         public Task<string> NameQueryAsync(NameFunction nameFunction, BlockParameter blockParameter = null)

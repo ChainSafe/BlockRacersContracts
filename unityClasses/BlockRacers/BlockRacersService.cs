@@ -59,6 +59,28 @@ namespace BlockRacers.BlockRacers
             return ContractHandler.QueryAsync<AssetsFunction, string>(null, blockParameter);
         }
 
+        public Task<string> TokenQueryAsync(TokenFunction tokenFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<TokenFunction, string>(tokenFunction, blockParameter);
+        }
+
+        
+        public Task<string> TokenQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<TokenFunction, string>(null, blockParameter);
+        }
+
+        public Task<BigInteger> TokenUnitQueryAsync(TokenUnitFunction tokenUnitFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<TokenUnitFunction, BigInteger>(tokenUnitFunction, blockParameter);
+        }
+
+        
+        public Task<BigInteger> TokenUnitQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<TokenUnitFunction, BigInteger>(null, blockParameter);
+        }
+
         public Task<string> BlockRacersFeeAccountQueryAsync(BlockRacersFeeAccountFunction blockRacersFeeAccountFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<BlockRacersFeeAccountFunction, string>(blockRacersFeeAccountFunction, blockParameter);
@@ -70,58 +92,43 @@ namespace BlockRacers.BlockRacers
             return ContractHandler.QueryAsync<BlockRacersFeeAccountFunction, string>(null, blockParameter);
         }
 
-        public Task<GetCarOptionOutputDTO> GetCarOptionQueryAsync(GetCarOptionFunction getCarOptionFunction, BlockParameter blockParameter = null)
+        public Task<List<byte>> GetCarStatsQueryAsync(GetCarStatsFunction getCarStatsFunction, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetCarOptionFunction, GetCarOptionOutputDTO>(getCarOptionFunction, blockParameter);
-        }
-
-        public Task<GetCarOptionOutputDTO> GetCarOptionQueryAsync(BigInteger carTypeId, BlockParameter blockParameter = null)
-        {
-            var getCarOptionFunction = new GetCarOptionFunction();
-                getCarOptionFunction.CarTypeId = carTypeId;
-            
-            return ContractHandler.QueryDeserializingToObjectAsync<GetCarOptionFunction, GetCarOptionOutputDTO>(getCarOptionFunction, blockParameter);
-        }
-
-        public Task<bool> GetCarOwnerQueryAsync(GetCarOwnerFunction getCarOwnerFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<GetCarOwnerFunction, bool>(getCarOwnerFunction, blockParameter);
+            return ContractHandler.QueryAsync<GetCarStatsFunction, List<byte>>(getCarStatsFunction, blockParameter);
         }
 
         
-        public Task<bool> GetCarOwnerQueryAsync(BigInteger carId, string account, BlockParameter blockParameter = null)
-        {
-            var getCarOwnerFunction = new GetCarOwnerFunction();
-                getCarOwnerFunction.CarId = carId;
-                getCarOwnerFunction.Account = account;
-            
-            return ContractHandler.QueryAsync<GetCarOwnerFunction, bool>(getCarOwnerFunction, blockParameter);
-        }
-
-        public Task<GetCarStatsOutputDTO> GetCarStatsQueryAsync(GetCarStatsFunction getCarStatsFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetCarStatsFunction, GetCarStatsOutputDTO>(getCarStatsFunction, blockParameter);
-        }
-
-        public Task<GetCarStatsOutputDTO> GetCarStatsQueryAsync(BigInteger carId, BlockParameter blockParameter = null)
+        public Task<List<byte>> GetCarStatsQueryAsync(BigInteger carId, BlockParameter blockParameter = null)
         {
             var getCarStatsFunction = new GetCarStatsFunction();
                 getCarStatsFunction.CarId = carId;
             
-            return ContractHandler.QueryDeserializingToObjectAsync<GetCarStatsFunction, GetCarStatsOutputDTO>(getCarStatsFunction, blockParameter);
+            return ContractHandler.QueryAsync<GetCarStatsFunction, List<byte>>(getCarStatsFunction, blockParameter);
         }
 
-        public Task<GetItemDataOutputDTO> GetItemDataQueryAsync(GetItemDataFunction getItemDataFunction, BlockParameter blockParameter = null)
+        public Task<List<BigInteger>> GetItemDataQueryAsync(GetItemDataFunction getItemDataFunction, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetItemDataFunction, GetItemDataOutputDTO>(getItemDataFunction, blockParameter);
+            return ContractHandler.QueryAsync<GetItemDataFunction, List<BigInteger>>(getItemDataFunction, blockParameter);
         }
 
-        public Task<GetItemDataOutputDTO> GetItemDataQueryAsync(byte itemType, BlockParameter blockParameter = null)
+        
+        public Task<List<BigInteger>> GetItemDataQueryAsync(byte itemType, BlockParameter blockParameter = null)
         {
             var getItemDataFunction = new GetItemDataFunction();
                 getItemDataFunction.ItemType = itemType;
             
-            return ContractHandler.QueryDeserializingToObjectAsync<GetItemDataFunction, GetItemDataOutputDTO>(getItemDataFunction, blockParameter);
+            return ContractHandler.QueryAsync<GetItemDataFunction, List<BigInteger>>(getItemDataFunction, blockParameter);
+        }
+
+        public Task<List<List<BigInteger>>> GetItemsDataQueryAsync(GetItemsDataFunction getItemsDataFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetItemsDataFunction, List<List<BigInteger>>>(getItemsDataFunction, blockParameter);
+        }
+
+        
+        public Task<List<List<BigInteger>>> GetItemsDataQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetItemsDataFunction, List<List<BigInteger>>>(null, blockParameter);
         }
 
         public Task<BigInteger> GetNumberOfCarsMintedQueryAsync(GetNumberOfCarsMintedFunction getNumberOfCarsMintedFunction, BlockParameter blockParameter = null)
@@ -135,14 +142,48 @@ namespace BlockRacers.BlockRacers
             return ContractHandler.QueryAsync<GetNumberOfCarsMintedFunction, BigInteger>(null, blockParameter);
         }
 
-        public Task<GetUpgradeDataOutputDTO> GetUpgradeDataQueryAsync(GetUpgradeDataFunction getUpgradeDataFunction, BlockParameter blockParameter = null)
+        public Task<BigInteger> GetPriceQueryAsync(GetPriceFunction getPriceFunction, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetUpgradeDataFunction, GetUpgradeDataOutputDTO>(getUpgradeDataFunction, blockParameter);
+            return ContractHandler.QueryAsync<GetPriceFunction, BigInteger>(getPriceFunction, blockParameter);
         }
 
-        public Task<GetUpgradeDataOutputDTO> GetUpgradeDataQueryAsync(BlockParameter blockParameter = null)
+        
+        public Task<BigInteger> GetPriceQueryAsync(byte item, byte level, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryDeserializingToObjectAsync<GetUpgradeDataFunction, GetUpgradeDataOutputDTO>(null, blockParameter);
+            var getPriceFunction = new GetPriceFunction();
+                getPriceFunction.Item = item;
+                getPriceFunction.Level = level;
+            
+            return ContractHandler.QueryAsync<GetPriceFunction, BigInteger>(getPriceFunction, blockParameter);
+        }
+
+        public Task<List<BigInteger>> GetUserCarsQueryAsync(GetUserCarsFunction getUserCarsFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetUserCarsFunction, List<BigInteger>>(getUserCarsFunction, blockParameter);
+        }
+
+        
+        public Task<List<BigInteger>> GetUserCarsQueryAsync(string account, BlockParameter blockParameter = null)
+        {
+            var getUserCarsFunction = new GetUserCarsFunction();
+                getUserCarsFunction.Account = account;
+            
+            return ContractHandler.QueryAsync<GetUserCarsFunction, List<BigInteger>>(getUserCarsFunction, blockParameter);
+        }
+
+        public Task<bool> IsCarOwnerQueryAsync(IsCarOwnerFunction isCarOwnerFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<IsCarOwnerFunction, bool>(isCarOwnerFunction, blockParameter);
+        }
+
+        
+        public Task<bool> IsCarOwnerQueryAsync(BigInteger carId, string account, BlockParameter blockParameter = null)
+        {
+            var isCarOwnerFunction = new IsCarOwnerFunction();
+                isCarOwnerFunction.CarId = carId;
+                isCarOwnerFunction.Account = account;
+            
+            return ContractHandler.QueryAsync<IsCarOwnerFunction, bool>(isCarOwnerFunction, blockParameter);
         }
 
         public Task<bool> IsTrustedForwarderQueryAsync(IsTrustedForwarderFunction isTrustedForwarderFunction, BlockParameter blockParameter = null)
@@ -169,18 +210,18 @@ namespace BlockRacers.BlockRacers
              return ContractHandler.SendRequestAndWaitForReceiptAsync(mintCarFunction, cancellationToken);
         }
 
-        public Task<string> MintCarRequestAsync(BigInteger carTypeId)
+        public Task<string> MintCarRequestAsync(byte carLevel)
         {
             var mintCarFunction = new MintCarFunction();
-                mintCarFunction.CarTypeId = carTypeId;
+                mintCarFunction.CarLevel = carLevel;
             
              return ContractHandler.SendRequestAsync(mintCarFunction);
         }
 
-        public Task<TransactionReceipt> MintCarRequestAndWaitForReceiptAsync(BigInteger carTypeId, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> MintCarRequestAndWaitForReceiptAsync(byte carLevel, CancellationTokenSource cancellationToken = null)
         {
             var mintCarFunction = new MintCarFunction();
-                mintCarFunction.CarTypeId = carTypeId;
+                mintCarFunction.CarLevel = carLevel;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(mintCarFunction, cancellationToken);
         }
@@ -216,6 +257,46 @@ namespace BlockRacers.BlockRacers
              return ContractHandler.SendRequestAndWaitForReceiptAsync<RenounceOwnershipFunction>(null, cancellationToken);
         }
 
+        public Task<string> SerializePropertiesQueryAsync(SerializePropertiesFunction serializePropertiesFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<SerializePropertiesFunction, string>(serializePropertiesFunction, blockParameter);
+        }
+
+        
+        public Task<string> SerializePropertiesQueryAsync(BigInteger carId, BlockParameter blockParameter = null)
+        {
+            var serializePropertiesFunction = new SerializePropertiesFunction();
+                serializePropertiesFunction.CarId = carId;
+            
+            return ContractHandler.QueryAsync<SerializePropertiesFunction, string>(serializePropertiesFunction, blockParameter);
+        }
+
+        public Task<string> SetBaseUriRequestAsync(SetBaseUriFunction setBaseUriFunction)
+        {
+             return ContractHandler.SendRequestAsync(setBaseUriFunction);
+        }
+
+        public Task<TransactionReceipt> SetBaseUriRequestAndWaitForReceiptAsync(SetBaseUriFunction setBaseUriFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setBaseUriFunction, cancellationToken);
+        }
+
+        public Task<string> SetBaseUriRequestAsync(string uri)
+        {
+            var setBaseUriFunction = new SetBaseUriFunction();
+                setBaseUriFunction.Uri = uri;
+            
+             return ContractHandler.SendRequestAsync(setBaseUriFunction);
+        }
+
+        public Task<TransactionReceipt> SetBaseUriRequestAndWaitForReceiptAsync(string uri, CancellationTokenSource cancellationToken = null)
+        {
+            var setBaseUriFunction = new SetBaseUriFunction();
+                setBaseUriFunction.Uri = uri;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setBaseUriFunction, cancellationToken);
+        }
+
         public Task<string> SetBlockRacersFeeAccountRequestAsync(SetBlockRacersFeeAccountFunction setBlockRacersFeeAccountFunction)
         {
              return ContractHandler.SendRequestAsync(setBlockRacersFeeAccountFunction);
@@ -242,41 +323,30 @@ namespace BlockRacers.BlockRacers
              return ContractHandler.SendRequestAndWaitForReceiptAsync(setBlockRacersFeeAccountFunction, cancellationToken);
         }
 
-        public Task<string> SetNewGameSettingsRequestAsync(SetNewGameSettingsFunction setNewGameSettingsFunction)
+        public Task<string> SetPricesRequestAsync(SetPricesFunction setPricesFunction)
         {
-             return ContractHandler.SendRequestAsync(setNewGameSettingsFunction);
+             return ContractHandler.SendRequestAsync(setPricesFunction);
         }
 
-        public Task<TransactionReceipt> SetNewGameSettingsRequestAndWaitForReceiptAsync(SetNewGameSettingsFunction setNewGameSettingsFunction, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> SetPricesRequestAndWaitForReceiptAsync(SetPricesFunction setPricesFunction, CancellationTokenSource cancellationToken = null)
         {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(setNewGameSettingsFunction, cancellationToken);
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setPricesFunction, cancellationToken);
         }
 
-        public Task<string> SetNewGameSettingsRequestAsync(GameSettingsData newSettings)
+        public Task<string> SetPricesRequestAsync(List<List<ushort>> prices)
         {
-            var setNewGameSettingsFunction = new SetNewGameSettingsFunction();
-                setNewGameSettingsFunction.NewSettings = newSettings;
+            var setPricesFunction = new SetPricesFunction();
+                setPricesFunction.Prices = prices;
             
-             return ContractHandler.SendRequestAsync(setNewGameSettingsFunction);
+             return ContractHandler.SendRequestAsync(setPricesFunction);
         }
 
-        public Task<TransactionReceipt> SetNewGameSettingsRequestAndWaitForReceiptAsync(GameSettingsData newSettings, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> SetPricesRequestAndWaitForReceiptAsync(List<List<ushort>> prices, CancellationTokenSource cancellationToken = null)
         {
-            var setNewGameSettingsFunction = new SetNewGameSettingsFunction();
-                setNewGameSettingsFunction.NewSettings = newSettings;
+            var setPricesFunction = new SetPricesFunction();
+                setPricesFunction.Prices = prices;
             
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(setNewGameSettingsFunction, cancellationToken);
-        }
-
-        public Task<string> TokenQueryAsync(TokenFunction tokenFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<TokenFunction, string>(tokenFunction, blockParameter);
-        }
-
-        
-        public Task<string> TokenQueryAsync(BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<TokenFunction, string>(null, blockParameter);
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setPricesFunction, cancellationToken);
         }
 
         public Task<string> TransferOwnershipRequestAsync(TransferOwnershipFunction transferOwnershipFunction)
@@ -316,82 +386,32 @@ namespace BlockRacers.BlockRacers
             return ContractHandler.QueryAsync<TrustedForwarderFunction, string>(null, blockParameter);
         }
 
-        public Task<string> UpgradeEngineRequestAsync(UpgradeEngineFunction upgradeEngineFunction)
+        public Task<string> UpgradeRequestAsync(UpgradeFunction upgradeFunction)
         {
-             return ContractHandler.SendRequestAsync(upgradeEngineFunction);
+             return ContractHandler.SendRequestAsync(upgradeFunction);
         }
 
-        public Task<TransactionReceipt> UpgradeEngineRequestAndWaitForReceiptAsync(UpgradeEngineFunction upgradeEngineFunction, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> UpgradeRequestAndWaitForReceiptAsync(UpgradeFunction upgradeFunction, CancellationTokenSource cancellationToken = null)
         {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(upgradeEngineFunction, cancellationToken);
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(upgradeFunction, cancellationToken);
         }
 
-        public Task<string> UpgradeEngineRequestAsync(BigInteger carId)
+        public Task<string> UpgradeRequestAsync(BigInteger carId, byte item)
         {
-            var upgradeEngineFunction = new UpgradeEngineFunction();
-                upgradeEngineFunction.CarId = carId;
+            var upgradeFunction = new UpgradeFunction();
+                upgradeFunction.CarId = carId;
+                upgradeFunction.Item = item;
             
-             return ContractHandler.SendRequestAsync(upgradeEngineFunction);
+             return ContractHandler.SendRequestAsync(upgradeFunction);
         }
 
-        public Task<TransactionReceipt> UpgradeEngineRequestAndWaitForReceiptAsync(BigInteger carId, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> UpgradeRequestAndWaitForReceiptAsync(BigInteger carId, byte item, CancellationTokenSource cancellationToken = null)
         {
-            var upgradeEngineFunction = new UpgradeEngineFunction();
-                upgradeEngineFunction.CarId = carId;
+            var upgradeFunction = new UpgradeFunction();
+                upgradeFunction.CarId = carId;
+                upgradeFunction.Item = item;
             
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(upgradeEngineFunction, cancellationToken);
-        }
-
-        public Task<string> UpgradeHandlingRequestAsync(UpgradeHandlingFunction upgradeHandlingFunction)
-        {
-             return ContractHandler.SendRequestAsync(upgradeHandlingFunction);
-        }
-
-        public Task<TransactionReceipt> UpgradeHandlingRequestAndWaitForReceiptAsync(UpgradeHandlingFunction upgradeHandlingFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(upgradeHandlingFunction, cancellationToken);
-        }
-
-        public Task<string> UpgradeHandlingRequestAsync(BigInteger carId)
-        {
-            var upgradeHandlingFunction = new UpgradeHandlingFunction();
-                upgradeHandlingFunction.CarId = carId;
-            
-             return ContractHandler.SendRequestAsync(upgradeHandlingFunction);
-        }
-
-        public Task<TransactionReceipt> UpgradeHandlingRequestAndWaitForReceiptAsync(BigInteger carId, CancellationTokenSource cancellationToken = null)
-        {
-            var upgradeHandlingFunction = new UpgradeHandlingFunction();
-                upgradeHandlingFunction.CarId = carId;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(upgradeHandlingFunction, cancellationToken);
-        }
-
-        public Task<string> UpgradeNosRequestAsync(UpgradeNosFunction upgradeNosFunction)
-        {
-             return ContractHandler.SendRequestAsync(upgradeNosFunction);
-        }
-
-        public Task<TransactionReceipt> UpgradeNosRequestAndWaitForReceiptAsync(UpgradeNosFunction upgradeNosFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(upgradeNosFunction, cancellationToken);
-        }
-
-        public Task<string> UpgradeNosRequestAsync(BigInteger carId)
-        {
-            var upgradeNosFunction = new UpgradeNosFunction();
-                upgradeNosFunction.CarId = carId;
-            
-             return ContractHandler.SendRequestAsync(upgradeNosFunction);
-        }
-
-        public Task<TransactionReceipt> UpgradeNosRequestAndWaitForReceiptAsync(BigInteger carId, CancellationTokenSource cancellationToken = null)
-        {
-            var upgradeNosFunction = new UpgradeNosFunction();
-                upgradeNosFunction.CarId = carId;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(upgradeNosFunction, cancellationToken);
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(upgradeFunction, cancellationToken);
         }
     }
 }

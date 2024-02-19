@@ -36,23 +36,12 @@ export const getAccounts = async () => {
 export const defaultDeployFixture = (withMint: boolean = false) => {
   return async function generalFixture() {
     const tokenContract = await deployTokenFixture()();
-    const assetsContract = await deployAssetsFixture();
     const wageringContract = await deployWageringFixture(
       await tokenContract.getAddress(),
     )();
-    const coreContract = await deployCoreFixture(
+    const { blockRacersContract: coreContract, blockRacersAssetsContract: assetsContract } = await deployCoreFixture(
       await tokenContract.getAddress(),
-      await assetsContract.getAddress(),
     )();
-
-    // Register BlockRacers core
-    const { admin } = await getAccounts();
-    await assetsContract
-      .connect(admin)
-      .grantRole(
-        await assetsContract.BLOCK_RACERS(),
-        await coreContract.getAddress(),
-      );
 
     if (withMint) {
       const { player1, player2, player3, issuerAccount } = await getAccounts();

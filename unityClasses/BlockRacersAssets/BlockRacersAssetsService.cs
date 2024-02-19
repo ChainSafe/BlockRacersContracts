@@ -48,26 +48,15 @@ namespace BlockRacersAssets.BlockRacersAssets
             ContractHandler = web3.Eth.GetContractHandler(contractAddress);
         }
 
-        public Task<byte[]> BlockRacersQueryAsync(BlockRacersFunction blockRacersFunction, BlockParameter blockParameter = null)
+        public Task<string> BlockRacersQueryAsync(BlockRacersFunction blockRacersFunction, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryAsync<BlockRacersFunction, byte[]>(blockRacersFunction, blockParameter);
+            return ContractHandler.QueryAsync<BlockRacersFunction, string>(blockRacersFunction, blockParameter);
         }
 
         
-        public Task<byte[]> BlockRacersQueryAsync(BlockParameter blockParameter = null)
+        public Task<string> BlockRacersQueryAsync(BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryAsync<BlockRacersFunction, byte[]>(null, blockParameter);
-        }
-
-        public Task<byte[]> DefaultAdminRoleQueryAsync(DefaultAdminRoleFunction defaultAdminRoleFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<DefaultAdminRoleFunction, byte[]>(defaultAdminRoleFunction, blockParameter);
-        }
-
-        
-        public Task<byte[]> DefaultAdminRoleQueryAsync(BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<DefaultAdminRoleFunction, byte[]>(null, blockParameter);
+            return ContractHandler.QueryAsync<BlockRacersFunction, string>(null, blockParameter);
         }
 
         public Task<BigInteger> BalanceOfQueryAsync(BalanceOfFunction balanceOfFunction, BlockParameter blockParameter = null)
@@ -100,61 +89,32 @@ namespace BlockRacersAssets.BlockRacersAssets
             return ContractHandler.QueryAsync<BalanceOfBatchFunction, List<BigInteger>>(balanceOfBatchFunction, blockParameter);
         }
 
-        public Task<byte[]> GetRoleAdminQueryAsync(GetRoleAdminFunction getRoleAdminFunction, BlockParameter blockParameter = null)
+        public Task<bool> ExistsQueryAsync(ExistsFunction existsFunction, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryAsync<GetRoleAdminFunction, byte[]>(getRoleAdminFunction, blockParameter);
+            return ContractHandler.QueryAsync<ExistsFunction, bool>(existsFunction, blockParameter);
         }
 
         
-        public Task<byte[]> GetRoleAdminQueryAsync(byte[] role, BlockParameter blockParameter = null)
+        public Task<bool> ExistsQueryAsync(BigInteger id, BlockParameter blockParameter = null)
         {
-            var getRoleAdminFunction = new GetRoleAdminFunction();
-                getRoleAdminFunction.Role = role;
+            var existsFunction = new ExistsFunction();
+                existsFunction.Id = id;
             
-            return ContractHandler.QueryAsync<GetRoleAdminFunction, byte[]>(getRoleAdminFunction, blockParameter);
+            return ContractHandler.QueryAsync<ExistsFunction, bool>(existsFunction, blockParameter);
         }
 
-        public Task<string> GrantRoleRequestAsync(GrantRoleFunction grantRoleFunction)
+        public Task<List<BigInteger>> GetInventoryQueryAsync(GetInventoryFunction getInventoryFunction, BlockParameter blockParameter = null)
         {
-             return ContractHandler.SendRequestAsync(grantRoleFunction);
-        }
-
-        public Task<TransactionReceipt> GrantRoleRequestAndWaitForReceiptAsync(GrantRoleFunction grantRoleFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(grantRoleFunction, cancellationToken);
-        }
-
-        public Task<string> GrantRoleRequestAsync(byte[] role, string account)
-        {
-            var grantRoleFunction = new GrantRoleFunction();
-                grantRoleFunction.Role = role;
-                grantRoleFunction.Account = account;
-            
-             return ContractHandler.SendRequestAsync(grantRoleFunction);
-        }
-
-        public Task<TransactionReceipt> GrantRoleRequestAndWaitForReceiptAsync(byte[] role, string account, CancellationTokenSource cancellationToken = null)
-        {
-            var grantRoleFunction = new GrantRoleFunction();
-                grantRoleFunction.Role = role;
-                grantRoleFunction.Account = account;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(grantRoleFunction, cancellationToken);
-        }
-
-        public Task<bool> HasRoleQueryAsync(HasRoleFunction hasRoleFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<HasRoleFunction, bool>(hasRoleFunction, blockParameter);
+            return ContractHandler.QueryAsync<GetInventoryFunction, List<BigInteger>>(getInventoryFunction, blockParameter);
         }
 
         
-        public Task<bool> HasRoleQueryAsync(byte[] role, string account, BlockParameter blockParameter = null)
+        public Task<List<BigInteger>> GetInventoryQueryAsync(string holder, BlockParameter blockParameter = null)
         {
-            var hasRoleFunction = new HasRoleFunction();
-                hasRoleFunction.Role = role;
-                hasRoleFunction.Account = account;
+            var getInventoryFunction = new GetInventoryFunction();
+                getInventoryFunction.Holder = holder;
             
-            return ContractHandler.QueryAsync<HasRoleFunction, bool>(hasRoleFunction, blockParameter);
+            return ContractHandler.QueryAsync<GetInventoryFunction, List<BigInteger>>(getInventoryFunction, blockParameter);
         }
 
         public Task<bool> IsApprovedForAllQueryAsync(IsApprovedForAllFunction isApprovedForAllFunction, BlockParameter blockParameter = null)
@@ -196,114 +156,20 @@ namespace BlockRacersAssets.BlockRacersAssets
              return ContractHandler.SendRequestAndWaitForReceiptAsync(mintFunction, cancellationToken);
         }
 
-        public Task<string> MintRequestAsync(string to, BigInteger id, BigInteger value, string newUri)
+        public Task<string> MintRequestAsync(string to)
         {
             var mintFunction = new MintFunction();
                 mintFunction.To = to;
-                mintFunction.Id = id;
-                mintFunction.Value = value;
-                mintFunction.NewUri = newUri;
             
              return ContractHandler.SendRequestAsync(mintFunction);
         }
 
-        public Task<TransactionReceipt> MintRequestAndWaitForReceiptAsync(string to, BigInteger id, BigInteger value, string newUri, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> MintRequestAndWaitForReceiptAsync(string to, CancellationTokenSource cancellationToken = null)
         {
             var mintFunction = new MintFunction();
                 mintFunction.To = to;
-                mintFunction.Id = id;
-                mintFunction.Value = value;
-                mintFunction.NewUri = newUri;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(mintFunction, cancellationToken);
-        }
-
-        public Task<string> MintBatchRequestAsync(MintBatchFunction mintBatchFunction)
-        {
-             return ContractHandler.SendRequestAsync(mintBatchFunction);
-        }
-
-        public Task<TransactionReceipt> MintBatchRequestAndWaitForReceiptAsync(MintBatchFunction mintBatchFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(mintBatchFunction, cancellationToken);
-        }
-
-        public Task<string> MintBatchRequestAsync(string to, List<BigInteger> ids, List<BigInteger> values, List<string> uriList)
-        {
-            var mintBatchFunction = new MintBatchFunction();
-                mintBatchFunction.To = to;
-                mintBatchFunction.Ids = ids;
-                mintBatchFunction.Values = values;
-                mintBatchFunction.UriList = uriList;
-            
-             return ContractHandler.SendRequestAsync(mintBatchFunction);
-        }
-
-        public Task<TransactionReceipt> MintBatchRequestAndWaitForReceiptAsync(string to, List<BigInteger> ids, List<BigInteger> values, List<string> uriList, CancellationTokenSource cancellationToken = null)
-        {
-            var mintBatchFunction = new MintBatchFunction();
-                mintBatchFunction.To = to;
-                mintBatchFunction.Ids = ids;
-                mintBatchFunction.Values = values;
-                mintBatchFunction.UriList = uriList;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(mintBatchFunction, cancellationToken);
-        }
-
-        public Task<string> RenounceRoleRequestAsync(RenounceRoleFunction renounceRoleFunction)
-        {
-             return ContractHandler.SendRequestAsync(renounceRoleFunction);
-        }
-
-        public Task<TransactionReceipt> RenounceRoleRequestAndWaitForReceiptAsync(RenounceRoleFunction renounceRoleFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(renounceRoleFunction, cancellationToken);
-        }
-
-        public Task<string> RenounceRoleRequestAsync(byte[] role, string callerConfirmation)
-        {
-            var renounceRoleFunction = new RenounceRoleFunction();
-                renounceRoleFunction.Role = role;
-                renounceRoleFunction.CallerConfirmation = callerConfirmation;
-            
-             return ContractHandler.SendRequestAsync(renounceRoleFunction);
-        }
-
-        public Task<TransactionReceipt> RenounceRoleRequestAndWaitForReceiptAsync(byte[] role, string callerConfirmation, CancellationTokenSource cancellationToken = null)
-        {
-            var renounceRoleFunction = new RenounceRoleFunction();
-                renounceRoleFunction.Role = role;
-                renounceRoleFunction.CallerConfirmation = callerConfirmation;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(renounceRoleFunction, cancellationToken);
-        }
-
-        public Task<string> RevokeRoleRequestAsync(RevokeRoleFunction revokeRoleFunction)
-        {
-             return ContractHandler.SendRequestAsync(revokeRoleFunction);
-        }
-
-        public Task<TransactionReceipt> RevokeRoleRequestAndWaitForReceiptAsync(RevokeRoleFunction revokeRoleFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(revokeRoleFunction, cancellationToken);
-        }
-
-        public Task<string> RevokeRoleRequestAsync(byte[] role, string account)
-        {
-            var revokeRoleFunction = new RevokeRoleFunction();
-                revokeRoleFunction.Role = role;
-                revokeRoleFunction.Account = account;
-            
-             return ContractHandler.SendRequestAsync(revokeRoleFunction);
-        }
-
-        public Task<TransactionReceipt> RevokeRoleRequestAndWaitForReceiptAsync(byte[] role, string account, CancellationTokenSource cancellationToken = null)
-        {
-            var revokeRoleFunction = new RevokeRoleFunction();
-                revokeRoleFunction.Role = role;
-                revokeRoleFunction.Account = account;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(revokeRoleFunction, cancellationToken);
         }
 
         public Task<string> SafeBatchTransferFromRequestAsync(SafeBatchTransferFromFunction safeBatchTransferFromFunction)
@@ -402,6 +268,32 @@ namespace BlockRacersAssets.BlockRacersAssets
              return ContractHandler.SendRequestAndWaitForReceiptAsync(setApprovalForAllFunction, cancellationToken);
         }
 
+        public Task<string> SetBaseUriRequestAsync(SetBaseUriFunction setBaseUriFunction)
+        {
+             return ContractHandler.SendRequestAsync(setBaseUriFunction);
+        }
+
+        public Task<TransactionReceipt> SetBaseUriRequestAndWaitForReceiptAsync(SetBaseUriFunction setBaseUriFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setBaseUriFunction, cancellationToken);
+        }
+
+        public Task<string> SetBaseUriRequestAsync(string baseUri)
+        {
+            var setBaseUriFunction = new SetBaseUriFunction();
+                setBaseUriFunction.BaseUri = baseUri;
+            
+             return ContractHandler.SendRequestAsync(setBaseUriFunction);
+        }
+
+        public Task<TransactionReceipt> SetBaseUriRequestAndWaitForReceiptAsync(string baseUri, CancellationTokenSource cancellationToken = null)
+        {
+            var setBaseUriFunction = new SetBaseUriFunction();
+                setBaseUriFunction.BaseUri = baseUri;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setBaseUriFunction, cancellationToken);
+        }
+
         public Task<bool> SupportsInterfaceQueryAsync(SupportsInterfaceFunction supportsInterfaceFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<SupportsInterfaceFunction, bool>(supportsInterfaceFunction, blockParameter);
@@ -414,6 +306,17 @@ namespace BlockRacersAssets.BlockRacersAssets
                 supportsInterfaceFunction.InterfaceId = interfaceId;
             
             return ContractHandler.QueryAsync<SupportsInterfaceFunction, bool>(supportsInterfaceFunction, blockParameter);
+        }
+
+        public Task<BigInteger> TotalSupplyQueryAsync(TotalSupplyFunction totalSupplyFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<TotalSupplyFunction, BigInteger>(totalSupplyFunction, blockParameter);
+        }
+
+        
+        public Task<BigInteger> TotalSupplyQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<TotalSupplyFunction, BigInteger>(null, blockParameter);
         }
 
         public Task<string> TrustedForwarderQueryAsync(TrustedForwarderFunction trustedForwarderFunction, BlockParameter blockParameter = null)

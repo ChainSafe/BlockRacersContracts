@@ -2,13 +2,37 @@
 
 Block Racers is a game demonstrating the features of the ChainSafe Gaming SDK
 
+### Installation
+
+    nvm use
+    npx yarn
+    npx yarn run compile
+
+Copy `.env-example` into `.env`.
+
+### Integration development
+
+    npx yarn run node
+
+Then in another terminal.
+
+    npx yarn run deploy-dev
+
+### Testnet deployment
+
+Make required changes to the `.env` file.
+
+    npx yarn run deploy-mumbai
+
+Or
+
+    npx yarn run deploy-sepolia
+
 ## Features
 
 - Minting Cars as an ERC1155
 - A token for minting cars, purchasing upgrades & wagering in PvP races
 - An escrow contract for facilitating wagers in PvP races
-
-## Contract flow 
 
 ### BlockRacers ERC20
 
@@ -34,43 +58,15 @@ There are 4 items, represented by an enum, this means that the values of each on
 - 2 = `GameItem.HANDLING`
 - 3 = `GameItem.NOS`
 
-The minting of cars uses a field called `_latestCarId` this both manages what ID is used to mint ERC1155 but also can infer the number of cars minted.
-
-Cars are minted based on the car type ID thats set in the game settings field, the URI is set during the mint and the price is determined based on the car option settings.
+Minting and upgrades require payments in RACE token. Different cars and upgrade levels could have varying prices. To get pricelist call: BlockRacers.getItemsData() which will return a list of lists of prices for each item/level.
 
 #### Types
 
 There is a struct representing game settings, this is published to a mapping to allow look up of previous settings for potentially valuing cars accurately if they have been upgraded prior to price changes.
 
-Costs are denoted in `uint256` to be consistent with ERC20, but the levels have been limited to `uint16` for struct packing purposes.
+Costs are denoted in `uint256` to be consistent with ERC20, but the levels have been limited to 255 elements.
 
-Each minted car has an associated `CarStats` mapping, this is where the car's initial cost and current property levels are
-
-Only the Owner of the contract can publish new game settings.
-
-```solidity
-    struct CarOption {
-        uint256 carCost;
-        string carUri;
-    }
-
-    struct CarStats {
-        uint256 carCost;
-        uint16 handlingLevel;
-        uint16 engineLevel;
-        uint16 nosLevel;
-    }
-
-    struct GameSettingsData {
-        uint256 carCost;
-        uint256 enginePrice;
-        uint256 handlingPrice;
-        uint256 nosPrice;
-        uint16 handlingMaxLevel;
-        uint16 engineMaxLevel;
-        uint16 nosMaxLevel;
-    }
-```
+Each minted car has an associated `CarStats` mapping which is just a list of 4 values relevant to the GameItem enum.
 
 ### Player actions
 
