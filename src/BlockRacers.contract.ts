@@ -696,3 +696,14 @@ export const getUserMintedTypes = async (
   const types = await coreContract.getUserMintedTypes(owner);
   assert.deepEqual(types, expectedTypes);
 };
+
+export const getUserCarsByTypeWithStats = async (
+  coreContract: UIHelper & {
+    deploymentTransaction(): ContractTransactionResponse;
+  },
+  owner: AddressLike,
+  expectedTypes: BigNumberish[][],
+) => {
+  const types = await coreContract.getUserCarsByTypeWithStats(owner);
+  assert.deepEqual(types, expectedTypes);
+};
