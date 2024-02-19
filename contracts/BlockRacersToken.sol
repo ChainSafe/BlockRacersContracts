@@ -80,7 +80,7 @@ contract BlockRacersToken is ERC20, ERC2771Context, Ownable {
     /// @param amount The amount of tokens to mint to the address
     /// @param nonce The unique nonce for the signature
     /// @param permit The signed permit to allow for minting tokens
-    function mint(
+    function mintPermit(
         address to,
         uint256 amount,
         uint256 nonce,

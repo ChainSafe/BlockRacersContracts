@@ -102,7 +102,7 @@ export const mintWithPermit = async (
     issuer, nonce, account, value, await tokenContract.getAddress(), chainId
   );
   if (relay) {
-    const { data } = await tokenContract.mint.populateTransaction(
+    const { data } = await tokenContract.mintPermit.populateTransaction(
       account,
       value,
       nonce,
@@ -111,7 +111,7 @@ export const mintWithPermit = async (
 
     await sponsorRelayCall(await tokenContract.getAddress(), issuer, data);
   } else {
-    await tokenContract.mint(account, value, nonce, permit);
+    await tokenContract.mintPermit(account, value, nonce, permit);
   }
 
   await balanceOfToken(tokenContract, account, beforeMint + BigInt(value));
