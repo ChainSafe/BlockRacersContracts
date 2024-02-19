@@ -18,7 +18,7 @@ import {
   setAllowanceToken,
 } from "../src/BlockRacersToken.contract";
 
-describe.only("UIHelper", function () {
+describe("UIHelper", function () {
   describe("read", function () {
     it("empty", async () => {
       const { player1 } = await getAccounts();
