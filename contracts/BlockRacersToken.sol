@@ -132,7 +132,7 @@ contract BlockRacersTokenTest is BlockRacersToken {
         address issuerAccount_,
         uint256 mintAmount
     ) BlockRacersToken(trustedForwarder, owner, issuerAccount_, 0) {
-        require(MINT_AMOUNT > 1 ether, "Amount is too small");
+        require(mintAmount > 1 ether, "Amount is too small");
         MINT_AMOUNT = mintAmount;
     }
 

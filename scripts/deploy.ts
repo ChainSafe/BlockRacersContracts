@@ -16,7 +16,7 @@ async function main() {
 
   if (!ethers.isAddress(raceAddress)) {
     const tokenContract = process.env.PUBLIC_MINT === "true" ? "BlockRacersTokenTest" : "BlockRacersToken";
-    console.log("Deploying RACE token.");
+    console.log(`Deploying ${tokenContract} token.`);
     const race = await ethers.deployContract(tokenContract, [
       trustedForwarder,
       admin,
@@ -24,7 +24,9 @@ async function main() {
       ethers.parseEther("1000"),
     ]);
     await race.waitForDeployment();
-    console.log(`Minted 1000 to the issuer ${issuer}.`);
+    if (tokenContract === "BlockRacersToken") {
+      console.log(`Minted 1000 to the issuer ${issuer}.`);
+    }
     raceAddress = race.target;
   }
 
