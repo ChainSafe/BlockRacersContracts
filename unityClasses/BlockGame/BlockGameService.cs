@@ -349,6 +349,34 @@ namespace BlockGame.BlockGame
              return ContractHandler.SendRequestAndWaitForReceiptAsync(setPricesFunction, cancellationToken);
         }
 
+        public Task<string> SetPricesForItemRequestAsync(SetPricesForItemFunction setPricesForItemFunction)
+        {
+             return ContractHandler.SendRequestAsync(setPricesForItemFunction);
+        }
+
+        public Task<TransactionReceipt> SetPricesForItemRequestAndWaitForReceiptAsync(SetPricesForItemFunction setPricesForItemFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setPricesForItemFunction, cancellationToken);
+        }
+
+        public Task<string> SetPricesForItemRequestAsync(byte item, List<ushort> prices)
+        {
+            var setPricesForItemFunction = new SetPricesForItemFunction();
+                setPricesForItemFunction.Item = item;
+                setPricesForItemFunction.Prices = prices;
+            
+             return ContractHandler.SendRequestAsync(setPricesForItemFunction);
+        }
+
+        public Task<TransactionReceipt> SetPricesForItemRequestAndWaitForReceiptAsync(byte item, List<ushort> prices, CancellationTokenSource cancellationToken = null)
+        {
+            var setPricesForItemFunction = new SetPricesForItemFunction();
+                setPricesForItemFunction.Item = item;
+                setPricesForItemFunction.Prices = prices;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setPricesForItemFunction, cancellationToken);
+        }
+
         public Task<string> TransferOwnershipRequestAsync(TransferOwnershipFunction transferOwnershipFunction)
         {
              return ContractHandler.SendRequestAsync(transferOwnershipFunction);

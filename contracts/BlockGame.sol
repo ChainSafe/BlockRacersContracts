@@ -21,6 +21,8 @@ import {BlockGameAssets} from "./BlockGameAssets.sol";
 import {IBlockGame} from "./IBlockGame.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
+uint8 constant OBJECT_ITEM = 0;
+
 /// @title Block Game core game Contract
 /// @author ChainSafe Systems, RyRy79261, Sneakz, Oleksii Matiiasevych
 /// @notice This contract holds functions used for the core game mechanices
@@ -34,14 +36,17 @@ contract BlockGame is IBlockGame, ERC2771Context, Ownable {
     /// @dev BlockGame ERC1155 address
     BlockGameAssets public immutable ASSETS;
 
+    /// @dev How many types of items each object could have
+    uint8 private immutable ITEMS_COUNT;
+
     /// @dev Wallet that tokens go to on purchases
     address public feeAccount;
 
     /// @dev Prices for each subsequent game item level
-    uint16[][4] private prices;
+    uint16[][] private prices;
 
     /// @dev Mapping of object stats per NFT
-    mapping(uint256 objectId => uint8[4] stats) private objectStats;
+    mapping(uint256 objectId => uint8[] stats) private objectStats;
 
     /// @dev Contract events
     event Purchase(address indexed wallet, uint256 objectId, uint8 item, uint8 level);
@@ -51,6 +56,9 @@ contract BlockGame is IBlockGame, ERC2771Context, Ownable {
     error NotObjectOwner(uint256 objectId);
     error InvalidItemType();
     error InvalidItemLevel(uint8 item, uint8 level);
+    error TooManyOrZeroPrices();
+    error ItemsCountChangeNotSupported();
+    error ObjectTypeCountReductionNotSupported();
 
     modifier onlyObjectOwner(uint256 objectId) {
         if (!isObjectOwner(objectId, _msgSender())) {
@@ -78,11 +86,12 @@ contract BlockGame is IBlockGame, ERC2771Context, Ownable {
         address token_,
         address feeAccount_,
         string memory baseUri_,
-        uint16[][4] memory prices_
+        uint16[][] memory prices_
     ) ERC2771Context(trustedForwarder) Ownable(admin_) {
         TOKEN = IERC20(token_);
         TOKEN_UNIT = uint256(10) ** IERC20Metadata(token_).decimals();
         ASSETS = new BlockGameAssets(trustedForwarder, baseUri_);
+        ITEMS_COUNT = uint8(prices_.length);
         feeAccount = feeAccount_;
         setPrices(prices_);
     }
@@ -95,9 +104,29 @@ contract BlockGame is IBlockGame, ERC2771Context, Ownable {
     }
 
     function setPrices(
-        uint16[][4] memory prices_
+        uint16[][] memory prices_
     ) public onlyOwner {
+        if (prices_.length >= 32 || prices_.length == 0) revert TooManyOrZeroPrices();
+        if (prices_.length != ITEMS_COUNT) {
+            revert ItemsCountChangeNotSupported();
+        }
+        if (prices.length > 0 &&
+            prices_[OBJECT_ITEM].length < prices[OBJECT_ITEM].length)
+        {
+            revert ObjectTypeCountReductionNotSupported();
+        }
         prices = prices_;
+        emit UpdateSettings();
+    }
+
+    function setPricesForItem(
+        uint8 item,
+        uint16[] memory prices_
+    ) public onlyOwner {
+        if (item == OBJECT_ITEM && prices_.length < prices[OBJECT_ITEM].length) {
+            revert ObjectTypeCountReductionNotSupported();
+        }
+        prices[item] = prices_;
         emit UpdateSettings();
     }
 
@@ -108,16 +137,17 @@ contract BlockGame is IBlockGame, ERC2771Context, Ownable {
 
     /// @dev Contract functions
     /// @notice Mints an Nft to a users wallet
-    function mintObject(uint8 objectLevel) external {
-        uint256 price = getPrice(0, objectLevel);
+    function mintObject(uint8 objectType) external {
+        uint256 price = getPrice(OBJECT_ITEM, objectType);
         address player = _msgSender();
 
         // Attempt payment
         TOKEN.safeTransferFrom(player, feeAccount, price);
         uint256 objectId = ASSETS.mint(player);
 
-        objectStats[objectId][0] = objectLevel;
-        emit Purchase(player, objectId, 0, objectLevel);
+        objectStats[objectId] = new uint8[](ITEMS_COUNT);
+        objectStats[objectId][OBJECT_ITEM] = objectType;
+        emit Purchase(player, objectId, OBJECT_ITEM, objectType);
     }
 
     /// @notice Upgrades the object's engine level
@@ -126,7 +156,7 @@ contract BlockGame is IBlockGame, ERC2771Context, Ownable {
         external
         onlyObjectOwner(objectId)
     {
-        if (item == 0) revert InvalidItemType();
+        if (item == OBJECT_ITEM) revert InvalidItemType();
         uint8 nextLevel = objectStats[objectId][uint256(item)] + 1;
         uint256 price = getPrice(item, nextLevel);
         address player = _msgSender();
@@ -149,7 +179,7 @@ contract BlockGame is IBlockGame, ERC2771Context, Ownable {
 
     function getObjectStats(
         uint256 objectId
-    ) external view onlyMinted(objectId) returns (uint8[4] memory) {
+    ) external view onlyMinted(objectId) returns (uint8[] memory) {
         return objectStats[objectId];
     }
 
@@ -173,11 +203,11 @@ contract BlockGame is IBlockGame, ERC2771Context, Ownable {
         return itemPrices;
     }
 
-    function getItemsData() external view returns (uint256[][4] memory itemPrices) {
-        itemPrices[0] = getItemData(0);
-        itemPrices[1] = getItemData(1);
-        itemPrices[2] = getItemData(2);
-        itemPrices[3] = getItemData(3);
+    function getItemsData() external view returns (uint256[][] memory itemPrices) {
+        itemPrices = new uint256[][](ITEMS_COUNT);
+        for (uint8 i = 0; i < ITEMS_COUNT; ++i) {
+            itemPrices[i] = getItemData(i);
+        }
 
         return itemPrices;
     }
@@ -191,13 +221,17 @@ contract BlockGame is IBlockGame, ERC2771Context, Ownable {
         return prices[item][level] * TOKEN_UNIT;
     }
 
+    function getItemsCount() public view returns (uint256) {
+        return ITEMS_COUNT;
+    }
+
     function serializeProperties(
         uint256 objectId
     ) external view override onlyMinted(objectId) returns (string memory) {
-        return Strings.toHexString(
-            uint32(bytes4(abi.encodePacked(objectStats[objectId]))),
-            4
-        );
+        uint256 statsValue = uint256(bytes32(abi.encodePacked(objectStats[objectId])));
+        uint256 shift = (32 - ITEMS_COUNT) * 8;
+
+        return Strings.toHexString((statsValue << shift) >> shift, ITEMS_COUNT);
     }
 
     /**

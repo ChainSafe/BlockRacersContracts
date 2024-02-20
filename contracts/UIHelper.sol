@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
-import {BlockGame} from "./BlockGame.sol";
+import {BlockGame, OBJECT_ITEM} from "./BlockGame.sol";
 
 contract UIHelper {
     BlockGame public immutable BLOCK_GAME;
@@ -11,29 +11,33 @@ contract UIHelper {
     }
 
     function getUserMintedTypes(address account) public view returns(bool[] memory types) {
-        uint256[] memory prices = BLOCK_GAME.getItemData(0);
-        types = new bool[](prices.length);
+        uint256 objectTypes = BLOCK_GAME.getItemData(OBJECT_ITEM).length;
+        types = new bool[](objectTypes);
         uint256[] memory objects = BLOCK_GAME.getUserObjects(account);
         uint256 len = objects.length;
         for (uint256 i = 0; i < len; ++i) {
-            uint8[4] memory stats = BLOCK_GAME.getObjectStats(objects[i]);
-            types[stats[0]] = true;
+            uint8[] memory stats = BLOCK_GAME.getObjectStats(objects[i]);
+            types[stats[OBJECT_ITEM]] = true;
         }
 
         return types;
     }
 
-    function getUserObjectsByTypeWithStats(address account) public view returns(uint256[4][] memory objectsStats) {
-        uint256[] memory prices = BLOCK_GAME.getItemData(0);
-        objectsStats = new uint256[4][](prices.length);
+    function getUserObjectsByTypeWithStats(address account) public view returns(uint256[][] memory objectsStats) {
+        uint256 objectTypes = BLOCK_GAME.getItemData(OBJECT_ITEM).length;
+        uint256 items = BLOCK_GAME.getItemsCount();
+        objectsStats = new uint256[][](objectTypes);
+        for (uint256 i = 0; i < objectTypes; ++i) {
+            objectsStats[i] = new uint256[](items);
+        }
         uint256[] memory objects = BLOCK_GAME.getUserObjects(account);
-        uint256 len = objects.length;
-        for (uint256 i = 0; i < len; ++i) {
-            uint8[4] memory stats = BLOCK_GAME.getObjectStats(objects[i]);
-            objectsStats[stats[0]][0] = objects[i];
-            objectsStats[stats[0]][1] = stats[1];
-            objectsStats[stats[0]][2] = stats[2];
-            objectsStats[stats[0]][3] = stats[3];
+        for (uint256 i = 0; i < objects.length; ++i) {
+            uint8[] memory stats = BLOCK_GAME.getObjectStats(objects[i]);
+            uint256 objectType = stats[OBJECT_ITEM];
+            objectsStats[objectType][OBJECT_ITEM] = objects[i];
+            for (uint256 j = 1; j < items; ++j) {
+                objectsStats[objectType][j] = stats[j];
+            }
         }
 
         return objectsStats;
