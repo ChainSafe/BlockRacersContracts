@@ -16,7 +16,7 @@ async function main() {
 
   if (!ethers.isAddress(gameAddress)) {
     const tokenContract = process.env.PUBLIC_MINT === "true" ? "BlockGameTokenTest" : "BlockGameToken";
-    console.log(`Deploying ${tokenContract} token.`);
+    console.log(`Deploying ${tokenContract}.`);
     const gameToken = await ethers.deployContract(tokenContract, [
       trustedForwarder,
       admin,
@@ -30,13 +30,10 @@ async function main() {
     gameAddress = gameToken.target;
   }
 
-  const prices = [
-    process.env.OBJECT_PRICES.split(","),
-    process.env.ITEM1_PRICES.split(","),
-    process.env.ITEM2_PRICES.split(","),
-    process.env.ITEM3_PRICES.split(","),
-  ];
-  console.log("Deploying BlockGame and Assets.");
+  const prices = process.env.PRICES.split("|")
+    .map(itemPrices => itemPrices.split(","));
+
+  console.log("Deploying BlockGame and BlockGameAssets.");
   const blockGame = await ethers.deployContract("BlockGame", [
     trustedForwarder,
     admin,
@@ -49,9 +46,16 @@ async function main() {
 
   const assets = await blockGame.ASSETS();
 
-  console.log(`GAME: ${gameAddress}`);
+  console.log("Deploying UIHelper.");
+  const uiHelper = await ethers.deployContract("UIHelper", [blockGame.target]);
+  await uiHelper.waitForDeployment();
+
+  console.log();
+  console.log(`Game Id: ${process.env.GAME_ID}`);
+  console.log(`BlockGameToken: ${gameAddress}`);
   console.log(`BlockGame: ${blockGame.target}`);
-  console.log(`Assets: ${assets}`);
+  console.log(`BlockGameAssets: ${assets}`);
+  console.log(`UIHelper: ${uiHelper.target}`);
   console.log(`Admin: ${admin}`);
   console.log(`Fee: ${feeAccount}`);
   console.log(`BaseURI: ${process.env.BASE_URI}`);
@@ -72,6 +76,10 @@ async function main() {
     await hre.run("verify:verify", {
       address: assets,
       constructorArguments: [trustedForwarder, process.env.BASE_URI],
+    });
+    await hre.run("verify:verify", {
+      address: uiHelper.target,
+      constructorArguments: [blockGame.target],
     });
   }
 }

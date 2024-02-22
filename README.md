@@ -18,9 +18,23 @@ Then in another terminal.
 
     npx yarn run deploy-dev
 
+### Preparation
+
+1. Create a copy of one of the `scripts/metadata/gameId` example projects.
+2. Set `GAME_ID` in the `.env` to match your project folder name.
+3. Add enough images of game objects.
+4. Upload `images` to IPFS and get their resource identifiers.
+5. Update your game `config.ts` with item names and object specs.
+6. Set `PRICES` in the `.env` file in the following template: `Object0Price,Object1Price,...|Item0Level0Price,Item1Level1Price,...|Item1Level0Price,...`. Making sure that it is compatible with the configuration. The prices should be in full tokens, meaning that if your token has 18 decimals, then price specified at 10 will result in `10 * 10**18`. Fractional prices are not supported.
+7. Run `npm run generate-metadata`.
+8. Upload `jsons` to IPFS and get its base resource identifier.
+9. Update `BASE_URI` in the `.env`.
+10. If you already have a token, set it's address in `GAME_TOKEN` in the `.env`.
+11. Proceed to deployment.
+
 ### Testnet deployment
 
-Make required changes to the `.env` file.
+Make required changes to the `.env` file, paying attention to a `PUBLIC_MINT` option that will let anyone mint 1000 tokens at a time.
 
     npx yarn run deploy-mumbai
 
@@ -48,31 +62,30 @@ There are URI features for setting explicit URI strings for assets instead of im
 
 This is the core game asset management logic and facilitates all NFT related activities.
 
-There are 4 items, represented by an enum, this means that the values of each one is an index starting at zero:
+There are up to 31 items plus the game object type, each having a value up to 255, for each NFT, represented as an array of type/levels:
 ```solidity
-    enum GameItem{ OBJECT, ITEM1, ITEM2, ITEM3 }
+    uint8[] items
 ```
 
-- 0 = `GameItem.OBJECT`
-- 1 = `GameItem.ITEM1`
-- 2 = `GameItem.ITEM2`
-- 3 = `GameItem.ITEM3`
+- 0 = `OBJECT_TYPE`
+- 1 = `ITEM1`
+- 2 = `ITEM2`
+- 3 = `ITEM3`
+- ...
 
 Minting and upgrades require payments in GAME token. Different objects and upgrade levels could have varying prices. To get pricelist call: BlockGame.getItemsData() which will return a list of lists of prices for each item/level.
 
 #### Types
 
-There is a struct representing game settings, this is published to a mapping to allow look up of previous settings for potentially valuing objects accurately if they have been upgraded prior to price changes.
-
 Costs are denoted in `uint256` to be consistent with ERC20, but the levels have been limited to 255 elements.
 
-Each minted object has an associated `CarStats` mapping which is just a list of 4 values relevant to the GameItem enum.
+Each minted object has an associated `objectStats` mapping which is just a list of up to 32 integer values.
 
 ### Player actions
 
-The players are able to mint a new object, upgrade it's item1, item2 & item3.
+The players are able to mint a new object, upgrade it's items.
 
-All of these actions require sending an `approve` transaction to the BlockGame ERC20, to the `feeAccount`
+All of these actions require sending an `approve` transaction to the BlockGame ERC20, for the `BlockGame` address.
 
 ### BlockGame Wager
 
