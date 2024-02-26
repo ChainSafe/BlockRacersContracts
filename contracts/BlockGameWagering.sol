@@ -2,296 +2,260 @@
 pragma solidity 0.8.22;
 
 import {
-    ReentrancyGuard
-} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {
     SignatureChecker
 } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import {
     MessageHashUtils
 } from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {
+    BitMaps
+} from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {
     SafeERC20
 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {
-    ERC2771Context
-} from "@openzeppelin/contracts/metatx/ERC2771Context.sol";
 import {Blacklist} from "./utils/Blacklist.sol";
 
-/// @title Block Racers Wagering Contract
-/// @author RyRy79261
-/// @notice This escrow contract holds functions used for the Block Racers
-/// wagering used in the game
-contract BlockGameWagering is ERC2771Context, ReentrancyGuard, Blacklist {
+/// @title Block Game Wagering Contract
+/// @author ChainSafe Systems, Oleksii Matiiasevych, RyRy79261
+/// @notice This escrow contract holds functions used for the Block Game PVP
+/// @notice wagering used in the game
+contract BlockGameWagering is Blacklist {
     using SafeERC20 for IERC20;
-
-    enum WagerState {
-        NOT_STARTED,
-        CREATED,
-        ACCEPTED,
-        COMPLETED,
-        CANCELLED
-    }
+    using BitMaps for BitMaps.BitMap;
 
     struct Wager {
-        uint256 prize;
-        address creator;
         address opponent;
-        address winner;
-        WagerState state; // Could infer state from properties, though for cancelled might be tricky
+        uint96 prize;
     }
 
-    IERC20 public immutable token;
-    uint256 public latestWagerId;
+    IERC20 public immutable TOKEN;
+
+    /// @dev Address that signs win/cancel messages
+    address public server;
+
+    /// @dev Nonce to stop replay attacks
+    mapping(address signer => BitMaps.BitMap) private usedNonces;
 
     /// @dev Pvp wager data
-    mapping(uint256 => Wager) private _wagers;
-    /// @dev Used for tracking wagers that a player has engaged in
-    mapping(address => uint256[]) private _playerWagers;
+    mapping(address player => Wager) private wagers;
 
     /// @dev Contract events
-    event WagerCreated(
-        uint256 indexed wagerId,
-        address indexed creator,
-        uint256 prize
-    );
-    event WagerAccepted(uint256 indexed wagerId, address indexed opponent);
-    event WagerCancelled(uint256 indexed wagerId, address cancelledBy);
-    event WagerCompleted(uint256 indexed wagerId, address indexed winner);
+    event WagerCreated(address indexed creator, address indexed opponent, uint256 prize);
+    event WagerCompleted(address indexed creator, address indexed opponent, uint256 prize);
+    event WagerCancelled(address indexed creator, address indexed opponent, uint256 prize);
+    event ServerUpdated();
 
-    error WagerStateIncorrect(
-        uint256 wagerId,
-        WagerState currentState,
-        WagerState expected
+    error InvalidOpponent();
+    error InvalidPrize();
+    error InvalidWager();
+    error WagerInProgress();
+    error InvalidOpponentSig(
+        address sender,
+        address opponent,
+        uint256 prize,
+        uint256 nonce,
+        uint256 deadline
     );
-    error WagerCantBeCancelled(uint256 wagerId, WagerState currentState);
-    error OnlyParticipantsCanCancel(uint256 wagerId, address requestor);
-
-    error OpponentCantBeChallenger(uint256 wagerId, address opponent);
-    error WinnerMustBeParticipant(uint256 wagerId, address winner);
-    error PlayerSignatureInvalid(
-        uint256 wagerId,
+    error InvalidServerSig(
+        bool isWin,
         address winner,
-        bytes32 message,
-        bytes creatorProof,
-        bytes opponentProof
+        address loser,
+        uint256 prize,
+        uint256 nonce,
+        uint256 deadline
     );
-
-    modifier wagerStateMustBe(WagerState state, uint256 wagerId) {
-        Wager memory wager = _wagers[wagerId];
-        if (wager.state != state)
-            revert WagerStateIncorrect(wagerId, wager.state, state);
-        _;
-    }
+    error NonceAlreadyUsed(address signer, uint256 nonce);
+    error SigExpired();
 
     /// @dev Constructor sets token to be used and nft info
     constructor(
         address trustedForwarder,
-        address admin_,
-        IERC20 token_
-    ) Blacklist(admin_, trustedForwarder) {
-        token = token_;
+        address admin,
+        IERC20 token,
+        address server_
+    ) Blacklist(admin, trustedForwarder) {
+        TOKEN = token;
+        server = server_;
     }
 
-    /// @notice PVP and wager tokens
-    /// @param prize The amount of tokens being wagered
-    /// @return true if successful
-    function createWager(
-        uint256 prize
-    ) external isNotBlacklisted(_msgSender()) nonReentrant returns (bool) {
-        address creator = _msgSender();
-
-        token.safeTransferFrom(creator, address(this), prize);
-
-        ++latestWagerId;
-        _wagers[latestWagerId] = Wager(
-            prize,
-            creator,
-            address(0),
-            address(0),
-            WagerState.CREATED
-        );
-        _playerWagers[creator].push(latestWagerId);
-        emit WagerCreated(latestWagerId, creator, prize);
-        return true;
+    function setServerAddress(address newServer) external onlyOwner() {
+        server = newServer;
+        emit ServerUpdated();
     }
 
-    /// @notice PVP and wager tokens
-    /// @param wagerId The ID of the wager being accepted
-    /// @return true if successful
-    function acceptWager(
-        uint256 wagerId
-    )
-        external
-        isNotBlacklisted(_msgSender())
-        wagerStateMustBe(WagerState.CREATED, wagerId)
-        nonReentrant
-        returns (bool)
-    {
-        address opponentAddress = _msgSender();
+    /// @notice Collect bets to start the match
+    /// @param opponent The opponent address
+    /// @param prize The bet each player places
+    /// @param opponentSig The signature confiring that the opponent agreed to compete
+    function startWager(
+        address opponent,
+        uint256 prize,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata opponentSig
+    ) external isNotBlacklisted(_msgSender()) isNotBlacklisted(opponent) {
+        address sender = _msgSender();
+        if (opponent == sender) revert InvalidOpponent();
+        if (prize == 0 || prize > type(uint96).max) revert InvalidPrize();
+        if (wagers[opponent].prize > 0) revert WagerInProgress();
+        if (wagers[sender].prize > 0) revert WagerInProgress();
+        _verifyOpponent(sender, opponent, prize, nonce, deadline, opponentSig);
 
-        Wager storage wager = _wagers[wagerId];
+        wagers[opponent] = Wager(sender, uint96(prize));
+        wagers[sender] = Wager(opponent, uint96(prize));
 
-        if (wager.creator == opponentAddress)
-            revert OpponentCantBeChallenger(wagerId, opponentAddress);
+        TOKEN.safeTransferFrom(sender, address(this), prize);
+        TOKEN.safeTransferFrom(opponent, address(this), prize);
 
-        token.safeTransferFrom(opponentAddress, address(this), wager.prize);
-
-        wager.opponent = opponentAddress;
-        wager.state = WagerState.ACCEPTED;
-        _playerWagers[opponentAddress].push(wagerId);
-
-        emit WagerAccepted(wagerId, opponentAddress);
-        return true;
+        emit WagerCreated(sender, opponent, prize);
     }
 
     /// @notice Claim PVP Winnings
-    /// @param wagerId The id of the wager
-    /// @param winner The winner address
-    /// @param creatorProof The signature from creator with the winner address
-    /// @param opponentProof The signature from challenger with the winner address
-    /// @return true if successful
-    function completeWager(
-        uint256 wagerId,
+    /// @param serverSig The signature confiring that the sender is the winner
+    function completeWager(uint256 nonce, uint256 deadline, bytes calldata serverSig) external {
+        address sender = _msgSender();
+        (address opponent, uint256 prize) = getWager(sender);
+
+        if (prize == 0) revert InvalidWager();
+        delete wagers[sender];
+        delete wagers[opponent];
+
+        _verifyWinner(sender, opponent, prize, nonce, deadline, serverSig);
+
+        TOKEN.safeTransfer(sender, prize * 2);
+        emit WagerCompleted(sender, opponent, prize);
+    }
+
+    /// @notice Cancel Wager and return the bets
+    /// @param serverSig The signature confiring the cancellation
+    function cancelWager(uint256 nonce, uint256 deadline, bytes calldata serverSig) external {
+        address sender = _msgSender();
+        (address opponent, uint256 prize) = getWager(sender);
+
+        if (prize == 0) revert InvalidWager();
+        delete wagers[sender];
+        delete wagers[opponent];
+
+        _verifyCancel(sender, opponent, prize, nonce, deadline, serverSig);
+
+        TOKEN.safeTransfer(sender, prize);
+        TOKEN.safeTransfer(opponent, prize);
+        emit WagerCancelled(sender, opponent, prize);
+    }
+
+    function getWager(address player) public view returns (address opponent, uint256 prize) {
+        Wager memory wager = wagers[player];
+        if (wager.prize == 0) revert InvalidWager();
+        return (wager.opponent, wager.prize);
+    }
+
+    function _verifyOpponent(
+        address sender,
+        address opponent,
+        uint256 prize,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata opponentSig
+    ) internal virtual {
+        if (!SignatureChecker.isValidSignatureNow(
+                opponent,
+                MessageHashUtils.toEthSignedMessageHash(
+                    keccak256(abi.encodePacked(
+                        sender, prize, nonce, deadline, address(this), block.chainid
+                    ))
+                ),
+                opponentSig
+        )) {
+            revert InvalidOpponentSig(sender, opponent, prize, nonce, deadline);
+        }
+        if (usedNonces[opponent].get(nonce)) revert NonceAlreadyUsed(opponent, nonce);
+        usedNonces[opponent].set(nonce);
+        if (passed(deadline)) revert SigExpired();
+    }
+
+    function _verifyWinner(
+        address sender,
+        address opponent,
+        uint256 prize,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata serverSig
+    ) internal {
+        _verifyServer(true, sender, opponent, prize, nonce, deadline, serverSig);
+    }
+
+    function _verifyCancel(
+        address sender,
+        address opponent,
+        uint256 prize,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata serverSig
+    ) internal {
+        _verifyServer(false, sender, opponent, prize, nonce, deadline, serverSig);
+    }
+
+    function _verifyServer(
+        bool isWin,
         address winner,
-        bytes memory creatorProof,
-        bytes memory opponentProof
-    )
-        external
-        wagerStateMustBe(WagerState.ACCEPTED, wagerId)
-        nonReentrant
-        returns (bool)
-    {
-        Wager storage wager = _wagers[wagerId];
-
-        if (winner != wager.creator && winner != wager.opponent)
-            revert WinnerMustBeParticipant(wagerId, winner);
-
-        bytes32 message = MessageHashUtils.toEthSignedMessageHash(
-            keccak256(abi.encodePacked(wagerId, "-", winner))
-        );
-
-        bool creatorProofValid = SignatureChecker.isValidSignatureNow(
-            wager.creator,
-            message,
-            creatorProof
-        );
-
-        bool opponentProofValid = SignatureChecker.isValidSignatureNow(
-            wager.opponent,
-            message,
-            opponentProof
-        );
-
-        if (!creatorProofValid || !opponentProofValid)
-            revert PlayerSignatureInvalid(
-                wagerId,
-                winner,
-                message,
-                creatorProof,
-                opponentProof
-            );
-
-        wager.winner = winner;
-        wager.state = WagerState.COMPLETED;
-        token.safeTransfer(winner, wager.prize * 2);
-        emit WagerCompleted(wagerId, winner);
-        return true;
-    }
-
-    /// @notice Cancel Wager
-    /// @param wagerId The id of the wager
-    /// @return true if successful
-    function cancelWager(
-        uint256 wagerId
-    ) external isNotBlacklisted(_msgSender()) nonReentrant returns (bool) {
-        Wager storage wager = _wagers[wagerId];
-
-        if (
-            wager.state != WagerState.CREATED &&
-            wager.state != WagerState.ACCEPTED
-        ) revert WagerCantBeCancelled(wagerId, wager.state);
-
-        address requestor = _msgSender();
-
-        if (
-            ((wager.state == WagerState.CREATED ||
-                wager.state == WagerState.ACCEPTED) &&
-                wager.creator == requestor) ||
-            (wager.state == WagerState.ACCEPTED && wager.opponent == requestor)
-        ) {
-            // changing the wager state before transfers prevents replay attacks if possible
-            if (wager.state == WagerState.CREATED) {
-                wager.state = WagerState.CANCELLED;
-                token.safeTransfer(wager.creator, wager.prize);
-            } else {
-                wager.state = WagerState.CANCELLED;
-                token.safeTransfer(wager.creator, wager.prize);
-                token.safeTransfer(wager.opponent, wager.prize);
-            }
-        } else {
-            revert OnlyParticipantsCanCancel(wagerId, requestor);
+        address loser,
+        uint256 prize,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata serverSig
+    ) internal virtual {
+        address serverAddress = server;
+        if (!SignatureChecker.isValidSignatureNow(
+                serverAddress,
+                MessageHashUtils.toEthSignedMessageHash(
+                    keccak256(abi.encodePacked(
+                        isWin, winner, loser, prize, nonce, deadline, address(this), block.chainid
+                    ))
+                ),
+                serverSig
+        )) {
+            revert InvalidServerSig(isWin, winner, loser, prize, nonce, deadline);
         }
-
-        emit WagerCancelled(wagerId, requestor);
-        return true;
+        if (usedNonces[serverAddress].get(nonce)) revert NonceAlreadyUsed(serverAddress, nonce);
+        usedNonces[serverAddress].set(nonce);
+        if (passed(deadline)) revert SigExpired();
     }
 
-    /// @notice Cancel Wager
-    /// @param wagerId The id of the wager
-    /// @return true if successful
-    function adminCancelWager(
-        uint256 wagerId
-    ) external onlyOwner nonReentrant returns (bool) {
-        Wager storage wager = _wagers[wagerId];
+    function passed(uint256 timestamp) internal view returns(bool) {
+        return timestamp < block.timestamp;
+    }
+}
 
-        if (wager.state == WagerState.CREATED) {
-            wager.state = WagerState.CANCELLED;
-            token.safeTransfer(wager.creator, wager.prize);
-        } else if (wager.state == WagerState.ACCEPTED) {
-            wager.state = WagerState.CANCELLED;
-            token.safeTransfer(wager.creator, wager.prize);
-            token.safeTransfer(wager.opponent, wager.prize);
-        } else {
-            revert WagerCantBeCancelled(wagerId, wager.state);
-        }
+contract BlockGameWageringTest is BlockGameWagering {
+    /// @dev Only for testnets. Skips signatures verification.
+    constructor(
+        address trustedForwarder,
+        address admin,
+        IERC20 token,
+        address server_
+    ) BlockGameWagering(trustedForwarder, admin, token, server_) {}
 
-        emit WagerCancelled(wagerId, _msgSender());
-        return true;
+    function _verifyOpponent(
+        address /*sender*/,
+        address /*opponent*/,
+        uint256 /*prize*/,
+        uint256 /*nonce*/,
+        uint256 /*deadline*/,
+        bytes calldata /*opponentSig*/
+    ) internal pure override {
+        return;
     }
 
-    function getWager(uint256 wagerId) external view returns (Wager memory) {
-        return _wagers[wagerId];
-    }
-
-    function getPlayersWagers(
-        address player
-    ) external view returns (uint256[] memory) {
-        return _playerWagers[player];
-    }
-
-    /**
-     * @dev Override required as inheritance was indeterminant for which function to use
-     */
-    function _msgSender()
-        internal
-        view
-        override(ERC2771Context, Blacklist)
-        returns (address sender)
-    {
-        return ERC2771Context._msgSender();
-    }
-
-    /**
-     * @dev Override required as inheritance was indeterminant for which function to use
-     */
-    function _msgData()
-        internal
-        view
-        override(ERC2771Context, Blacklist)
-        returns (bytes calldata)
-    {
-        return ERC2771Context._msgData();
+    function _verifyServer(
+        bool /*isWin*/,
+        address /*winner*/,
+        address /*loser*/,
+        uint256 /*prize*/,
+        uint256 /*nonce*/,
+        uint256 /*deadline*/,
+        bytes calldata /*serverSig*/
+    ) internal pure override {
+        return;
     }
 }

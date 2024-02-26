@@ -106,6 +106,17 @@ namespace BlockGame.BlockGame
             return ContractHandler.QueryAsync<GetItemDataFunction, List<BigInteger>>(getItemDataFunction, blockParameter);
         }
 
+        public Task<BigInteger> GetItemsCountQueryAsync(GetItemsCountFunction getItemsCountFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetItemsCountFunction, BigInteger>(getItemsCountFunction, blockParameter);
+        }
+
+        
+        public Task<BigInteger> GetItemsCountQueryAsync(BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryAsync<GetItemsCountFunction, BigInteger>(null, blockParameter);
+        }
+
         public Task<List<List<BigInteger>>> GetItemsDataQueryAsync(GetItemsDataFunction getItemsDataFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<GetItemsDataFunction, List<List<BigInteger>>>(getItemsDataFunction, blockParameter);
@@ -210,18 +221,18 @@ namespace BlockGame.BlockGame
              return ContractHandler.SendRequestAndWaitForReceiptAsync(mintObjectFunction, cancellationToken);
         }
 
-        public Task<string> MintObjectRequestAsync(byte objectLevel)
+        public Task<string> MintObjectRequestAsync(byte objectType)
         {
             var mintObjectFunction = new MintObjectFunction();
-                mintObjectFunction.ObjectLevel = objectLevel;
+                mintObjectFunction.ObjectType = objectType;
             
              return ContractHandler.SendRequestAsync(mintObjectFunction);
         }
 
-        public Task<TransactionReceipt> MintObjectRequestAndWaitForReceiptAsync(byte objectLevel, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> MintObjectRequestAndWaitForReceiptAsync(byte objectType, CancellationTokenSource cancellationToken = null)
         {
             var mintObjectFunction = new MintObjectFunction();
-                mintObjectFunction.ObjectLevel = objectLevel;
+                mintObjectFunction.ObjectType = objectType;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(mintObjectFunction, cancellationToken);
         }

@@ -48,30 +48,15 @@ namespace BlockGameWagering.BlockGameWagering
             ContractHandler = web3.Eth.GetContractHandler(contractAddress);
         }
 
-        public Task<string> AcceptWagerRequestAsync(AcceptWagerFunction acceptWagerFunction)
+        public Task<string> TokenQueryAsync(TokenFunction tokenFunction, BlockParameter blockParameter = null)
         {
-             return ContractHandler.SendRequestAsync(acceptWagerFunction);
+            return ContractHandler.QueryAsync<TokenFunction, string>(tokenFunction, blockParameter);
         }
 
-        public Task<TransactionReceipt> AcceptWagerRequestAndWaitForReceiptAsync(AcceptWagerFunction acceptWagerFunction, CancellationTokenSource cancellationToken = null)
+        
+        public Task<string> TokenQueryAsync(BlockParameter blockParameter = null)
         {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(acceptWagerFunction, cancellationToken);
-        }
-
-        public Task<string> AcceptWagerRequestAsync(BigInteger wagerId)
-        {
-            var acceptWagerFunction = new AcceptWagerFunction();
-                acceptWagerFunction.WagerId = wagerId;
-            
-             return ContractHandler.SendRequestAsync(acceptWagerFunction);
-        }
-
-        public Task<TransactionReceipt> AcceptWagerRequestAndWaitForReceiptAsync(BigInteger wagerId, CancellationTokenSource cancellationToken = null)
-        {
-            var acceptWagerFunction = new AcceptWagerFunction();
-                acceptWagerFunction.WagerId = wagerId;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(acceptWagerFunction, cancellationToken);
+            return ContractHandler.QueryAsync<TokenFunction, string>(null, blockParameter);
         }
 
         public Task<string> AddToBlackListRequestAsync(AddToBlackListFunction addToBlackListFunction)
@@ -100,32 +85,6 @@ namespace BlockGameWagering.BlockGameWagering
              return ContractHandler.SendRequestAndWaitForReceiptAsync(addToBlackListFunction, cancellationToken);
         }
 
-        public Task<string> AdminCancelWagerRequestAsync(AdminCancelWagerFunction adminCancelWagerFunction)
-        {
-             return ContractHandler.SendRequestAsync(adminCancelWagerFunction);
-        }
-
-        public Task<TransactionReceipt> AdminCancelWagerRequestAndWaitForReceiptAsync(AdminCancelWagerFunction adminCancelWagerFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(adminCancelWagerFunction, cancellationToken);
-        }
-
-        public Task<string> AdminCancelWagerRequestAsync(BigInteger wagerId)
-        {
-            var adminCancelWagerFunction = new AdminCancelWagerFunction();
-                adminCancelWagerFunction.WagerId = wagerId;
-            
-             return ContractHandler.SendRequestAsync(adminCancelWagerFunction);
-        }
-
-        public Task<TransactionReceipt> AdminCancelWagerRequestAndWaitForReceiptAsync(BigInteger wagerId, CancellationTokenSource cancellationToken = null)
-        {
-            var adminCancelWagerFunction = new AdminCancelWagerFunction();
-                adminCancelWagerFunction.WagerId = wagerId;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(adminCancelWagerFunction, cancellationToken);
-        }
-
         public Task<string> CancelWagerRequestAsync(CancelWagerFunction cancelWagerFunction)
         {
              return ContractHandler.SendRequestAsync(cancelWagerFunction);
@@ -136,18 +95,22 @@ namespace BlockGameWagering.BlockGameWagering
              return ContractHandler.SendRequestAndWaitForReceiptAsync(cancelWagerFunction, cancellationToken);
         }
 
-        public Task<string> CancelWagerRequestAsync(BigInteger wagerId)
+        public Task<string> CancelWagerRequestAsync(BigInteger nonce, BigInteger deadline, byte[] serverSig)
         {
             var cancelWagerFunction = new CancelWagerFunction();
-                cancelWagerFunction.WagerId = wagerId;
+                cancelWagerFunction.Nonce = nonce;
+                cancelWagerFunction.Deadline = deadline;
+                cancelWagerFunction.ServerSig = serverSig;
             
              return ContractHandler.SendRequestAsync(cancelWagerFunction);
         }
 
-        public Task<TransactionReceipt> CancelWagerRequestAndWaitForReceiptAsync(BigInteger wagerId, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> CancelWagerRequestAndWaitForReceiptAsync(BigInteger nonce, BigInteger deadline, byte[] serverSig, CancellationTokenSource cancellationToken = null)
         {
             var cancelWagerFunction = new CancelWagerFunction();
-                cancelWagerFunction.WagerId = wagerId;
+                cancelWagerFunction.Nonce = nonce;
+                cancelWagerFunction.Deadline = deadline;
+                cancelWagerFunction.ServerSig = serverSig;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(cancelWagerFunction, cancellationToken);
         }
@@ -162,66 +125,24 @@ namespace BlockGameWagering.BlockGameWagering
              return ContractHandler.SendRequestAndWaitForReceiptAsync(completeWagerFunction, cancellationToken);
         }
 
-        public Task<string> CompleteWagerRequestAsync(BigInteger wagerId, string winner, byte[] creatorProof, byte[] opponentProof)
+        public Task<string> CompleteWagerRequestAsync(BigInteger nonce, BigInteger deadline, byte[] serverSig)
         {
             var completeWagerFunction = new CompleteWagerFunction();
-                completeWagerFunction.WagerId = wagerId;
-                completeWagerFunction.Winner = winner;
-                completeWagerFunction.CreatorProof = creatorProof;
-                completeWagerFunction.OpponentProof = opponentProof;
+                completeWagerFunction.Nonce = nonce;
+                completeWagerFunction.Deadline = deadline;
+                completeWagerFunction.ServerSig = serverSig;
             
              return ContractHandler.SendRequestAsync(completeWagerFunction);
         }
 
-        public Task<TransactionReceipt> CompleteWagerRequestAndWaitForReceiptAsync(BigInteger wagerId, string winner, byte[] creatorProof, byte[] opponentProof, CancellationTokenSource cancellationToken = null)
+        public Task<TransactionReceipt> CompleteWagerRequestAndWaitForReceiptAsync(BigInteger nonce, BigInteger deadline, byte[] serverSig, CancellationTokenSource cancellationToken = null)
         {
             var completeWagerFunction = new CompleteWagerFunction();
-                completeWagerFunction.WagerId = wagerId;
-                completeWagerFunction.Winner = winner;
-                completeWagerFunction.CreatorProof = creatorProof;
-                completeWagerFunction.OpponentProof = opponentProof;
+                completeWagerFunction.Nonce = nonce;
+                completeWagerFunction.Deadline = deadline;
+                completeWagerFunction.ServerSig = serverSig;
             
              return ContractHandler.SendRequestAndWaitForReceiptAsync(completeWagerFunction, cancellationToken);
-        }
-
-        public Task<string> CreateWagerRequestAsync(CreateWagerFunction createWagerFunction)
-        {
-             return ContractHandler.SendRequestAsync(createWagerFunction);
-        }
-
-        public Task<TransactionReceipt> CreateWagerRequestAndWaitForReceiptAsync(CreateWagerFunction createWagerFunction, CancellationTokenSource cancellationToken = null)
-        {
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(createWagerFunction, cancellationToken);
-        }
-
-        public Task<string> CreateWagerRequestAsync(BigInteger prize)
-        {
-            var createWagerFunction = new CreateWagerFunction();
-                createWagerFunction.Prize = prize;
-            
-             return ContractHandler.SendRequestAsync(createWagerFunction);
-        }
-
-        public Task<TransactionReceipt> CreateWagerRequestAndWaitForReceiptAsync(BigInteger prize, CancellationTokenSource cancellationToken = null)
-        {
-            var createWagerFunction = new CreateWagerFunction();
-                createWagerFunction.Prize = prize;
-            
-             return ContractHandler.SendRequestAndWaitForReceiptAsync(createWagerFunction, cancellationToken);
-        }
-
-        public Task<List<BigInteger>> GetPlayersWagersQueryAsync(GetPlayersWagersFunction getPlayersWagersFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<GetPlayersWagersFunction, List<BigInteger>>(getPlayersWagersFunction, blockParameter);
-        }
-
-        
-        public Task<List<BigInteger>> GetPlayersWagersQueryAsync(string player, BlockParameter blockParameter = null)
-        {
-            var getPlayersWagersFunction = new GetPlayersWagersFunction();
-                getPlayersWagersFunction.Player = player;
-            
-            return ContractHandler.QueryAsync<GetPlayersWagersFunction, List<BigInteger>>(getPlayersWagersFunction, blockParameter);
         }
 
         public Task<GetWagerOutputDTO> GetWagerQueryAsync(GetWagerFunction getWagerFunction, BlockParameter blockParameter = null)
@@ -229,10 +150,10 @@ namespace BlockGameWagering.BlockGameWagering
             return ContractHandler.QueryDeserializingToObjectAsync<GetWagerFunction, GetWagerOutputDTO>(getWagerFunction, blockParameter);
         }
 
-        public Task<GetWagerOutputDTO> GetWagerQueryAsync(BigInteger wagerId, BlockParameter blockParameter = null)
+        public Task<GetWagerOutputDTO> GetWagerQueryAsync(string player, BlockParameter blockParameter = null)
         {
             var getWagerFunction = new GetWagerFunction();
-                getWagerFunction.WagerId = wagerId;
+                getWagerFunction.Player = player;
             
             return ContractHandler.QueryDeserializingToObjectAsync<GetWagerFunction, GetWagerOutputDTO>(getWagerFunction, blockParameter);
         }
@@ -263,17 +184,6 @@ namespace BlockGameWagering.BlockGameWagering
                 isTrustedForwarderFunction.Forwarder = forwarder;
             
             return ContractHandler.QueryAsync<IsTrustedForwarderFunction, bool>(isTrustedForwarderFunction, blockParameter);
-        }
-
-        public Task<BigInteger> LatestWagerIdQueryAsync(LatestWagerIdFunction latestWagerIdFunction, BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<LatestWagerIdFunction, BigInteger>(latestWagerIdFunction, blockParameter);
-        }
-
-        
-        public Task<BigInteger> LatestWagerIdQueryAsync(BlockParameter blockParameter = null)
-        {
-            return ContractHandler.QueryAsync<LatestWagerIdFunction, BigInteger>(null, blockParameter);
         }
 
         public Task<string> OwnerQueryAsync(OwnerFunction ownerFunction, BlockParameter blockParameter = null)
@@ -333,15 +243,75 @@ namespace BlockGameWagering.BlockGameWagering
              return ContractHandler.SendRequestAndWaitForReceiptAsync<RenounceOwnershipFunction>(null, cancellationToken);
         }
 
-        public Task<string> TokenQueryAsync(TokenFunction tokenFunction, BlockParameter blockParameter = null)
+        public Task<string> ServerQueryAsync(ServerFunction serverFunction, BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryAsync<TokenFunction, string>(tokenFunction, blockParameter);
+            return ContractHandler.QueryAsync<ServerFunction, string>(serverFunction, blockParameter);
         }
 
         
-        public Task<string> TokenQueryAsync(BlockParameter blockParameter = null)
+        public Task<string> ServerQueryAsync(BlockParameter blockParameter = null)
         {
-            return ContractHandler.QueryAsync<TokenFunction, string>(null, blockParameter);
+            return ContractHandler.QueryAsync<ServerFunction, string>(null, blockParameter);
+        }
+
+        public Task<string> SetServerAddressRequestAsync(SetServerAddressFunction setServerAddressFunction)
+        {
+             return ContractHandler.SendRequestAsync(setServerAddressFunction);
+        }
+
+        public Task<TransactionReceipt> SetServerAddressRequestAndWaitForReceiptAsync(SetServerAddressFunction setServerAddressFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setServerAddressFunction, cancellationToken);
+        }
+
+        public Task<string> SetServerAddressRequestAsync(string newServer)
+        {
+            var setServerAddressFunction = new SetServerAddressFunction();
+                setServerAddressFunction.NewServer = newServer;
+            
+             return ContractHandler.SendRequestAsync(setServerAddressFunction);
+        }
+
+        public Task<TransactionReceipt> SetServerAddressRequestAndWaitForReceiptAsync(string newServer, CancellationTokenSource cancellationToken = null)
+        {
+            var setServerAddressFunction = new SetServerAddressFunction();
+                setServerAddressFunction.NewServer = newServer;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(setServerAddressFunction, cancellationToken);
+        }
+
+        public Task<string> StartWagerRequestAsync(StartWagerFunction startWagerFunction)
+        {
+             return ContractHandler.SendRequestAsync(startWagerFunction);
+        }
+
+        public Task<TransactionReceipt> StartWagerRequestAndWaitForReceiptAsync(StartWagerFunction startWagerFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(startWagerFunction, cancellationToken);
+        }
+
+        public Task<string> StartWagerRequestAsync(string opponent, BigInteger prize, BigInteger nonce, BigInteger deadline, byte[] opponentSig)
+        {
+            var startWagerFunction = new StartWagerFunction();
+                startWagerFunction.Opponent = opponent;
+                startWagerFunction.Prize = prize;
+                startWagerFunction.Nonce = nonce;
+                startWagerFunction.Deadline = deadline;
+                startWagerFunction.OpponentSig = opponentSig;
+            
+             return ContractHandler.SendRequestAsync(startWagerFunction);
+        }
+
+        public Task<TransactionReceipt> StartWagerRequestAndWaitForReceiptAsync(string opponent, BigInteger prize, BigInteger nonce, BigInteger deadline, byte[] opponentSig, CancellationTokenSource cancellationToken = null)
+        {
+            var startWagerFunction = new StartWagerFunction();
+                startWagerFunction.Opponent = opponent;
+                startWagerFunction.Prize = prize;
+                startWagerFunction.Nonce = nonce;
+                startWagerFunction.Deadline = deadline;
+                startWagerFunction.OpponentSig = opponentSig;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(startWagerFunction, cancellationToken);
         }
 
         public Task<string> TransferOwnershipRequestAsync(TransferOwnershipFunction transferOwnershipFunction)

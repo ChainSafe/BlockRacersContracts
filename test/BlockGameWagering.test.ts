@@ -1,20 +1,16 @@
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import {
-  WagerState,
-  acceptWager,
-  acceptWagerWithError,
-  acceptWagerWithEvent,
-  adminCancelWager,
   cancelWager,
   cancelWagerWithError,
   cancelWagerWithEvent,
   completeWager,
   completeWagerWithError,
   completeWagerWithEvent,
-  createWager,
-  createWagerWithEvent,
+  startWager,
+  startWagerWithEvent,
+  startWagerDefaultWithError,
+  startWagerWithError,
   deployWageringFixture,
-  getLatestWagerId,
   getPlayersWagers,
   getTokenAddressWagering,
 } from "../src/BlockGameWagering.contract";
@@ -44,50 +40,12 @@ describe("BlockGameWagering", function () {
 
   describe("deployment", () => {
     it("deploys as expected", async () => {
-      const wageringContract = await loadFixture(deployWageringFixture());
-
-      wageringContract.trustedForwarder;
+      await loadFixture(deployWageringFixture());
     });
   });
 
   describe("write", function () {
-    it("createPvpWager", async () => {
-      const { player1 } = await getAccounts();
-
-      const { tokenContract, wageringContract } = await loadFixture(
-        defaultDeployFixture(true),
-      );
-
-      await balanceOfToken(tokenContract, player1, mintingAmount);
-      await balanceOfToken(tokenContract, wageringContract, 0);
-
-      await setAllowanceToken(
-        tokenContract,
-        player1,
-        wageringContract,
-        standardPrize,
-      );
-
-      await getPlayersWagers(wageringContract, player1, []);
-
-      await createWager(wageringContract, player1, standardPrize, {
-        prize: standardPrize,
-        creator: player1.address,
-        opponent: ZeroAddress,
-        winner: ZeroAddress,
-        state: WagerState.CREATED,
-      });
-
-      await balanceOfToken(
-        tokenContract,
-        player1,
-        mintingAmount - standardPrize,
-      );
-      await balanceOfToken(tokenContract, wageringContract, standardPrize);
-
-      await getPlayersWagers(wageringContract, player1, [1]);
-    });
-    it("acceptWager", async () => {
+    it("startWager", async () => {
       const { player1, player2 } = await getAccounts();
 
       const { tokenContract, wageringContract } = await loadFixture(
@@ -100,19 +58,6 @@ describe("BlockGameWagering", function () {
         wageringContract,
         standardPrize,
       );
-
-      await createWager(wageringContract, player1, standardPrize);
-
-      await balanceOfToken(
-        tokenContract,
-        player1,
-        mintingAmount - standardPrize,
-      );
-      await balanceOfToken(tokenContract, wageringContract, standardPrize);
-
-      const player1Wagers = await getPlayersWagers(wageringContract, player1, [
-        1,
-      ]);
       await setAllowanceToken(
         tokenContract,
         player2,
@@ -120,54 +65,30 @@ describe("BlockGameWagering", function () {
         standardPrize,
       );
 
-      await acceptWager(wageringContract, player2, player1Wagers[0], {
-        prize: standardPrize,
-        creator: player1.address,
-        opponent: player2.address,
-        winner: ZeroAddress,
-        state: WagerState.ACCEPTED,
-      });
+      await startWager(wageringContract, player1, player2, standardPrize);
+
+      await balanceOfToken(
+        tokenContract,
+        player1,
+        mintingAmount - standardPrize,
+      );
+      await balanceOfToken(
+        tokenContract,
+        player2,
+        mintingAmount - standardPrize,
+      );
+
+      await getPlayersWagers(wageringContract, player1, [player2.address, standardPrize]);
+      await getPlayersWagers(wageringContract, player2, [player1.address, standardPrize]);
 
       await balanceOfToken(
         tokenContract,
         wageringContract,
-        standardPrize * BigInt(2),
+        standardPrize * 2n,
       );
     });
     describe("Cancel wager", () => {
-      it("Created, cancelled by creator", async () => {
-        const { player1 } = await getAccounts();
-
-        const { tokenContract, wageringContract } = await loadFixture(
-          defaultDeployFixture(true),
-        );
-
-        await setAllowanceToken(
-          tokenContract,
-          player1,
-          wageringContract,
-          standardPrize,
-        );
-
-        await createWager(wageringContract, player1, standardPrize);
-        const player1Wagers = await getPlayersWagers(
-          wageringContract,
-          player1,
-          [1],
-        );
-
-        await cancelWager(wageringContract, player1, player1Wagers[0], {
-          prize: standardPrize,
-          creator: player1.address,
-          opponent: ZeroAddress,
-          winner: ZeroAddress,
-          state: WagerState.CANCELLED,
-        });
-
-        await balanceOfToken(tokenContract, wageringContract, 0);
-        await balanceOfToken(tokenContract, player1, mintingAmount);
-      });
-      it("Accepted, cancelled by creator", async () => {
+      it("Started, cancelled by creator", async () => {
         const { player1, player2 } = await getAccounts();
 
         const { tokenContract, wageringContract } = await loadFixture(
@@ -180,14 +101,6 @@ describe("BlockGameWagering", function () {
           wageringContract,
           standardPrize,
         );
-
-        await createWager(wageringContract, player1, standardPrize);
-
-        const player1Wagers = await getPlayersWagers(
-          wageringContract,
-          player1,
-          [1],
-        );
         await setAllowanceToken(
           tokenContract,
           player2,
@@ -195,33 +108,15 @@ describe("BlockGameWagering", function () {
           standardPrize,
         );
 
-        await acceptWager(wageringContract, player2, player1Wagers[0], {
-          prize: standardPrize,
-          creator: player1.address,
-          opponent: player2.address,
-          winner: ZeroAddress,
-          state: WagerState.ACCEPTED,
-        });
+        await startWager(wageringContract, player1, player2, standardPrize);
 
-        await balanceOfToken(
-          tokenContract,
-          wageringContract,
-          standardPrize * BigInt(2),
-        );
-
-        await cancelWager(wageringContract, player2, player1Wagers[0], {
-          prize: standardPrize,
-          creator: player1.address,
-          opponent: player2.address,
-          winner: ZeroAddress,
-          state: WagerState.CANCELLED,
-        });
+        await cancelWager(wageringContract, player1, player2, standardPrize);
 
         await balanceOfToken(tokenContract, wageringContract, 0);
         await balanceOfToken(tokenContract, player1, mintingAmount);
         await balanceOfToken(tokenContract, player2, mintingAmount);
       });
-      it("Accepted, cancelled by opponent", async () => {
+      it("Started, cancelled by opponent", async () => {
         const { player1, player2 } = await getAccounts();
 
         const { tokenContract, wageringContract } = await loadFixture(
@@ -234,14 +129,6 @@ describe("BlockGameWagering", function () {
           wageringContract,
           standardPrize,
         );
-
-        await createWager(wageringContract, player1, standardPrize);
-
-        const player1Wagers = await getPlayersWagers(
-          wageringContract,
-          player1,
-          [1],
-        );
         await setAllowanceToken(
           tokenContract,
           player2,
@@ -249,27 +136,9 @@ describe("BlockGameWagering", function () {
           standardPrize,
         );
 
-        await acceptWager(wageringContract, player2, player1Wagers[0], {
-          prize: standardPrize,
-          creator: player1.address,
-          opponent: player2.address,
-          winner: ZeroAddress,
-          state: WagerState.ACCEPTED,
-        });
+        await startWager(wageringContract, player1, player2, standardPrize);
 
-        await balanceOfToken(
-          tokenContract,
-          wageringContract,
-          standardPrize * BigInt(2),
-        );
-
-        await cancelWager(wageringContract, player2, player1Wagers[0], {
-          prize: standardPrize,
-          creator: player1.address,
-          opponent: player2.address,
-          winner: ZeroAddress,
-          state: WagerState.CANCELLED,
-        });
+        await cancelWager(wageringContract, player2, player1, standardPrize);
 
         await balanceOfToken(tokenContract, wageringContract, 0);
         await balanceOfToken(tokenContract, player1, mintingAmount);
@@ -278,8 +147,8 @@ describe("BlockGameWagering", function () {
     });
 
     describe("completeWager", () => {
-      it("Allows any account to submit completion TX", async () => {
-        const { player1, player2, player3 } = await getAccounts();
+      it("Started, won by creator", async () => {
+        const { player1, player2 } = await getAccounts();
 
         const { tokenContract, wageringContract } = await loadFixture(
           defaultDeployFixture(true),
@@ -291,13 +160,33 @@ describe("BlockGameWagering", function () {
           wageringContract,
           standardPrize,
         );
-
-        await createWager(wageringContract, player1, standardPrize);
-
-        const player1Wagers = await getPlayersWagers(
+        await setAllowanceToken(
+          tokenContract,
+          player2,
           wageringContract,
+          standardPrize,
+        );
+
+        await startWager(wageringContract, player1, player2, standardPrize);
+
+        await completeWager(wageringContract, player1, player2, standardPrize);
+
+        await balanceOfToken(tokenContract, wageringContract, 0);
+        await balanceOfToken(tokenContract, player1, mintingAmount + standardPrize);
+        await balanceOfToken(tokenContract, player2, mintingAmount - standardPrize);
+      });
+      it("Started, won by opponent", async () => {
+        const { player1, player2 } = await getAccounts();
+
+        const { tokenContract, wageringContract } = await loadFixture(
+          defaultDeployFixture(true),
+        );
+
+        await setAllowanceToken(
+          tokenContract,
           player1,
-          [1],
+          wageringContract,
+          standardPrize,
         );
         await setAllowanceToken(
           tokenContract,
@@ -306,80 +195,19 @@ describe("BlockGameWagering", function () {
           standardPrize,
         );
 
-        await acceptWager(wageringContract, player2, player1Wagers[0], {
-          prize: standardPrize,
-          creator: player1.address,
-          opponent: player2.address,
-          winner: ZeroAddress,
-          state: WagerState.ACCEPTED,
-        });
-        const messageHash = solidityPackedKeccak256(
-          ["uint256", "string", "address"],
-          [player1Wagers[0], "-", player1.address],
-        );
-        const messageHashAsBytes32 = getBytes(messageHash);
+        await startWager(wageringContract, player1, player2, standardPrize);
 
-        const creatorProof = await player1.signMessage(messageHashAsBytes32);
-        const opponentProof = await player2.signMessage(messageHashAsBytes32);
+        await completeWager(wageringContract, player2, player1, standardPrize);
 
-        await completeWager(
-          wageringContract,
-          player3,
-          player1.address,
-          player1Wagers[0],
-          creatorProof,
-          opponentProof,
-          {
-            prize: standardPrize,
-            creator: player1.address,
-            opponent: player2.address,
-            winner: player1.address,
-            state: WagerState.COMPLETED,
-          },
-        );
         await balanceOfToken(tokenContract, wageringContract, 0);
-
-        await balanceOfToken(
-          tokenContract,
-          player1,
-          mintingAmount + standardPrize,
-        );
+        await balanceOfToken(tokenContract, player1, mintingAmount - standardPrize);
+        await balanceOfToken(tokenContract, player2, mintingAmount + standardPrize);
       });
     });
   });
 
   describe("admin", () => {
-    it("adminCancelWager:CREATED", async () => {
-      const { player1, admin } = await getAccounts();
-
-      const { tokenContract, wageringContract } = await loadFixture(
-        defaultDeployFixture(true),
-      );
-
-      await setAllowanceToken(
-        tokenContract,
-        player1,
-        wageringContract,
-        standardPrize,
-      );
-
-      await createWager(wageringContract, player1, standardPrize);
-      const player1Wagers = await getPlayersWagers(wageringContract, player1, [
-        1,
-      ]);
-
-      await adminCancelWager(wageringContract, admin, player1Wagers[0], {
-        prize: standardPrize,
-        creator: player1.address,
-        opponent: ZeroAddress,
-        winner: ZeroAddress,
-        state: WagerState.CANCELLED,
-      });
-
-      await balanceOfToken(tokenContract, wageringContract, 0);
-      await balanceOfToken(tokenContract, player1, mintingAmount);
-    });
-    it("adminCancelWager:ACCEPTED", async () => {
+    it("Creator blacklisted", async () => {
       const { player1, player2, admin } = await getAccounts();
 
       const { tokenContract, wageringContract } = await loadFixture(
@@ -392,12 +220,6 @@ describe("BlockGameWagering", function () {
         wageringContract,
         standardPrize,
       );
-
-      await createWager(wageringContract, player1, standardPrize);
-
-      const player1Wagers = await getPlayersWagers(wageringContract, player1, [
-        1,
-      ]);
       await setAllowanceToken(
         tokenContract,
         player2,
@@ -405,184 +227,10 @@ describe("BlockGameWagering", function () {
         standardPrize,
       );
 
-      await acceptWager(wageringContract, player2, player1Wagers[0], {
-        prize: standardPrize,
-        creator: player1.address,
-        opponent: player2.address,
-        winner: ZeroAddress,
-        state: WagerState.ACCEPTED,
-      });
-
-      await balanceOfToken(
-        tokenContract,
-        wageringContract,
-        standardPrize * BigInt(2),
-      );
-
-      await adminCancelWager(wageringContract, admin, player1Wagers[0], {
-        prize: standardPrize,
-        creator: player1.address,
-        opponent: player2.address,
-        winner: ZeroAddress,
-        state: WagerState.CANCELLED,
-      });
-
-      await balanceOfToken(tokenContract, wageringContract, 0);
-      await balanceOfToken(tokenContract, player1, mintingAmount);
-      await balanceOfToken(tokenContract, player2, mintingAmount);
+      await addToBlacklist(wageringContract, admin, player1.address);
+      await startWagerDefaultWithError(wageringContract, player1, player2, standardPrize, "AccountBlacklisted", [player1.address]);
     });
-
-    describe("Creator blacklisted", () => {
-      it("adminCancelWager:CREATED", async () => {
-        const { player1, admin } = await getAccounts();
-
-        const { tokenContract, wageringContract } = await loadFixture(
-          defaultDeployFixture(true),
-        );
-
-        await setAllowanceToken(
-          tokenContract,
-          player1,
-          wageringContract,
-          standardPrize,
-        );
-
-        await createWager(wageringContract, player1, standardPrize);
-        const player1Wagers = await getPlayersWagers(
-          wageringContract,
-          player1,
-          [1],
-        );
-
-        await addToBlacklist(wageringContract, admin, player1.address);
-
-        await adminCancelWager(wageringContract, admin, player1Wagers[0], {
-          prize: standardPrize,
-          creator: player1.address,
-          opponent: ZeroAddress,
-          winner: ZeroAddress,
-          state: WagerState.CANCELLED,
-        });
-
-        await balanceOfToken(tokenContract, wageringContract, 0);
-        await balanceOfToken(tokenContract, player1, mintingAmount);
-      });
-      it("adminCancelWager:ACCEPTED", async () => {
-        const { player1, player2, admin } = await getAccounts();
-
-        const { tokenContract, wageringContract } = await loadFixture(
-          defaultDeployFixture(true),
-        );
-
-        await setAllowanceToken(
-          tokenContract,
-          player1,
-          wageringContract,
-          standardPrize,
-        );
-
-        await createWager(wageringContract, player1, standardPrize);
-
-        const player1Wagers = await getPlayersWagers(
-          wageringContract,
-          player1,
-          [1],
-        );
-        await setAllowanceToken(
-          tokenContract,
-          player2,
-          wageringContract,
-          standardPrize,
-        );
-
-        await acceptWager(wageringContract, player2, player1Wagers[0], {
-          prize: standardPrize,
-          creator: player1.address,
-          opponent: player2.address,
-          winner: ZeroAddress,
-          state: WagerState.ACCEPTED,
-        });
-
-        await addToBlacklist(wageringContract, admin, player2.address);
-
-        await balanceOfToken(
-          tokenContract,
-          wageringContract,
-          standardPrize * BigInt(2),
-        );
-
-        await adminCancelWager(wageringContract, admin, player1Wagers[0], {
-          prize: standardPrize,
-          creator: player1.address,
-          opponent: player2.address,
-          winner: ZeroAddress,
-          state: WagerState.CANCELLED,
-        });
-
-        await balanceOfToken(tokenContract, wageringContract, 0);
-        await balanceOfToken(tokenContract, player1, mintingAmount);
-        await balanceOfToken(tokenContract, player2, mintingAmount);
-      });
-    });
-    describe("Opponent blacklisted", () => {
-      it("adminCancelWager:ACCEPTED", async () => {
-        const { player1, player2, admin } = await getAccounts();
-
-        const { tokenContract, wageringContract } = await loadFixture(
-          defaultDeployFixture(true),
-        );
-
-        await setAllowanceToken(
-          tokenContract,
-          player1,
-          wageringContract,
-          standardPrize,
-        );
-
-        await createWager(wageringContract, player1, standardPrize);
-
-        const player1Wagers = await getPlayersWagers(
-          wageringContract,
-          player1,
-          [1],
-        );
-        await setAllowanceToken(
-          tokenContract,
-          player2,
-          wageringContract,
-          standardPrize,
-        );
-
-        await acceptWager(wageringContract, player2, player1Wagers[0], {
-          prize: standardPrize,
-          creator: player1.address,
-          opponent: player2.address,
-          winner: ZeroAddress,
-          state: WagerState.ACCEPTED,
-        });
-
-        await addToBlacklist(wageringContract, admin, player2.address);
-
-        await balanceOfToken(
-          tokenContract,
-          wageringContract,
-          standardPrize * BigInt(2),
-        );
-
-        await adminCancelWager(wageringContract, admin, player1Wagers[0], {
-          prize: standardPrize,
-          creator: player1.address,
-          opponent: player2.address,
-          winner: ZeroAddress,
-          state: WagerState.CANCELLED,
-        });
-
-        await balanceOfToken(tokenContract, wageringContract, 0);
-        await balanceOfToken(tokenContract, player1, mintingAmount);
-        await balanceOfToken(tokenContract, player2, mintingAmount);
-      });
-    });
-    it("Both Blacklisted | adminCancelWager:ACCEPTED", async () => {
+    it("Opponent blacklisted", async () => {
       const { player1, player2, admin } = await getAccounts();
 
       const { tokenContract, wageringContract } = await loadFixture(
@@ -595,12 +243,6 @@ describe("BlockGameWagering", function () {
         wageringContract,
         standardPrize,
       );
-
-      await createWager(wageringContract, player1, standardPrize);
-
-      const player1Wagers = await getPlayersWagers(wageringContract, player1, [
-        1,
-      ]);
       await setAllowanceToken(
         tokenContract,
         player2,
@@ -608,34 +250,32 @@ describe("BlockGameWagering", function () {
         standardPrize,
       );
 
-      await acceptWager(wageringContract, player2, player1Wagers[0], {
-        prize: standardPrize,
-        creator: player1.address,
-        opponent: player2.address,
-        winner: ZeroAddress,
-        state: WagerState.ACCEPTED,
-      });
+      await addToBlacklist(wageringContract, admin, player2.address);
+      await startWagerDefaultWithError(wageringContract, player1, player2, standardPrize, "AccountBlacklisted", [player2.address]);
+    });
+    it("Both blacklisted", async () => {
+      const { player1, player2, admin } = await getAccounts();
+
+      const { tokenContract, wageringContract } = await loadFixture(
+        defaultDeployFixture(true),
+      );
+
+      await setAllowanceToken(
+        tokenContract,
+        player1,
+        wageringContract,
+        standardPrize,
+      );
+      await setAllowanceToken(
+        tokenContract,
+        player2,
+        wageringContract,
+        standardPrize,
+      );
 
       await addToBlacklist(wageringContract, admin, player1.address);
       await addToBlacklist(wageringContract, admin, player2.address);
-
-      await balanceOfToken(
-        tokenContract,
-        wageringContract,
-        standardPrize * BigInt(2),
-      );
-
-      await adminCancelWager(wageringContract, admin, player1Wagers[0], {
-        prize: standardPrize,
-        creator: player1.address,
-        opponent: player2.address,
-        winner: ZeroAddress,
-        state: WagerState.CANCELLED,
-      });
-
-      await balanceOfToken(tokenContract, wageringContract, 0);
-      await balanceOfToken(tokenContract, player1, mintingAmount);
-      await balanceOfToken(tokenContract, player2, mintingAmount);
+      await startWagerDefaultWithError(wageringContract, player1, player2, standardPrize, "AccountBlacklisted", [player1.address]);
     });
   });
 
@@ -649,24 +289,6 @@ describe("BlockGameWagering", function () {
         trustedForwarder.address,
         true,
       );
-    });
-    it("latestWagerId", async () => {
-      const { player1 } = await getAccounts();
-      const { tokenContract, wageringContract } = await loadFixture(
-        defaultDeployFixture(true),
-      );
-
-      await getLatestWagerId(wageringContract, BigInt(0));
-
-      await setAllowanceToken(
-        tokenContract,
-        player1,
-        wageringContract,
-        standardPrize,
-      );
-      await createWager(wageringContract, player1, standardPrize);
-
-      await getLatestWagerId(wageringContract, BigInt(1));
     });
     it("token", async () => {
       const { tokenContract, wageringContract } = await loadFixture(
@@ -690,39 +312,18 @@ describe("BlockGameWagering", function () {
 
   describe("events", function () {
     it("WagerCreated", async () => {
-      const { player1 } = await getAccounts();
-
-      const { tokenContract, wageringContract } = await loadFixture(
-        defaultDeployFixture(true),
-      );
-      await setAllowanceToken(
-        tokenContract,
-        player1,
-        wageringContract,
-        standardPrize,
-      );
-      await createWagerWithEvent(
-        wageringContract,
-        player1,
-        standardPrize,
-        "WagerCreated",
-        [1, player1.address, standardPrize],
-      );
-    });
-    it("WagerAccepted", async () => {
       const { player1, player2 } = await getAccounts();
 
       const { tokenContract, wageringContract } = await loadFixture(
         defaultDeployFixture(true),
       );
+
       await setAllowanceToken(
         tokenContract,
         player1,
         wageringContract,
         standardPrize,
       );
-      await createWager(wageringContract, player1, standardPrize);
-
       await setAllowanceToken(
         tokenContract,
         player2,
@@ -730,28 +331,22 @@ describe("BlockGameWagering", function () {
         standardPrize,
       );
 
-      await acceptWagerWithEvent(
-        wageringContract,
-        player2,
-        1,
-        "WagerAccepted",
-        [1, player2.address],
-      );
+      await startWagerWithEvent(wageringContract, player1, player2, standardPrize,
+        "WagerCreated", [player1.address, player2.address, standardPrize]);
     });
-    it("WagerCancelled", async () => {
+    it("WagerCancelled by creator", async () => {
       const { player1, player2 } = await getAccounts();
 
       const { tokenContract, wageringContract } = await loadFixture(
         defaultDeployFixture(true),
       );
+
       await setAllowanceToken(
         tokenContract,
         player1,
         wageringContract,
         standardPrize,
       );
-      await createWager(wageringContract, player1, standardPrize);
-
       await setAllowanceToken(
         tokenContract,
         player2,
@@ -759,29 +354,24 @@ describe("BlockGameWagering", function () {
         standardPrize,
       );
 
-      await acceptWager(wageringContract, player2, 1);
-      await cancelWagerWithEvent(
-        wageringContract,
-        player1,
-        1,
-        "WagerCancelled",
-        [1, player1.address],
-      );
+      await startWager(wageringContract, player1, player2, standardPrize);
+
+      await cancelWagerWithEvent(wageringContract, player1, player2, standardPrize,
+        "WagerCancelled", [player1.address, player2.address, standardPrize]);
     });
-    it("WagerCompleted", async () => {
-      const { player1, player2, player3 } = await getAccounts();
+    it("WagerCancelled by oppponent", async () => {
+      const { player1, player2 } = await getAccounts();
 
       const { tokenContract, wageringContract } = await loadFixture(
         defaultDeployFixture(true),
       );
+
       await setAllowanceToken(
         tokenContract,
         player1,
         wageringContract,
         standardPrize,
       );
-      await createWager(wageringContract, player1, standardPrize);
-
       await setAllowanceToken(
         tokenContract,
         player2,
@@ -789,184 +379,66 @@ describe("BlockGameWagering", function () {
         standardPrize,
       );
 
-      await acceptWager(wageringContract, player2, 1);
+      await startWager(wageringContract, player1, player2, standardPrize);
 
-      const messageHash = solidityPackedKeccak256(
-        ["uint256", "string", "address"],
-        [1, "-", player1.address],
+      await cancelWagerWithEvent(wageringContract, player2, player1, standardPrize,
+        "WagerCancelled", [player2.address, player1.address, standardPrize]);
+    });
+    it("WagerCompleted, won by creator", async () => {
+      const { player1, player2 } = await getAccounts();
+
+      const { tokenContract, wageringContract } = await loadFixture(
+        defaultDeployFixture(true),
       );
-      const messageHashAsBytes32 = getBytes(messageHash);
 
-      const creatorProof = await player1.signMessage(messageHashAsBytes32);
-      const opponentProof = await player2.signMessage(messageHashAsBytes32);
-
-      await completeWagerWithEvent(
+      await setAllowanceToken(
+        tokenContract,
+        player1,
         wageringContract,
-        player3,
-        player1.address,
-        1,
-        creatorProof,
-        opponentProof,
-        "WagerCompleted",
-        [1, player1.address],
+        standardPrize,
       );
+      await setAllowanceToken(
+        tokenContract,
+        player2,
+        wageringContract,
+        standardPrize,
+      );
+
+      await startWager(wageringContract, player1, player2, standardPrize);
+
+      await completeWagerWithEvent(wageringContract, player1, player2, standardPrize,
+        "WagerCompleted", [player1.address, player2.address, standardPrize]);
+    });
+    it("WagerCompleted, won by opponent", async () => {
+      const { player1, player2 } = await getAccounts();
+
+      const { tokenContract, wageringContract } = await loadFixture(
+        defaultDeployFixture(true),
+      );
+
+      await setAllowanceToken(
+        tokenContract,
+        player1,
+        wageringContract,
+        standardPrize,
+      );
+      await setAllowanceToken(
+        tokenContract,
+        player2,
+        wageringContract,
+        standardPrize,
+      );
+
+      await startWager(wageringContract, player1, player2, standardPrize);
+
+      await completeWagerWithEvent(wageringContract, player2, player1, standardPrize,
+        "WagerCompleted", [player2.address, player1.address, standardPrize]);
     });
   });
 
   describe("errors", () => {
     it("WagerStateIncorrect", async () => {
-      const { player1, player2, player3 } = await getAccounts();
 
-      const { wageringContract } = await loadFixture(
-        defaultDeployFixture(true),
-      );
-
-      await acceptWagerWithError(
-        wageringContract,
-        player2,
-        1,
-        "WagerStateIncorrect",
-        [1, WagerState.NOT_STARTED, WagerState.CREATED],
-      );
-
-      const messageHash = solidityPackedKeccak256(
-        ["uint256", "string", "address"],
-        [1, "-", player1.address],
-      );
-      const messageHashAsBytes32 = getBytes(messageHash);
-
-      const creatorProof = await player1.signMessage(messageHashAsBytes32);
-      const opponentProof = await player2.signMessage(messageHashAsBytes32);
-
-      await completeWagerWithError(
-        wageringContract,
-        player3,
-        player1.address,
-        1,
-        creatorProof,
-        opponentProof,
-        "WagerStateIncorrect",
-        [1, WagerState.NOT_STARTED, WagerState.ACCEPTED],
-      );
-    });
-    it("WagerCantBeCancelled", async () => {
-      const { player1 } = await getAccounts();
-
-      const { wageringContract } = await loadFixture(
-        defaultDeployFixture(true),
-      );
-
-      await cancelWagerWithError(
-        wageringContract,
-        player1,
-        1,
-        "WagerCantBeCancelled",
-        [1, WagerState.NOT_STARTED],
-      );
-    });
-    it("OnlyParticipantsCanCancel", async () => {
-      const { player1, player2, player3 } = await getAccounts();
-
-      const { tokenContract, wageringContract } = await loadFixture(
-        defaultDeployFixture(true),
-      );
-      await setAllowanceToken(
-        tokenContract,
-        player1,
-        wageringContract,
-        standardPrize,
-      );
-      await createWager(wageringContract, player1, standardPrize);
-
-      await setAllowanceToken(
-        tokenContract,
-        player2,
-        wageringContract,
-        standardPrize,
-      );
-
-      await acceptWager(wageringContract, player2, 1);
-
-      await cancelWagerWithError(
-        wageringContract,
-        player3,
-        1,
-        "OnlyParticipantsCanCancel",
-        [1, player3.address],
-      );
-    });
-    it("OpponentCantBeChallenger", async () => {
-      const { player1 } = await getAccounts();
-
-      const { tokenContract, wageringContract } = await loadFixture(
-        defaultDeployFixture(true),
-      );
-      await setAllowanceToken(
-        tokenContract,
-        player1,
-        wageringContract,
-        standardPrize,
-      );
-      await createWager(wageringContract, player1, standardPrize);
-
-      await acceptWagerWithError(
-        wageringContract,
-        player1,
-        1,
-        "OpponentCantBeChallenger",
-        [1, player1.address],
-      );
-    });
-    it("PlayerSignatureInvalid", async () => {
-      const { player1, player2, player3 } = await getAccounts();
-
-      const { tokenContract, wageringContract } = await loadFixture(
-        defaultDeployFixture(true),
-      );
-      await setAllowanceToken(
-        tokenContract,
-        player1,
-        wageringContract,
-        standardPrize,
-      );
-      await createWager(wageringContract, player1, standardPrize);
-
-      await setAllowanceToken(
-        tokenContract,
-        player2,
-        wageringContract,
-        standardPrize,
-      );
-
-      await acceptWager(wageringContract, player2, 1);
-
-      const messageHash = solidityPackedKeccak256(
-        ["uint256", "string", "address"],
-        [1, "-", player1.address],
-      );
-      const messageHashAsBytes32 = getBytes(messageHash);
-
-      const creatorProof = await player1.signMessage(messageHashAsBytes32);
-      const opponentProof = await player2.signMessage(
-        "several cats playing tennis",
-      );
-
-      await completeWagerWithError(
-        wageringContract,
-        player3,
-        player1.address,
-        1,
-        creatorProof,
-        opponentProof,
-        "PlayerSignatureInvalid",
-        [
-          1,
-          player1.address,
-          hashMessage(messageHashAsBytes32),
-          creatorProof,
-          opponentProof,
-        ],
-      );
     });
   });
 });

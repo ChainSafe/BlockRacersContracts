@@ -93,34 +93,16 @@ The wager contract allows for players to stake tokens from the Block Game ERC20 
 
 This contract also has ERC2771 for relaying transactions
 
-There are 5 states a wager can be in
-```solidity
-    enum WagerState { NOT_STARTED, CREATED, ACCEPTED, COMPLETED, CANCELLED }
-```
-- 0 = `WagerState.NOT_STARTED`
-- 1 = `WagerState.CREATED`
-- 2 = `WagerState.ACCEPTED`
-- 3 = `WagerState.COMPLETED`
-- 4 = `WagerState.CANCELLED`
-
 #### Mechanics 
 
-A player can initiate a wager by staking tokens into the Wager contract. Their opponent can then accept the wager by staking tokens into the contract, these would both require approving the Wager contract for transfer of the Wager creators stake.
+A player can initiate a wager by sending a signed message to an opponent. Their opponent can then accept the wager by staking tokens into the contract, these would both require approving the Wager contract for transfer of the Wager creators and opponents stake.
 
-When a race is completed, both players would sign a message of the winner's address to then release the funds to the winner.
+When a race is completed, server would sign a message confirming the winner, then this message is passed to the contract by winner. This sends the winner back their initial stake as well as their opponents stake.
 
-This sends the winner back their initial stake as well as their opponents stake.
+Or server could sign a cancellation message for a particular player, then this player could cancel the match.
 
-Any account can submit the `completeWager` function as it uses signatures from both players as validation and not the transaction sender.
+#### Black listing
 
-#### Potential issues
+Blacklisting feature has been added to prevent specified accounts from engaging in wagers.
 
-Wagers can be cancelled by either party prior to completion in order to not lock up funds.
-
-This however introduces an incentive for the losing player to submit a cancellation before the `completeWager` function is called.
-
-The impact of this is just that both players get their stake back, however this could then be used as a form of DDoS against races.
-
-As such, a blacklisting feature has been added to prevent specified accounts from engaging in wagers.
-
-If a user has been blacklisted, and they have already staked, an admin is able to cancel a wager manually, returning the funds.
+If a user has been blacklisted, and they have already staked, they could still finish their wager, and would not be able to create new ones.
