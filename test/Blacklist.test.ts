@@ -12,7 +12,7 @@ import {
 import { defaultDeployFixture, getAccounts } from "../src/generalFunctions";
 import { assert } from "chai";
 import { parseUnits } from "ethers";
-import { createWagerWithError } from "../src/BlockRacersWagering.contract";
+import { startWagerDefaultWithError } from "../src/BlockGameWagering.contract";
 
 describe("Blacklist", function () {
   describe("deployment", () => {
@@ -87,7 +87,7 @@ describe("Blacklist", function () {
 
   describe("errors", function () {
     it("AccountBlacklisted", async () => {
-      const { admin, player1 } = await getAccounts();
+      const { admin, player1, player2 } = await getAccounts();
       const { wageringContract } = await loadFixture(
         defaultDeployFixture(true),
       );
@@ -95,9 +95,10 @@ describe("Blacklist", function () {
       await addToBlacklist(wageringContract, admin, player1.address);
       const standardPrize = parseUnits("4", 18);
 
-      await createWagerWithError(
+      await startWagerDefaultWithError(
         wageringContract,
         player1,
+        player2,
         standardPrize,
         "AccountBlacklisted",
         [player1.address],

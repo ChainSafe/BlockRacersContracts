@@ -2,10 +2,10 @@ import { ethers } from "hardhat";
 import {
   deployTokenFixture,
   mintWithPermit,
-} from "./BlockRacersToken.contract";
-import { deployAssetsFixture } from "./BlockRacersAssets.contract";
-import { deployWageringFixture } from "./BlockRacersWagering.contract";
-import { deployCoreFixture } from "./BlockRacers.contract";
+} from "./BlockGameToken.contract";
+import { deployAssetsFixture } from "./BlockGameAssets.contract";
+import { deployWageringFixture } from "./BlockGameWagering.contract";
+import { deployCoreFixture } from "./BlockGame.contract";
 import { AddressLike, parseUnits } from "ethers";
 import { ERC2771Context } from "../typechain-types/@openzeppelin/contracts/metatx/ERC2771Context";
 import { assert } from "chai";
@@ -30,6 +30,7 @@ export const getAccounts = async () => {
     player1,
     player2,
     player3,
+    server: issuerAccount,
   };
 };
 
@@ -39,7 +40,7 @@ export const defaultDeployFixture = (withMint: boolean = false) => {
     const wageringContract = await deployWageringFixture(
       await tokenContract.getAddress(),
     )();
-    const { blockRacersContract: coreContract, blockRacersAssetsContract: assetsContract, uiHelperContract } = await deployCoreFixture(
+    const { blockGameContract: coreContract, blockGameAssetsContract: assetsContract, uiHelperContract } = await deployCoreFixture(
       await tokenContract.getAddress(),
     )();
 

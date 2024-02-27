@@ -1,22 +1,22 @@
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import {
-  CarTypeOption,
+  ObjectTypeOption,
   GameItem,
   deployCoreFixture,
-  getCarOption,
+  getObjectOption,
   getUpgradeData,
-  upgradeEngine,
-  mintCar,
+  upgradeItem1,
+  mintObject,
   getUserMintedTypes,
-  getUserCarsByTypeWithStats,
-} from "../src/BlockRacers.contract";
+  getUserObjectsByTypeWithStats,
+} from "../src/BlockGame.contract";
 import {
   defaultDeployFixture,
   getAccounts,
 } from "../src/generalFunctions";
 import {
   setAllowanceToken,
-} from "../src/BlockRacersToken.contract";
+} from "../src/BlockGameToken.contract";
 
 describe("UIHelper", function () {
   describe("read", function () {
@@ -27,7 +27,7 @@ describe("UIHelper", function () {
       );
 
       await getUserMintedTypes(uiHelperContract, player1.address, [false, false, false]);
-      await getUserCarsByTypeWithStats(uiHelperContract, player1.address, [
+      await getUserObjectsByTypeWithStats(uiHelperContract, player1.address, [
         [0n, 0n, 0n, 0n],
         [0n, 0n, 0n, 0n],
         [0n, 0n, 0n, 0n],
@@ -40,19 +40,19 @@ describe("UIHelper", function () {
         defaultDeployFixture(true),
       );
 
-      const carType = CarTypeOption.FIRST;
-      const { carCost } = await getCarOption(coreContract, carType);
+      const objectType = ObjectTypeOption.FIRST;
+      const { objectCost } = await getObjectOption(coreContract, objectType);
 
       await setAllowanceToken(
         tokenContract,
         player1,
         await coreContract.getAddress(),
-        carCost,
+        objectCost,
       );
-      await mintCar(coreContract, carType, player1);
+      await mintObject(coreContract, objectType, player1);
 
       await getUserMintedTypes(uiHelperContract, player1.address, [true, false, false]);
-      await getUserCarsByTypeWithStats(uiHelperContract, player1.address, [
+      await getUserObjectsByTypeWithStats(uiHelperContract, player1.address, [
         [1n, 0n, 0n, 0n],
         [0n, 0n, 0n, 0n],
         [0n, 0n, 0n, 0n],
@@ -64,12 +64,12 @@ describe("UIHelper", function () {
         tokenContract,
         player1,
         await coreContract.getAddress(),
-        upgradeData[GameItem.ENGINE][1],
+        upgradeData[GameItem.ITEM1][1],
       );
 
-      await upgradeEngine(coreContract, player1, 1, 1);
+      await upgradeItem1(coreContract, player1, 1, 1);
 
-      await getUserCarsByTypeWithStats(uiHelperContract, player1.address, [
+      await getUserObjectsByTypeWithStats(uiHelperContract, player1.address, [
         [1n, 1n, 0n, 0n],
         [0n, 0n, 0n, 0n],
         [0n, 0n, 0n, 0n],
@@ -82,30 +82,30 @@ describe("UIHelper", function () {
         defaultDeployFixture(true),
       );
 
-      let carType = CarTypeOption.FIRST;
-      let { carCost } = await getCarOption(coreContract, carType);
+      let objectType = ObjectTypeOption.FIRST;
+      let { objectCost } = await getObjectOption(coreContract, objectType);
 
       await setAllowanceToken(
         tokenContract,
         player1,
         await coreContract.getAddress(),
-        carCost,
+        objectCost,
       );
-      await mintCar(coreContract, carType, player1);
+      await mintObject(coreContract, objectType, player1);
 
-      carType = CarTypeOption.THIRD;
-      ({ carCost } = await getCarOption(coreContract, carType));
+      objectType = ObjectTypeOption.THIRD;
+      ({ objectCost } = await getObjectOption(coreContract, objectType));
 
       await setAllowanceToken(
         tokenContract,
         player1,
         await coreContract.getAddress(),
-        carCost,
+        objectCost,
       );
-      await mintCar(coreContract, carType, player1);
+      await mintObject(coreContract, objectType, player1);
 
       await getUserMintedTypes(uiHelperContract, player1.address, [true, false, true]);
-      await getUserCarsByTypeWithStats(uiHelperContract, player1.address, [
+      await getUserObjectsByTypeWithStats(uiHelperContract, player1.address, [
         [1n, 0n, 0n, 0n],
         [0n, 0n, 0n, 0n],
         [2n, 0n, 0n, 0n],

@@ -1,59 +1,59 @@
 import * as codegen from "nethereum-codegen";
 import {
-  abi as BlockRacersAbi,
-  bytecode as BlockRacersBytecode,
-} from "../artifacts/contracts/BlockRacers.sol/BlockRacers.json";
+  abi as BlockGameAbi,
+  bytecode as BlockGameBytecode,
+} from "../artifacts/contracts/BlockGame.sol/BlockGame.json";
 import {
-  abi as BlockRacersAssetsAbi,
-  bytecode as BlockRacersAssetsBytecode,
-} from "../artifacts/contracts/BlockRacersAssets.sol/BlockRacersAssets.json";
+  abi as BlockGameAssetsAbi,
+  bytecode as BlockGameAssetsBytecode,
+} from "../artifacts/contracts/BlockGameAssets.sol/BlockGameAssets.json";
 import {
-  abi as BlockRacersTokenAbi,
-  bytecode as BlockRacersTokenBytecode,
-} from "../artifacts/contracts/BlockRacersToken.sol/BlockRacersToken.json";
+  abi as BlockGameTokenAbi,
+  bytecode as BlockGameTokenBytecode,
+} from "../artifacts/contracts/BlockGameToken.sol/BlockGameToken.json";
 import {
-  abi as BlockRacersWageringAbi,
-  bytecode as BlockRacersWageringBytecode,
-} from "../artifacts/contracts/BlockRacersWagering.sol/BlockRacersWagering.json";
+  abi as BlockGameWageringAbi,
+  bytecode as BlockGameWageringBytecode,
+} from "../artifacts/contracts/BlockGameWagering.sol/BlockGameWagering.json";
 
 const basePath = "unityClasses";
 
-// Block Racers
+// Block Game
 codegen.generateAllClasses(
-  JSON.stringify(BlockRacersAbi),
-  BlockRacersBytecode,
-  "BlockRacers",
-  "BlockRacers",
+  JSON.stringify(BlockGameAbi),
+  BlockGameBytecode,
+  "BlockGame",
+  "BlockGame",
   basePath,
   0,
 );
 
-// Block Racers Token
+// Block Game Token
 codegen.generateAllClasses(
-  JSON.stringify(BlockRacersTokenAbi),
-  BlockRacersTokenBytecode,
-  "BlockRacersToken",
-  "BlockRacersToken",
+  JSON.stringify(BlockGameTokenAbi),
+  BlockGameTokenBytecode,
+  "BlockGameToken",
+  "BlockGameToken",
   basePath,
   0,
 );
 
-// Block Racers Assets
+// Block Game Assets
 codegen.generateAllClasses(
-  JSON.stringify(BlockRacersAssetsAbi),
-  BlockRacersAssetsBytecode,
-  "BlockRacersAssets",
-  "BlockRacersAssets",
+  JSON.stringify(BlockGameAssetsAbi),
+  BlockGameAssetsBytecode,
+  "BlockGameAssets",
+  "BlockGameAssets",
   basePath,
   0,
 );
 
-// Block Racers Wager
+// Block Game Wager
 codegen.generateAllClasses(
-  JSON.stringify(BlockRacersWageringAbi),
-  BlockRacersWageringBytecode,
-  "BlockRacersWagering",
-  "BlockRacersWagering",
+  JSON.stringify(BlockGameWageringAbi),
+  BlockGameWageringBytecode,
+  "BlockGameWagering",
+  "BlockGameWagering",
   basePath,
   0,
 );
