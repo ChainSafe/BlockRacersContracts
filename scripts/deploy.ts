@@ -14,6 +14,8 @@ async function main() {
   const issuer = ethers.isAddress(process.env.ISSUER) ? process.env.ISSUER : deployer.address;
   const server = ethers.isAddress(process.env.SERVER) ? process.env.SERVER : deployer.address;
   const feeAccount = ethers.isAddress(process.env.FEE_ACCOUNT) ? process.env.FEE_ACCOUNT : deployer.address;
+  const baseUri = process.env.BASE_URI;
+  const lootUri = process.env.LOOT_BASE_URI;
 
   if (!ethers.isAddress(gameAddress)) {
     const tokenContract = process.env.PUBLIC_MINT === "true" ? "BlockGameTokenTest" : "BlockGameToken";
@@ -40,7 +42,7 @@ async function main() {
     admin,
     gameAddress,
     feeAccount,
-    process.env.BASE_URI,
+    baseUri,
     prices,
   ]);
   await blockGame.waitForDeployment();
@@ -56,6 +58,10 @@ async function main() {
   const wagering = await ethers.deployContract(targetContract, [trustedForwarder, admin, gameAddress, server]);
   await wagering.waitForDeployment();
 
+  console.log(`Deploying BlockGameLoot.`);
+  const loot = await ethers.deployContract("BlockGameLoot", [trustedForwarder, admin, lootUri]);
+  await loot.waitForDeployment();
+
   console.log();
   console.log(`Game Id: ${process.env.GAME_ID}`);
   console.log(`BlockGameToken: ${gameAddress}`);
@@ -63,9 +69,10 @@ async function main() {
   console.log(`BlockGameAssets: ${assets}`);
   console.log(`UIHelper: ${uiHelper.target}`);
   console.log(`BlockGameWagering: ${wagering.target}`);
+  console.log(`BlockGameLoot: ${loot.target}`);
   console.log(`Admin: ${admin}`);
   console.log(`Fee: ${feeAccount}`);
-  console.log(`BaseURI: ${process.env.BASE_URI}`);
+  console.log(`BaseURI: ${baseUri}`);
 
   if (process.env.VERIFY === "true") {
     console.log("Waiting half a minute to start verification");
@@ -78,11 +85,11 @@ async function main() {
     }
     await hre.run("verify:verify", {
       address: blockGame.target,
-      constructorArguments: [trustedForwarder, admin, gameAddress, feeAccount, process.env.BASE_URI, prices],
+      constructorArguments: [trustedForwarder, admin, gameAddress, feeAccount, baseUri, prices],
     });
     await hre.run("verify:verify", {
       address: assets,
-      constructorArguments: [trustedForwarder, process.env.BASE_URI],
+      constructorArguments: [trustedForwarder, baseUri],
     });
     await hre.run("verify:verify", {
       address: uiHelper.target,
@@ -91,6 +98,10 @@ async function main() {
     await hre.run("verify:verify", {
       address: wagering.target,
       constructorArguments: [trustedForwarder, admin, gameAddress, server],
+    });
+    await hre.run("verify:verify", {
+      address: loot.target,
+      constructorArguments: [trustedForwarder, admin, lootUri],
     });
   }
 }

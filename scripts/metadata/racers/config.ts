@@ -18,4 +18,11 @@ const objectSpecs = [
   },
 ];
 
-export default { items, objectSpecs };
+const loot = {
+  name: "Skin",
+  description: "Car skin from BlockRacers game, by chainsafe.io",
+  imagesBaseUri: "ipfs://QmbVWCNa5w4UbqXevwmYzeU1gXw5Yq54ioLgYQAPivmMNa/",
+  itemsCount: 9,
+};
+
+export default { items, objectSpecs, loot };
