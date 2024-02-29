@@ -47,12 +47,6 @@ contract BlockGameAssets is
         return _mint(to);
     }
 
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override returns (bool) {
-        return super.supportsInterface(interfaceId);
-    }
-
     function uri(
         uint256 tokenId
     ) public view override returns (string memory) {

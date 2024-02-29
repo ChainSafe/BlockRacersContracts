@@ -3,7 +3,7 @@ pragma solidity 0.8.22;
 
 import {ERC1155Enumerable, ERC1155} from "./ERC1155Enumerable.sol";
 import {IBlockGame} from "./IBlockGame.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {
     ERC2771Context,
     Context
@@ -16,8 +16,10 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 contract BlockGameLoot is
     ERC2771Context,
     ERC1155Enumerable,
-    Ownable
+    AccessControl
 {
+    bytes32 constant public ADMIN_ROLE = "admin";
+
     error TokenDoesNotExist();
 
     /// @dev Constructor sets token to be used and nft info
@@ -25,20 +27,33 @@ contract BlockGameLoot is
     /// @param baseUri_ URI base string
     constructor(
         address trustedForwarder,
-        address owner_,
+        address owner,
         string memory baseUri_
-    ) ERC2771Context(trustedForwarder) ERC1155(baseUri_) Ownable(owner_) {}
+    ) ERC2771Context(trustedForwarder) ERC1155(baseUri_) {
+        _grantRole(ADMIN_ROLE, owner);
+    }
 
     /// @dev Minting functions
-    /// @notice Mints NFTs to target wallet
+    /// @notice Mints NFTs to target account
     /// @param to The receiving account
     /// @param ids The IDs to mint
     /// @param values The respective values for each ID to mint
     /// @param data The transfer data to be called on the receiving account contract
     function mintBatch(
         address to, uint256[] memory ids, uint256[] memory values, bytes memory data
-    ) external onlyOwner {
+    ) external onlyRole(ADMIN_ROLE) {
         _mintBatch(to, ids, values, data);
+    }
+
+    /// @dev Burning functions
+    /// @notice Burns NFTs from target account
+    /// @param from The account to burn from
+    /// @param ids The IDs to mint
+    /// @param values The respective values for each ID to mint
+    function burnBatch(
+        address from, uint256[] memory ids, uint256[] memory values
+    ) external onlyRole(ADMIN_ROLE) {
+        _burnBatch(from, ids, values);
     }
 
     function uri(
@@ -54,8 +69,15 @@ contract BlockGameLoot is
 
     function setBaseUri(
         string memory baseUri
-    ) external onlyOwner {
+    ) external onlyRole(ADMIN_ROLE) {
         _setURI(baseUri);
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(AccessControl, ERC1155) returns (bool) {
+        return AccessControl.supportsInterface(interfaceId)
+            || ERC1155.supportsInterface(interfaceId);
     }
 
     /**

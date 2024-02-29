@@ -10,6 +10,9 @@ import {
   setUriWithError,
   mintNft,
   mintNftWithError,
+  burnNft,
+  burnNftWithError,
+  ADMIN_ROLE,
 } from "../src/BlockGameLoot.contract";
 import {
   checkTrustedForwarder,
@@ -27,7 +30,7 @@ describe("BlockGameLoot", function () {
       const { admin } = await getAccounts();
       const { lootContract } = await loadFixture(deployLootFixture);
 
-      assert.equal(await lootContract.owner(), admin.address);
+      assert.isTrue(await lootContract.hasRole(ADMIN_ROLE, admin.address));
     });
   });
 
@@ -74,7 +77,14 @@ describe("BlockGameLoot", function () {
         [1, 5, 8],
         [10, 20, 80],
       );
-      await getInventory(lootContract, player1.address, [[1n, 10n], [5n, 20n], [8n, 80n]]);
+      await burnNft(
+        lootContract,
+        admin,
+        player1,
+        [1, 5, 8],
+        [1, 2, 3],
+      );
+      await getInventory(lootContract, player1.address, [[1n, 9n], [5n, 18n], [8n, 77n]]);
     });
     it("isTrustedForwarder", async () => {
       const { trustedForwarder } = await getAccounts();
@@ -127,6 +137,29 @@ describe("BlockGameLoot", function () {
       await balanceOfNft(lootContract, player1.address, 5, 20);
       await balanceOfNft(lootContract, player1.address, 8, 80);
     });
+    it("burnBatch(address,uint256[],uint256[])", async () => {
+      const { player1, admin } = await getAccounts();
+      const { lootContract } = await loadFixture(deployLootFixture);
+
+      await mintNft(
+        lootContract,
+        admin,
+        player1,
+        [1, 5, 8],
+        [10, 20, 80],
+      );
+      await burnNft(
+        lootContract,
+        admin,
+        player1,
+        [1, 5, 8],
+        [10, 20, 80],
+      );
+
+      await balanceOfNft(lootContract, player1.address, 1, 0);
+      await balanceOfNft(lootContract, player1.address, 5, 0);
+      await balanceOfNft(lootContract, player1.address, 8, 0);
+    });
     it("setBaseUri(string)", async () => {
       const { player1, admin } = await getAccounts();
       const { lootContract } = await loadFixture(deployLootFixture);
@@ -145,7 +178,7 @@ describe("BlockGameLoot", function () {
   });
 
   describe("errors", () => {
-    it("OwnableUnauthorizedAccount", async () => {
+    it("AccessControlUnauthorizedAccount", async () => {
       const { player1 } = await getAccounts();
       const { lootContract } = await loadFixture(deployLootFixture);
       const nftId = 1;
@@ -157,15 +190,24 @@ describe("BlockGameLoot", function () {
         player1,
         [nftId],
         [value],
-        "OwnableUnauthorizedAccount",
-        [player1.address],
+        "AccessControlUnauthorizedAccount",
+        [player1.address, ADMIN_ROLE],
+      );
+      await burnNftWithError(
+        lootContract,
+        player1,
+        player1,
+        [nftId],
+        [value],
+        "AccessControlUnauthorizedAccount",
+        [player1.address, ADMIN_ROLE],
       );
       await setUriWithError(
         lootContract,
         player1,
         "someNewUri",
-        "OwnableUnauthorizedAccount",
-        [player1.address]
+        "AccessControlUnauthorizedAccount",
+        [player1.address, ADMIN_ROLE]
       );
     });
     it("TokenDoesNotExist()", async () => {

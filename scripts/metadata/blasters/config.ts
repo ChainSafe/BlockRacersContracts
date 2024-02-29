@@ -21,7 +21,7 @@ const objectSpecs = [
 const loot = {
   name: "Skin",
   description: "Weapon skin from BlockBlasters game, by chainsafe.io",
-  imagesBaseUri: "ipfs://TBD/",
+  imagesBaseUri: "ipfs://QmVP9x2RuZST6dkA5B9Eu23BYLDNH7DfGJZMsBkRY4DtQT/",
   itemsCount: 9,
 };
 
