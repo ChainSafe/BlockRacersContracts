@@ -191,8 +191,7 @@ export const getUri = async (
   const uri = await assetsContract.uri(nftId);
 
   if (expected) {
-    assert(
-      uri == expected,
+    assert.equal(uri, expected,
       `Uri incorrect: Actual:${uri} | Expected: ${expected}`,
     );
   }

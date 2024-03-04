@@ -283,6 +283,31 @@ export const upgradeItem1WithEvent = async (
   }
 };
 
+export const upgradeItem1WithEventOnContract = async (
+  coreContract: BlockGame & {
+    deploymentTransaction(): ContractTransactionResponse;
+  },
+  eventContract: unknown,
+  ownerAccount: HardhatEthersSigner,
+  objectId: BigNumberish,
+  eventName: string,
+  eventArgs?: unknown[],
+) => {
+  if (eventArgs) {
+    await expect(
+      await coreContract.connect(ownerAccount).upgrade(objectId, GameItem.ITEM1),
+      `${eventName} Failed`,
+    )
+      .to.emit(eventContract, eventName)
+      .withArgs(...eventArgs);
+  } else {
+    await expect(
+      await coreContract.connect(ownerAccount).upgrade(objectId, GameItem.ITEM1),
+      `${eventName} Failed`,
+    ).to.emit(eventContract, eventName);
+  }
+};
+
 export const upgradeItem1WithErrors = async (
   coreContract: BlockGame & {
     deploymentTransaction(): ContractTransactionResponse;
@@ -691,4 +716,15 @@ export const getUserObjectsByTypeWithStats = async (
 ) => {
   const types = await coreContract.getUserObjectsByTypeWithStats(owner);
   assert.deepEqual(types, expectedTypes);
+};
+
+export const getUserObjectsWithStats = async (
+  coreContract: UIHelper & {
+    deploymentTransaction(): ContractTransactionResponse;
+  },
+  owner: AddressLike,
+  expected: BigNumberish[][],
+) => {
+  const types = await coreContract.getUserObjectsWithStats(owner);
+  assert.deepEqual(types, expected);
 };

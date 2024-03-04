@@ -182,6 +182,19 @@ namespace BlockGame.BlockGame
             return ContractHandler.QueryAsync<GetUserObjectsFunction, List<BigInteger>>(getUserObjectsFunction, blockParameter);
         }
 
+        public Task<GetUserObjectsWithStatsOutputDTO> GetUserObjectsWithStatsQueryAsync(GetUserObjectsWithStatsFunction getUserObjectsWithStatsFunction, BlockParameter blockParameter = null)
+        {
+            return ContractHandler.QueryDeserializingToObjectAsync<GetUserObjectsWithStatsFunction, GetUserObjectsWithStatsOutputDTO>(getUserObjectsWithStatsFunction, blockParameter);
+        }
+
+        public Task<GetUserObjectsWithStatsOutputDTO> GetUserObjectsWithStatsQueryAsync(string account, BlockParameter blockParameter = null)
+        {
+            var getUserObjectsWithStatsFunction = new GetUserObjectsWithStatsFunction();
+                getUserObjectsWithStatsFunction.Account = account;
+            
+            return ContractHandler.QueryDeserializingToObjectAsync<GetUserObjectsWithStatsFunction, GetUserObjectsWithStatsOutputDTO>(getUserObjectsWithStatsFunction, blockParameter);
+        }
+
         public Task<bool> IsObjectOwnerQueryAsync(IsObjectOwnerFunction isObjectOwnerFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<IsObjectOwnerFunction, bool>(isObjectOwnerFunction, blockParameter);

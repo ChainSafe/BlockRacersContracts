@@ -15,6 +15,7 @@ import {
   getItemDataWithError,
   getOwner,
   getUpgradeData,
+  getUserObjectsWithStats,
   mintObject,
   mintObjectWithErrors,
   mintObjectWithEvent,
@@ -28,6 +29,7 @@ import {
   upgradeItem1,
   upgradeItem1WithErrors,
   upgradeItem1WithEvent,
+  upgradeItem1WithEventOnContract,
   upgradeItem2,
   upgradeItem2WithErrors,
   upgradeItem2WithEvent,
@@ -46,9 +48,13 @@ import {
   deployTokenFixture,
   setAllowanceToken,
 } from "../src/BlockGameToken.contract";
-import { deployAssetsFixture } from "../src/BlockGameAssets.contract";
+import { deployAssetsFixture, getUri } from "../src/BlockGameAssets.contract";
 import { ERC2771Context } from "../typechain-types";
-import { defaultGameSettings, defaultGameSettingsUnits } from "../scripts/defaultSettings";
+import {
+  defaultGameSettings,
+  defaultGameSettingsUnits,
+  generalSettings
+} from "../scripts/defaultSettings";
 import { ZeroAddress } from "ethers";
 
 describe("BlockGame", function () {
@@ -138,6 +144,87 @@ describe("BlockGame", function () {
         coreContract as ERC2771Context,
         trustedForwarder.address,
       );
+    });
+    it("getUserObjectsWithStats", async () => {
+      const { player1, player2 } = await getAccounts();
+
+      const { coreContract, tokenContract } = await loadFixture(
+        defaultDeployFixture(true),
+      );
+
+      const objectType1 = ObjectTypeOption.FIRST;
+      const objectCost1 = (await getObjectOption(coreContract, objectType1)).objectCost;
+
+      await setAllowanceToken(
+        tokenContract,
+        player1,
+        await coreContract.getAddress(),
+        objectCost1,
+      );
+      await mintObject(coreContract, objectType1, player1);
+      await setAllowanceToken(
+        tokenContract,
+        player1,
+        await coreContract.getAddress(),
+        objectCost1,
+      );
+      await mintObject(coreContract, objectType1, player1);
+      const objectType2 = ObjectTypeOption.THIRD;
+      const objectCost2 = (await getObjectOption(coreContract, objectType2)).objectCost;
+
+      await setAllowanceToken(
+        tokenContract,
+        player2,
+        await coreContract.getAddress(),
+        objectCost2,
+      );
+      await mintObject(coreContract, objectType2, player2);
+
+      await setAllowanceToken(
+        tokenContract,
+        player1,
+        await coreContract.getAddress(),
+        objectCost2,
+      );
+      await mintObject(coreContract, objectType2, player1);
+
+      const upgradeData = await getUpgradeData(coreContract);
+
+      await setAllowanceToken(
+        tokenContract,
+        player1,
+        await coreContract.getAddress(),
+        upgradeData[GameItem.ITEM1][1],
+      );
+
+      await upgradeItem1(coreContract, player1, 1);
+
+      await setAllowanceToken(
+        tokenContract,
+        player1,
+        await coreContract.getAddress(),
+        upgradeData[GameItem.ITEM2][1],
+      );
+
+      await upgradeItem2(coreContract, player1, 2);
+
+      await setAllowanceToken(
+        tokenContract,
+        player1,
+        await coreContract.getAddress(),
+        upgradeData[GameItem.ITEM3][1],
+      );
+
+      await upgradeItem3(coreContract, player1, 4);
+
+      await getUserObjectsWithStats(coreContract, player1, [
+        [1n, 2n, 4n],
+        [
+          [0n, 1n, 0n, 0n],
+          [0n, 0n, 1n, 0n],
+          [2n, 0n, 0n, 1n],
+        ],
+      ]);
     });
   });
 
@@ -480,7 +567,7 @@ describe("BlockGame", function () {
     });
     it("UpgradeItem1", async () => {
       const { player1 } = await getAccounts();
-      const { coreContract, tokenContract } = await loadFixture(
+      const { coreContract, tokenContract, assetsContract } = await loadFixture(
         defaultDeployFixture(true),
       );
 
@@ -512,6 +599,7 @@ describe("BlockGame", function () {
         [player1.address, numberOfObjectsMintedAsID, GameItem.ITEM1, 1],
         1,
       );
+      await getUri(assetsContract, numberOfObjectsMintedAsID, generalSettings.NFT.baseUri + '0x00010000.json');
     });
     it("UpgradeItem2", async () => {
       const { player1 } = await getAccounts();
@@ -581,6 +669,43 @@ describe("BlockGame", function () {
         "Purchase",
         [player1.address, numberOfObjectsMintedAsID, GameItem.ITEM3, 1],
         1,
+      );
+    });
+    it("Purchase upgrade trigger URI update", async () => {
+      const { player1 } = await getAccounts();
+      const {
+        coreContract,
+        tokenContract,
+        assetsContract
+      } = await loadFixture(defaultDeployFixture(true));
+
+      const objectType = ObjectTypeOption.FIRST;
+      const { objectCost } = await getObjectOption(coreContract, objectType);
+      await setAllowanceToken(
+        tokenContract,
+        player1,
+        await coreContract.getAddress(),
+        objectCost,
+      );
+      await mintObject(coreContract, objectType, player1);
+      const numberOfObjectsMintedAsID = await numberOfObjectsMinted(coreContract, 1);
+
+      const upgradeData = await getUpgradeData(coreContract);
+
+      await setAllowanceToken(
+        tokenContract,
+        player1,
+        await coreContract.getAddress(),
+        upgradeData[GameItem.ITEM1][1],
+      );
+
+      await upgradeItem1WithEventOnContract(
+        coreContract,
+        assetsContract,
+        player1,
+        numberOfObjectsMintedAsID,
+        "URI",
+        [generalSettings.NFT.baseUri + '0x00010000.json', numberOfObjectsMintedAsID],
       );
     });
   });

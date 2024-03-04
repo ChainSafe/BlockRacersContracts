@@ -14,7 +14,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { CallWithERC2771Request } from "@gelatonetwork/relay-sdk";
 import { sponsoredCallERC2771Local } from "./__mock__/relay-sdk";
 
-export const mintingAmount = parseUnits("200", 18);
+export const mintingAmount = parseUnits("2000", 18);
 
 export const getAccounts = async () => {
   const [, issuerAccount, admin, feeAccount, player1, player2, player3] =

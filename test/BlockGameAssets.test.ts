@@ -62,18 +62,6 @@ describe("BlockGameNfts", function () {
         trustedForwarder.address,
       );
     });
-    it("uri", async () => {
-      const { player1 } = await getAccounts();
-      const { blockGameAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
-
-      await mintNft(
-        assetsContract,
-        player1,
-        1,
-      );
-
-      await getUri(assetsContract, 1, generalSettings.NFT.baseUri + '0x00000000.json');
-    });
   });
 
   describe("Write functions", function () {

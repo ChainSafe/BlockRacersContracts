@@ -89,6 +89,32 @@ namespace BlockGameAssets.BlockGameAssets
             return ContractHandler.QueryAsync<BalanceOfBatchFunction, List<BigInteger>>(balanceOfBatchFunction, blockParameter);
         }
 
+        public Task<string> EmitUriUpdateRequestAsync(EmitUriUpdateFunction emitUriUpdateFunction)
+        {
+             return ContractHandler.SendRequestAsync(emitUriUpdateFunction);
+        }
+
+        public Task<TransactionReceipt> EmitUriUpdateRequestAndWaitForReceiptAsync(EmitUriUpdateFunction emitUriUpdateFunction, CancellationTokenSource cancellationToken = null)
+        {
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(emitUriUpdateFunction, cancellationToken);
+        }
+
+        public Task<string> EmitUriUpdateRequestAsync(BigInteger tokenId)
+        {
+            var emitUriUpdateFunction = new EmitUriUpdateFunction();
+                emitUriUpdateFunction.TokenId = tokenId;
+            
+             return ContractHandler.SendRequestAsync(emitUriUpdateFunction);
+        }
+
+        public Task<TransactionReceipt> EmitUriUpdateRequestAndWaitForReceiptAsync(BigInteger tokenId, CancellationTokenSource cancellationToken = null)
+        {
+            var emitUriUpdateFunction = new EmitUriUpdateFunction();
+                emitUriUpdateFunction.TokenId = tokenId;
+            
+             return ContractHandler.SendRequestAndWaitForReceiptAsync(emitUriUpdateFunction, cancellationToken);
+        }
+
         public Task<bool> ExistsQueryAsync(ExistsFunction existsFunction, BlockParameter blockParameter = null)
         {
             return ContractHandler.QueryAsync<ExistsFunction, bool>(existsFunction, blockParameter);

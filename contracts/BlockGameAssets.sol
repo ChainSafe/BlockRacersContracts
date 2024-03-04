@@ -20,7 +20,7 @@ contract BlockGameAssets is
 
     error NotAuthorizedGameContract();
 
-    modifier onlyBlockracers() {
+    modifier onlyBlockGame() {
         if (_msgSender() != address(BLOCK_GAME)) {
             revert NotAuthorizedGameContract();
         }
@@ -43,7 +43,7 @@ contract BlockGameAssets is
     /// @return The minted token id
     function mint(
         address to
-    ) external onlyBlockracers returns(uint256) {
+    ) external onlyBlockGame returns(uint256) {
         return _mint(to);
     }
 
@@ -57,9 +57,13 @@ contract BlockGameAssets is
         ));
     }
 
+    function emitUriUpdate(uint256 tokenId) external onlyBlockGame {
+        emit URI(uri(tokenId), tokenId);
+    }
+
     function setBaseUri(
         string memory baseUri
-    ) external onlyBlockracers {
+    ) external onlyBlockGame {
         _setURI(baseUri);
     }
 

@@ -165,12 +165,24 @@ contract BlockGame is IBlockGame, ERC2771Context, Ownable {
         objectStats[objectId][uint256(item)] = nextLevel;
 
         emit Purchase(player, objectId, item, nextLevel);
+        ASSETS.emitUriUpdate(objectId);
     }
 
     /// @notice Gets an array of objects owned by an address
     /// @return uint256[] The NFT ID array of objects owned by a given account
     function getUserObjects(address account) public view returns (uint256[] memory) {
         return ASSETS.getInventory(account);
+    }
+
+    function getUserObjectsWithStats(address account)
+    public view returns (uint256[] memory ids, uint8[][] memory stats) {
+        ids = ASSETS.getInventory(account);
+        uint256 len = ids.length;
+        stats = new uint8[][](len);
+        for (uint256 i = 0; i < len; ++i) {
+            stats[i] = objectStats[ids[i]];
+        }
+        return (ids, stats);
     }
 
     function getNumberOfObjectsMinted() external view returns (uint256) {
@@ -228,10 +240,13 @@ contract BlockGame is IBlockGame, ERC2771Context, Ownable {
     function serializeProperties(
         uint256 objectId
     ) external view override onlyMinted(objectId) returns (string memory) {
-        uint256 statsValue = uint256(bytes32(abi.encodePacked(objectStats[objectId])));
-        uint256 shift = (32 - ITEMS_COUNT) * 8;
+        uint256 statsValue = 0;
+        uint8[] memory stats = objectStats[objectId];
+        for (uint256 i = 0; i < ITEMS_COUNT; ++i) {
+            statsValue = statsValue | (uint256(stats[i]) << (ITEMS_COUNT - i - 1) * 8);
+        }
 
-        return Strings.toHexString((statsValue << shift) >> shift, ITEMS_COUNT);
+        return Strings.toHexString(statsValue, ITEMS_COUNT);
     }
 
     /**
