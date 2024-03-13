@@ -146,7 +146,6 @@ contract BlockGameWagering is Blacklist {
 
     function getWager(address player) public view returns (address opponent, uint256 prize) {
         Wager memory wager = wagers[player];
-        if (wager.prize == 0) revert InvalidWager();
         return (wager.opponent, wager.prize);
     }
 
