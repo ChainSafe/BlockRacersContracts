@@ -60,8 +60,8 @@ abstract contract ERC1155NFT is ERC1155 {
     ) internal virtual override {
         super._update(from, to, ids, values);
 
-        uint currentSupply = _totalSupply;
         if (from == address(0)) {
+            uint256 currentSupply = _totalSupply;
             for (uint256 i = 0; i < ids.length; ++i) {
                 ++currentSupply;
                 if (ids[i] != currentSupply) revert InvalidMintId(ids[i]);
@@ -69,8 +69,14 @@ abstract contract ERC1155NFT is ERC1155 {
                 _inventory[to].add(currentSupply);
             }
             _totalSupply = currentSupply;
+        } else if (to == address(0)) {
+            revert BurningNotAllowed();
+        } else {
+            for (uint256 i = 0; i < ids.length; ++i) {
+                uint256 id = ids[i];
+                _inventory[from].remove(id);
+                _inventory[to].add(id);
+            }
         }
-
-        if (to == address(0)) revert BurningNotAllowed();
     }
 }

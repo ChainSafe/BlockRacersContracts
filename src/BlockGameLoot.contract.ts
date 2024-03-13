@@ -9,7 +9,7 @@ import {
   ContractTransactionResponse,
   ZeroHash,
 } from "ethers";
-import { BlockGameAssets } from "../typechain-types";
+import { BlockGameLoot } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
 export const ADMIN_ROLE = ethers.zeroPadBytes(ethers.hexlify(ethers.toUtf8Bytes("admin")), 32);
@@ -33,7 +33,7 @@ export const deployLootFixture = async () => {
 };
 
 export const burnNft = async (
-  lootContract: BlockGameAssets & {
+  lootContract: BlockGameLoot & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   admin: HardhatEthersSigner,
@@ -57,7 +57,7 @@ export const burnNft = async (
 };
 
 export const burnNftWithError = async (
-  lootContract: BlockGameAssets & {
+  lootContract: BlockGameLoot & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   admin: HardhatEthersSigner,
@@ -76,7 +76,7 @@ export const burnNftWithError = async (
 };
 
 export const mintNft = async (
-  lootContract: BlockGameAssets & {
+  lootContract: BlockGameLoot & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   admin: HardhatEthersSigner,
@@ -100,7 +100,7 @@ export const mintNft = async (
 };
 
 export const mintNftWithError = async (
-  lootContract: BlockGameAssets & {
+  lootContract: BlockGameLoot & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   admin: HardhatEthersSigner,
@@ -119,7 +119,7 @@ export const mintNftWithError = async (
 };
 
 export const setUri = async (
-  lootContract: BlockGameAssets & {
+  lootContract: BlockGameLoot & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   admin: HardhatEthersSigner,
@@ -141,7 +141,7 @@ export const setUri = async (
 };
 
 export const setUriWithError = async (
-  lootContract: BlockGameAssets & {
+  lootContract: BlockGameLoot & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   admin: HardhatEthersSigner,
@@ -159,7 +159,7 @@ export const setUriWithError = async (
 
 // Read
 export const balanceOfNft = async (
-  lootContract: BlockGameAssets & {
+  lootContract: BlockGameLoot & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   account: AddressLike,
@@ -178,7 +178,7 @@ export const balanceOfNft = async (
 };
 
 export const totalSupply = async (
-  lootContract: BlockGameAssets & {
+  lootContract: BlockGameLoot & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   nftId: BigNumberish,
@@ -196,7 +196,7 @@ export const totalSupply = async (
 };
 
 export const getInventory = async (
-  lootContract: BlockGameAssets & {
+  lootContract: BlockGameLoot & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   account: AddressLike,
@@ -212,7 +212,7 @@ export const getInventory = async (
 };
 
 export const getUri = async (
-  lootContract: BlockGameAssets & {
+  lootContract: BlockGameLoot & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   nftId: BigNumberish,
@@ -230,7 +230,7 @@ export const getUri = async (
 };
 
 export const getUriWithError = async (
-  lootContract: BlockGameAssets & {
+  lootContract: BlockGameLoot & {
     deploymentTransaction(): ContractTransactionResponse;
   },
   nftId: BigNumberish,
@@ -243,4 +243,18 @@ export const getUriWithError = async (
   )
     .to.be.revertedWithCustomError(lootContract, errorName)
     .withArgs(...errorArgs);
+};
+
+export const safeTransferFrom = async (
+  lootContract: BlockGameLoot & {
+    deploymentTransaction(): ContractTransactionResponse;
+  },
+  from: HardhatEthersSigner,
+  to: AddressLike,
+  id: BigNumberish,
+  value: BigNumberish,
+) => {
+  await lootContract
+    .connect(from)
+    .safeTransferFrom(from.address, to, id, value, ZeroHash);
 };

@@ -117,18 +117,17 @@ export const safeTransferFrom = async (
     deploymentTransaction(): ContractTransactionResponse;
   },
   from: HardhatEthersSigner,
-  operator: HardhatEthersSigner,
+  to: AddressLike,
   id: BigNumberish,
   value: BigNumberish,
   relay: boolean = false,
 ) => {
-  await isApprovedForAll(assetsContract, from, operator, true);
   if (relay) {
     const { data } = await assetsContract
-      .connect(operator)
+      .connect(from)
       .safeTransferFrom.populateTransaction(
         from,
-        operator,
+        to,
         id,
         value,
         ZeroHash,
@@ -137,8 +136,8 @@ export const safeTransferFrom = async (
     await sponsorRelayCall(await assetsContract.getAddress(), from, data);
   } else {
     await assetsContract
-      .connect(operator)
-      .safeTransferFrom(from, operator, id, value, ZeroHash);
+      .connect(from)
+      .safeTransferFrom(from, to, id, value, ZeroHash);
   }
 };
 
@@ -197,4 +196,20 @@ export const getUri = async (
   }
 
   return uri;
+};
+
+export const getInventory = async (
+  assetsContract: BlockGameAssets & {
+    deploymentTransaction(): ContractTransactionResponse;
+  },
+  account: AddressLike,
+  expected?: BigNumberish[],
+) => {
+  const inventory = await assetsContract.getInventory(account);
+
+  if (expected) {
+    assert.deepEqual(inventory, expected);
+  }
+
+  return inventory;
 };

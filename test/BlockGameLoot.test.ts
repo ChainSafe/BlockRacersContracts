@@ -12,6 +12,7 @@ import {
   mintNftWithError,
   burnNft,
   burnNftWithError,
+  safeTransferFrom,
   ADMIN_ROLE,
 } from "../src/BlockGameLoot.contract";
 import {
@@ -68,7 +69,7 @@ describe("BlockGameLoot", function () {
       await totalSupply(lootContract, 3, 5n);
     });
     it("getInventory", async () => {
-      const { player1, admin } = await getAccounts();
+      const { player1, player2, admin } = await getAccounts();
       const { lootContract } = await loadFixture(deployLootFixture);
       await mintNft(
         lootContract,
@@ -84,7 +85,21 @@ describe("BlockGameLoot", function () {
         [1, 5, 8],
         [1, 2, 3],
       );
-      await getInventory(lootContract, player1.address, [[1n, 9n], [5n, 18n], [8n, 77n]]);
+      await getInventory(lootContract, player1, [[1n, 9n], [5n, 18n], [8n, 77n]]);
+      await burnNft(
+        lootContract,
+        admin,
+        player1,
+        [5],
+        [18],
+      );
+      await getInventory(lootContract, player1, [[1n, 9n], [8n, 77n]]);
+      await safeTransferFrom(lootContract, player1, player2, 1, 2);
+      await getInventory(lootContract, player1, [[1n, 7n], [8n, 77n]]);
+      await getInventory(lootContract, player2, [[1n, 2n]]);
+      await safeTransferFrom(lootContract, player1, player2, 8, 5);
+      await getInventory(lootContract, player1, [[1n, 7n], [8n, 72n]]);
+      await getInventory(lootContract, player2, [[1n, 2n], [8n, 5n]]);
     });
     it("isTrustedForwarder", async () => {
       const { trustedForwarder } = await getAccounts();

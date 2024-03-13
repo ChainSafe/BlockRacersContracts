@@ -43,20 +43,14 @@ abstract contract ERC1155Enumerable is ERC1155Supply {
     ) internal virtual override {
         super._update(from, to, ids, values);
 
-        if (from == address(0)) {
-            uint256 len = ids.length;
-            for (uint256 i = 0; i < len; ++i) {
-                _inventory[to].add(ids[i]);
+        uint256 len = ids.length;
+        for (uint256 i = 0; i < len; ++i) {
+            uint256 id = ids[i];
+            if (from != address(0) && balanceOf(from, id) == 0) {
+                _inventory[from].remove(id);
             }
-        }
-
-        if (to == address(0)) {
-            uint256 len = ids.length;
-            for (uint256 i = 0; i < len; ++i) {
-                uint256 id = ids[i];
-                if (balanceOf(from, id) == 0) {
-                    _inventory[from].remove(id);
-                }
+            if (to != address(0)) {
+                _inventory[to].add(id);
             }
         }
     }

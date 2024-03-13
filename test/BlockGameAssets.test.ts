@@ -5,6 +5,7 @@ import {
   batchMintNftWithURIWithErrors,
   deployAssetsFixture,
   getUri,
+  getInventory,
   mintNft,
   mintNftWithError,
   safeTransferFrom,
@@ -96,16 +97,18 @@ describe("BlockGameNfts", function () {
     it("safeTransferFrom", async () => {
       const { blockGameAssetsContract: assetsContract } = await loadFixture(deployAssetsFixture);
       const { player1, player2 } = await getAccounts();
-      const nftId = 1;
-      const value = 1;
+      const nftId = 1n;
+      const value = 1n;
 
       await mintNft(
         assetsContract,
         player1,
         nftId,
       );
-      await setApprovalForAll(assetsContract, player1, player2, true);
+      await getInventory(assetsContract, player1, [nftId]);
       await safeTransferFrom(assetsContract, player1, player2, nftId, value);
+      await getInventory(assetsContract, player1, []);
+      await getInventory(assetsContract, player2, [nftId]);
     });
   });
 
