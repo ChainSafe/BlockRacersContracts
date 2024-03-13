@@ -8,11 +8,11 @@ async function main() {
     throw new Error("Specify GAME_TOKEN env variable with the address of deployed BlockGameToken contract.");
   }
 
-  const game = await ethers.getContractAt("BlockGameTokenTest", gameToken);
+  const token = await ethers.getContractAt("BlockGameTokenTest", gameToken);
 
-  const to = "0xDa28303a5ac77aF33aD965cf96e871A4213682a6";
+  const to = "0xDDdd4c384C7A342Ff52ba741A5733379b2C5841E";
   console.log(`Minting 1000 on ${gameToken} to ${to}`);
-  await game.mint(to);
+  await token.mint(to);
 }
 
 main().catch((error) => {

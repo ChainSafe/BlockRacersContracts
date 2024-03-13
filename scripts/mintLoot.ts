@@ -10,9 +10,9 @@ async function main() {
 
   const loot = await ethers.getContractAt("BlockGameLoot", lootAddress);
 
-  const to = "0xDa28303a5ac77aF33aD965cf96e871A4213682a6";
+  const to = "0x5D3e5009E469C1e8948BBe895A6ec0f424da44BD";
   const ids = [0, 1, 2, 3, 4, 5, 6, 7, 8];
-  const values = [15, 10, 5, 15, 10, 5, 15, 10, 5];
+  const values = [150, 100, 50, 150, 100, 50, 150, 100, 50];
   console.log(`Minting on ${lootAddress} to ${to}`);
   await loot.mintBatch(to, ids, values, "0x");
 }
